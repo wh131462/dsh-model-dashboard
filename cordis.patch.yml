@@ -1,0 +1,28 @@
+# Model panel: one Host row (balances, usage scan, authenticated JSON channel) and
+# its Client half (the sidebar "Model panel" entry and the dashboard page under it).
+# The profile's own patch layer may repeat this id to override any field below.
+- insert:
+    - id: token-dashboard
+      name: '@local/dsh-token-dashboard'
+      config:
+        # Host locale used for description text sent to the page; `auto` follows the
+        # Harness locale, `zh` and `en` pin one.
+        locale: auto
+        # Currency label for cost estimation and probe amounts: CNY or USD.
+        currency: CNY
+        # Sessions read concurrently while scanning token usage.
+        scanConcurrency: 3
+        # Newest sessions scanned per pass; 0 means the whole corpus.
+        maxSessions: 0
+        # Empty keeps the cache under $DSH_HOME/cache/token-dashboard.
+        cacheDir: ''
+        # Per-request deadline for one provider balance probe.
+        balanceTimeoutMs: 8000
+        # How long one provider's probe result is reused before a new request.
+        balanceCacheSeconds: 300
+        # Cost estimation per 1,000,000 tokens. Keys are "provider/model" or a bare
+        # model id. Omit to show token counts without a cost.
+        pricing: {}
+        # Per-provider balance probe overrides; mode is auto | openai-billing |
+        # deepseek | custom | off.
+        providerBalance: {}
