@@ -1602,7 +1602,7 @@ function Overview(props) {
     usage.available === false ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Notice, { tone: "info", children: t("overview.usageUnavailable") }) : null,
     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-stat-grid", children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(DefaultModelCard, { snapshot, providers, t }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(AccountCard, { account: snapshot.account, t, busy, onRefresh: onRefreshBalances }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(AccountCard, { account: snapshot.account, providers, t, busy, onRefresh: onRefreshBalances }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(UsageCard, { title: t("overview.today"), totals: usage.today, t, kind: "today" }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(UsageCard, { title: t("overview.last30"), totals: usage.last30, t, kind: "last30" }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProvidersCard, { providers, t }),
@@ -1643,12 +1643,16 @@ function DefaultModelCard({ snapshot, providers, t }) {
     typeof provider?.baseURL === "string" && provider.baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-mono td-ellipsis td-card-url", title: provider.baseURL, children: provider.baseURL }) : null
   ] });
 }
-function AccountCard({ account, t, busy, onRefresh }) {
+function AccountCard({ account, providers, t, busy, onRefresh }) {
   const view = account !== null && typeof account === "object" ? account : {};
   const wallets = Array.isArray(view.wallets) ? view.wallets : [];
   const bonusWallets = Array.isArray(view.bonusWallets) ? view.bonusWallets : [];
+  const accountReady = view.status === "ok" && (wallets.length > 0 || bonusWallets.length > 0);
+  const route = !accountReady && Array.isArray(providers) ? providers.find((provider) => (provider?.id === "deepseek-official" || provider?.id === "deepseek-account") && provider?.balance?.status === "ok") : void 0;
+  const routeBalance = route === void 0 ? null : formatBalance(route.balance, t);
   let status = null;
-  if (view.signedIn === false || view.status === "signed-out") status = t("overview.accountSignedOut");
+  if (routeBalance !== null) status = null;
+  else if (view.signedIn === false || view.status === "signed-out") status = t("overview.accountSignedOut");
   else if (view.status === "failed") status = t("overview.accountFailed");
   else if (view.status === "unavailable" || view.available === false) status = t("overview.accountUnavailable");
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -1669,6 +1673,10 @@ function AccountCard({ account, t, busy, onRefresh }) {
       children: [
         status !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: status }) : null,
         status === null && wallets.length === 0 && bonusWallets.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: t("balance.none") }) : null,
+        routeBalance !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-wallet-list", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-wallet-amount", children: routeBalance.text }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption", children: t("overview.routeBalanceHint", { provider: route.displayName ?? route.id }) })
+        ] }) : null,
         wallets.length > 0 || bonusWallets.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-wallet-list", children: [
           wallets.map((wallet, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-wallet-row", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-wallet-amount", children: formatWallet(wallet) }) }, `wallet-${index}`)),
           bonusWallets.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
@@ -2580,6 +2588,7 @@ var zh = {
   "overview.reasoningEffort": "\u63A8\u7406\u5F3A\u5EA6",
   "overview.account": "\u5B98\u65B9\u8D26\u6237\u4F59\u989D",
   "overview.accountSignedOut": "\u672A\u767B\u5F55 DeepSeek \u8D26\u6237",
+  "overview.routeBalanceHint": "\u8D26\u6237\u672A\u767B\u5F55\uFF0C\u663E\u793A {provider} \u8DEF\u7531\u7684\u4F59\u989D",
   "overview.accountFailed": "\u8D26\u6237\u4F59\u989D\u8BFB\u53D6\u5931\u8D25",
   "overview.accountUnavailable": "\u8D26\u6237\u4F59\u989D\u4E0D\u53EF\u7528",
   "overview.bonusWallets": "\u8D60\u9001\u4F59\u989D",
@@ -2729,6 +2738,7 @@ var en = {
   "overview.reasoningEffort": "Reasoning effort",
   "overview.account": "Official account balance",
   "overview.accountSignedOut": "Not signed in to a DeepSeek account",
+  "overview.routeBalanceHint": "Account not signed in; showing the {provider} route balance",
   "overview.accountFailed": "Could not read the account balance",
   "overview.accountUnavailable": "Account balance unavailable",
   "overview.bonusWallets": "Bonus balance",

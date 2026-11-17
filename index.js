@@ -550,6 +550,10 @@ async function safeList(read) {
 // src/host/balances.js
 var ACCOUNT_TTL_MS = 6e4;
 var JSON_HEADERS = { accept: "application/json" };
+var DEFAULT_BASES = {
+  "deepseek-official": "https://api.deepseek.com/anthropic",
+  "deepseek-account": "https://api.deepseek.com/anthropic"
+};
 function createBalances(ctx, config) {
   const cache = /* @__PURE__ */ new Map();
   let accountCache;
@@ -647,7 +651,7 @@ function createBalances(ctx, config) {
     const key = await resolveApiKey(ctx, provider);
     if (key === void 0) return unavailable("no-key");
     if (mode === "custom") return customProbe(override, key, config.balanceTimeoutMs);
-    const base = typeof override.baseURL === "string" && override.baseURL !== "" ? override.baseURL : provider.baseURL ?? null;
+    const base = typeof override.baseURL === "string" && override.baseURL !== "" ? override.baseURL : provider.baseURL ?? DEFAULT_BASES[provider.id] ?? null;
     if (base === null) return unavailable("no-endpoint");
     const deepseekFirst = mode === "deepseek" || mode === "auto" && isDeepSeekHost(base);
     const attempts = deepseekFirst ? [() => deepseekProbe(base, key, config.balanceTimeoutMs), () => billingProbe(base, key, config.balanceTimeoutMs)] : [() => billingProbe(base, key, config.balanceTimeoutMs), () => deepseekProbe(base, key, config.balanceTimeoutMs)];
@@ -768,7 +772,9 @@ function candidateRoots(base) {
   return roots;
 }
 async function deepseekProbe(base, key, timeoutMs) {
-  const roots = candidateRoots(base);
+  const candidates = candidateRoots(base);
+  const originFirst = [...candidates].sort((left, right) => left.length - right.length);
+  const roots = candidates.length < 2 ? candidates : originFirst;
   if (roots.length === 0) return { ok: false, status: 0, shape: true, message: "invalid base URL" };
   let lastFailure = { ok: false, status: 0, shape: true, message: "invalid base URL" };
   for (const root of roots) {

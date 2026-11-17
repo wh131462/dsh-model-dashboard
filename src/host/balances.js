@@ -20,6 +20,19 @@ const ACCOUNT_TTL_MS = 60000;
 const JSON_HEADERS = { accept: 'application/json' };
 
 /**
+ * Balance endpoints for routes whose profile carries no explicit baseURL.
+ *
+ * The DeepSeek adapter's default endpoint is `https://api.deepseek.com/anthropic`
+ * (`PUBLIC_BASE_URL` in dsh-llm-deepseek), and its settings projection leaves
+ * `baseURL` unset until a user overrides it. The wallet API is served at the
+ * origin, so the probe roots reach `https://api.deepseek.com/user/balance`.
+ */
+const DEFAULT_BASES = {
+  'deepseek-official': 'https://api.deepseek.com/anthropic',
+  'deepseek-account': 'https://api.deepseek.com/anthropic',
+};
+
+/**
  * Create the balance service.
  * @param {object} ctx - the Host plugin context.
  * @param {ReturnType<import('./config.js').normalizeConfig>} config - normalized config.
@@ -172,7 +185,7 @@ export function createBalances(ctx, config) {
     if (mode === 'custom') return customProbe(override, key, config.balanceTimeoutMs);
     const base = typeof override.baseURL === 'string' && override.baseURL !== ''
       ? override.baseURL
-      : provider.baseURL ?? null;
+      : provider.baseURL ?? DEFAULT_BASES[provider.id] ?? null;
     if (base === null) return unavailable('no-endpoint');
     const deepseekFirst = mode === 'deepseek' || (mode === 'auto' && isDeepSeekHost(base));
     const attempts = deepseekFirst
@@ -371,7 +384,9 @@ function candidateRoots(base) {
  * @returns {Promise<{ok: boolean, balance?: object, status?: number, shape?: boolean, message?: string, fatal?: boolean}>} the probe.
  */
 async function deepseekProbe(base, key, timeoutMs) {
-  const roots = candidateRoots(base);
+  const candidates = candidateRoots(base);
+  const originFirst = [...candidates].sort((left, right) => left.length - right.length);
+  const roots = candidates.length < 2 ? candidates : originFirst;
   if (roots.length === 0) return { ok: false, status: 0, shape: true, message: 'invalid base URL' };
   let lastFailure = { ok: false, status: 0, shape: true, message: 'invalid base URL' };
   for (const root of roots) {

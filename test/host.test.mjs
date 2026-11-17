@@ -352,6 +352,41 @@ test('balance probes parse both compatibility shapes and derive the account wall
   assert.deepEqual(resolved.account.wallets, [{ currency: 'CNY', balance: '12.34' }]);
 });
 
+test('the official API-key route probes its default endpoint without a configured base URL', async (t) => {
+  const originalFetch = globalThis.fetch;
+  /** @type {string[]} */
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '88.80', granted_balance: '0.00', topped_up_balance: '88.80' }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const ctx = makeCtx({
+    credentials: {
+      async resolve() {
+        return { value: 'sk-test', source: 'stored' };
+      },
+      async readRecord() {
+        return undefined;
+      },
+    },
+  });
+  const balances = createBalances(ctx, normalizeConfig({ balanceTimeoutMs: 1000 }));
+  const resolved = await balances.forProviders([
+    { id: 'deepseek-official', displayName: 'DeepSeek', accountRoute: false, apiKeyEnv: 'DEEPSEEK_API_KEY', baseURL: null },
+  ], { refresh: true, budgetMs: 0 });
+  assert.ok(calls.includes('https://api.deepseek.com/user/balance'), `probed ${JSON.stringify(calls)}`);
+  assert.equal(resolved['deepseek-official'].status, 'ok');
+  assert.equal(resolved['deepseek-official'].source, 'deepseek');
+  assert.equal(resolved['deepseek-official'].amount, 88.8);
+  assert.equal(resolved['deepseek-official'].currency, 'CNY');
+});
+
 test('usage folds session logs, keeps ranges and cost, and updates incrementally', async (t) => {
   const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-token-dashboard-'));
   const cleanup = async () => {

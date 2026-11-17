@@ -43,7 +43,7 @@ export function Overview(props) {
 
       <div className="td-stat-grid">
         <DefaultModelCard snapshot={snapshot} providers={providers} t={t} />
-        <AccountCard account={snapshot.account} t={t} busy={busy} onRefresh={onRefreshBalances} />
+        <AccountCard account={snapshot.account} providers={providers} t={t} busy={busy} onRefresh={onRefreshBalances} />
         <UsageCard title={t('overview.today')} totals={usage.today} t={t} kind="today" />
         <UsageCard title={t('overview.last30')} totals={usage.last30} t={t} kind="last30" />
         <ProvidersCard providers={providers} t={t} />
@@ -106,13 +106,27 @@ function DefaultModelCard({ snapshot, providers, t }) {
   );
 }
 
-/** Official account card: wallets, bonus wallets, status, and a balance refresh. */
-function AccountCard({ account, t, busy, onRefresh }) {
+/**
+ * Official account card: wallets, bonus wallets, status, and a balance refresh.
+ *
+ * The account wallets need a Platform sign-in grant, while the same money is
+ * reachable through the API-key route's `/user/balance`. When the grant is
+ * missing and that route reports a balance, the card shows it and says where it
+ * came from instead of a bare "signed out".
+ */
+function AccountCard({ account, providers, t, busy, onRefresh }) {
   const view = account !== null && typeof account === 'object' ? account : {};
   const wallets = Array.isArray(view.wallets) ? view.wallets : [];
   const bonusWallets = Array.isArray(view.bonusWallets) ? view.bonusWallets : [];
+  const accountReady = view.status === 'ok' && (wallets.length > 0 || bonusWallets.length > 0);
+  const route = !accountReady && Array.isArray(providers)
+    ? providers.find((provider) => (provider?.id === 'deepseek-official' || provider?.id === 'deepseek-account')
+      && provider?.balance?.status === 'ok')
+    : undefined;
+  const routeBalance = route === undefined ? null : formatBalance(route.balance, t);
   let status = null;
-  if (view.signedIn === false || view.status === 'signed-out') status = t('overview.accountSignedOut');
+  if (routeBalance !== null) status = null;
+  else if (view.signedIn === false || view.status === 'signed-out') status = t('overview.accountSignedOut');
   else if (view.status === 'failed') status = t('overview.accountFailed');
   else if (view.status === 'unavailable' || view.available === false) status = t('overview.accountUnavailable');
   return (
@@ -132,6 +146,12 @@ function AccountCard({ account, t, busy, onRefresh }) {
     >
       {status !== null ? <p className="td-muted">{status}</p> : null}
       {status === null && wallets.length === 0 && bonusWallets.length === 0 ? <p className="td-muted">{t('balance.none')}</p> : null}
+      {routeBalance !== null ? (
+        <div className="td-wallet-list">
+          <span className="td-wallet-amount">{routeBalance.text}</span>
+          <span className="td-caption">{t('overview.routeBalanceHint', { provider: route.displayName ?? route.id })}</span>
+        </div>
+      ) : null}
       {wallets.length > 0 || bonusWallets.length > 0 ? (
         <div className="td-wallet-list">
           {wallets.map((wallet, index) => (

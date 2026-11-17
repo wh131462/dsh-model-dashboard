@@ -40,8 +40,16 @@ reads services the Harness already owns.
 
 ## Balances
 
-The official DeepSeek route shows the account wallets. Every other provider is
-probed on demand and the answer is cached for `balanceCacheSeconds`:
+The official DeepSeek routes are covered twice: the account route
+(`deepseek-account`) shows the Platform wallet through `deepseekAccount`, and the
+API-key route (`deepseek-official`) probes `https://api.deepseek.com/user/balance`
+with the same `DEEPSEEK_API_KEY` credential the route uses — no `baseURL` entry is
+needed in the profile, because the adapter's built-in default endpoint is used as
+the fallback. When the Platform account is not signed in but that probe reports a
+balance, the overview card shows the API-key balance and says where it came from.
+
+Every other provider is probed on demand and the answer is cached for
+`balanceCacheSeconds`:
 
 1. `GET …/user/balance` — the DeepSeek API shape
    (`balance_infos[].total_balance`). Tried first when the endpoint host contains

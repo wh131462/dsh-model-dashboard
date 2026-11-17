@@ -31,7 +31,9 @@ kind: "package-reference"
 
 ## 余额
 
-DeepSeek 官方路由显示账户钱包。其他供应商按需探测，结果缓存 `balanceCacheSeconds`：
+DeepSeek 官方路由有两条：账户路由（`deepseek-account`）通过 `deepseekAccount` 显示 Platform 钱包；API Key 路由（`deepseek-official`）用该路由本身的 `DEEPSEEK_API_KEY` 凭据探测 `https://api.deepseek.com/user/balance`——profile 里不写 `baseURL` 也可以，因为适配器内置的默认端点会被当作兜底。Platform 账户未登录但该探测有余额时，概览卡片会显示 API Key 路由的余额并注明来源。
+
+其他供应商按需探测，结果缓存 `balanceCacheSeconds`：
 
 1. `GET …/user/balance` —— DeepSeek API 形态
    （`balance_infos[].total_balance`）。当端点主机名包含 `deepseek` 时优先尝试。
