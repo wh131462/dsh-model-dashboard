@@ -2847,20 +2847,20 @@ function PanelIcon({ size = 18 } = {}) {
       style: { display: "block" }
     },
     (0, import_react4.createElement)("path", {
-      d: "M7 26a11 11 0 1 1 22 0",
+      d: "M11.07 26.83A9.8 9.8 0 1 1 24.93 26.83",
       fill: "none",
       stroke: "currentColor",
-      strokeWidth: 3.2,
+      strokeWidth: 3,
       strokeLinecap: "round"
     }),
     (0, import_react4.createElement)("path", {
-      d: "M18 19.6 24.7 12.2",
+      d: "M18 19.9 23.23 14.67",
       fill: "none",
       stroke: "currentColor",
-      strokeWidth: 2.8,
+      strokeWidth: 2.6,
       strokeLinecap: "round"
     }),
-    (0, import_react4.createElement)("circle", { cx: 18, cy: 19.6, r: 2.4, fill: "currentColor" })
+    (0, import_react4.createElement)("circle", { cx: 18, cy: 19.9, r: 2.2, fill: "currentColor" })
   );
 }
 var inject = ["slots", "locale"];

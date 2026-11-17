@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" role="img">
   <title>Model panel</title>
-  <path d="M7 26a11 11 0 1 1 22 0" fill="none" stroke="#247bbf" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M18 19.6 24.7 12.2" fill="none" stroke="#247bbf" stroke-width="2.8" stroke-linecap="round"/>
-  <circle cx="18" cy="19.6" r="2.4" fill="#247bbf"/>
-  <circle cx="27.4" cy="28.6" r="2.4" fill="#f0a12f"/>
+  <!-- A 270-degree gauge glyph: the visible bounds are centred on (18, 18) and
+       the bottom opening carries slightly less margin than the top, which keeps
+       the mass optically centred instead of sitting low in the 36px box. -->
+  <path d="M11.07 26.83A9.8 9.8 0 1 1 24.93 26.83" fill="none" stroke="#247bbf" stroke-width="3" stroke-linecap="round"/>
+  <path d="M18 19.9 23.23 14.67" fill="none" stroke="#247bbf" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="18" cy="19.9" r="2.2" fill="#247bbf"/>
 </svg>

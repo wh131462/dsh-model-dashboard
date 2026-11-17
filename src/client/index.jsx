@@ -20,6 +20,10 @@ const PANEL_ORDER = 20;
  * Decorative gauge glyph for the sidebar's panel row. The sidebar owns the row's
  * accessible label, so the glyph itself is hidden from assistive technology and
  * matches the requested edge exactly.
+ *
+ * Geometry matches `icon.svg`: a 270-degree gauge whose visible bounds are
+ * centred on (18, 18) with a slightly larger top margin, so the glyph does not
+ * read as sitting low inside its square.
  * @param {{ size?: number }} props - the sidebar's icon share.
  * @returns the icon element.
  */
@@ -35,20 +39,20 @@ export function PanelIcon({ size = 18 } = {}) {
       style: { display: 'block' },
     },
     h('path', {
-      d: 'M7 26a11 11 0 1 1 22 0',
+      d: 'M11.07 26.83A9.8 9.8 0 1 1 24.93 26.83',
       fill: 'none',
       stroke: 'currentColor',
-      strokeWidth: 3.2,
+      strokeWidth: 3,
       strokeLinecap: 'round',
     }),
     h('path', {
-      d: 'M18 19.6 24.7 12.2',
+      d: 'M18 19.9 23.23 14.67',
       fill: 'none',
       stroke: 'currentColor',
-      strokeWidth: 2.8,
+      strokeWidth: 2.6,
       strokeLinecap: 'round',
     }),
-    h('circle', { cx: 18, cy: 19.6, r: 2.4, fill: 'currentColor' }),
+    h('circle', { cx: 18, cy: 19.9, r: 2.2, fill: 'currentColor' }),
   );
 }
 
