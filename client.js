@@ -27,10 +27,10 @@ __export(index_exports, {
   inject: () => inject
 });
 module.exports = __toCommonJS(index_exports);
-var import_react4 = require("react");
+var import_react5 = require("react");
 
 // src/client/DashboardPage.jsx
-var import_react3 = require("react");
+var import_react4 = require("react");
 
 // src/client/api.js
 var PREFIX = "dsh-token-dashboard";
@@ -114,6 +114,21 @@ function saveDefaultModel(selection, options) {
 }
 function rescanUsage(request = {}, options) {
   return call("rescan", request, options);
+}
+function fetchProviderForm(providerId, options) {
+  return call("provider-form", { providerId }, options);
+}
+function saveProvider(payload, options) {
+  return call("save-provider", payload, options);
+}
+function addProvider(payload, options) {
+  return call("add-provider", payload, options);
+}
+function removeProvider(payload, options) {
+  return call("remove-provider", payload, options);
+}
+function setApiKey(payload, options) {
+  return call("set-api-key", payload, options);
 }
 function errorText(error) {
   if (error instanceof HostError) return error.message;
@@ -903,6 +918,14 @@ var CSS = String.raw`
   min-width: 0;
 }
 
+.td-provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .td-provider-name {
   font-size: 15px;
   line-height: 22px;
@@ -1047,6 +1070,213 @@ var CSS = String.raw`
 
 .td-model-action {
   justify-self: end;
+}
+
+/* ── Provider editor ─────────────────────────────────────────────────────── */
+
+.td-editor {
+  margin-top: 12px;
+}
+
+.td-editor-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.td-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.td-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.td-field-label {
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.td-field-flag {
+  color: var(--dsw-alias-state-error-primary, #d64545);
+}
+
+.td-field-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.td-field-error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #d64545);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.td-input,
+.td-select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
+  border-radius: var(--dsw-radius-sm, 8px);
+  background: var(--dsw-alias-bg-base, #ffffff);
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.td-input[readonly] {
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+  color: var(--dsw-alias-label-secondary, #5b6470);
+}
+
+.td-input:disabled,
+.td-select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.td-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-editor-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-editor-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.td-editor-key-row .td-field {
+  flex: 1 1 220px;
+}
+
+.td-editor-key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 1px;
+}
+
+.td-editor-models {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.td-editor-model {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+}
+
+.td-editor-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.td-editor-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.td-editor-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 32px;
+}
+
+.td-checkbox {
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary, #247bbf);
+  font: inherit;
+}
+
+.td-check-label {
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.td-editor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-editor-foot-left,
+.td-editor-foot-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-editor-foot-right {
+  margin-left: auto;
+}
+
+.td-button-danger {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
+  color: var(--dsw-alias-state-error-primary, #d64545);
+}
+
+@media (hover: hover) {
+  .td-button-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
+  }
 }
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
@@ -1290,6 +1520,15 @@ var CSS = String.raw`
 
   .td-model-action {
     margin-left: auto;
+  }
+
+  .td-editor-grid,
+  .td-editor-model-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .td-editor-foot-right {
+    margin-left: 0;
   }
 
   .td-session-row {
@@ -1769,8 +2008,1056 @@ function ProviderBalancesCard({ providers, t, busy, onRefresh }) {
 }
 
 // src/client/Providers.jsx
+var import_react2 = require("react");
+
+// src/client/ProviderEditor.jsx
 var import_react = require("react");
 var import_jsx_runtime3 = require("react/jsx-runtime");
+var PROTOCOLS = ["openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai"];
+var EFFORT_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+var PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+var CREDENTIAL_REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+var MAX_MODELS = 200;
+var DISPLAY_NAME_MAX = 120;
+var MODEL_ID_MAX = 160;
+var MODEL_NAME_MAX = 160;
+var EFFORT_WIRE_MAX = 40;
+var SOURCE_KEYS = {
+  environment: "providers.source.environment",
+  account: "providers.source.account",
+  stored: "providers.source.stored",
+  "api-key": "providers.source.api-key",
+  grant: "providers.source.grant"
+};
+var ERROR_KEYS = {
+  "unknown-provider": "errors.edit.unknownProvider",
+  "no-settings": "errors.edit.noSettings",
+  readonly: "errors.edit.readonly",
+  "invalid-base-url": "errors.edit.invalidBaseUrl",
+  "invalid-protocol": "errors.edit.invalidProtocol",
+  "invalid-credential-ref": "errors.edit.invalidCredentialRef",
+  "invalid-display-name": "errors.edit.invalidDisplayName",
+  "invalid-model": "errors.edit.invalidModel",
+  "invalid-models": "errors.edit.invalidModels",
+  "duplicate-model": "errors.edit.duplicateModel",
+  conflict: "errors.edit.conflict",
+  "write-failed": "errors.edit.writeFailed",
+  "invalid-key": "errors.edit.invalidKey",
+  "no-credentials": "errors.edit.noCredentials",
+  "key-write-failed": "errors.edit.keyWriteFailed",
+  "invalid-provider-id": "errors.add.invalidProviderId",
+  "provider-exists": "errors.add.providerExists",
+  unavailable: "errors.add.unavailable"
+};
+var rowSequence = 0;
+function nextRowKey() {
+  rowSequence += 1;
+  return `td-model-row-${rowSequence}`;
+}
+function translateOf(t) {
+  return typeof t === "function" ? t : (key) => key;
+}
+function stringValue(value) {
+  return typeof value === "string" ? value : "";
+}
+function trimmedOrNull(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+function codeOf(failure) {
+  return failure !== null && typeof failure === "object" && typeof failure.code === "string" ? failure.code : "";
+}
+function failureMessage(failure) {
+  if (failure !== null && typeof failure === "object" && typeof failure.message === "string" && failure.message !== "") {
+    return failure.message;
+  }
+  return errorText(failure);
+}
+function failureText(failure, t, fallbackKey) {
+  const key = ERROR_KEYS[codeOf(failure)];
+  if (key !== void 0) return t(key);
+  return t(fallbackKey, { message: failureMessage(failure) });
+}
+function sourceText(t, source) {
+  const key = SOURCE_KEYS[source];
+  return key === void 0 ? String(source) : t(key);
+}
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+function positiveIntText(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (text === "") return { ok: true, value: null };
+  if (!/^\d+$/.test(text)) return { ok: false, value: null };
+  const number = Number(text);
+  if (!Number.isSafeInteger(number) || number <= 0) return { ok: false, value: null };
+  return { ok: true, value: number };
+}
+function serializeEfforts(efforts) {
+  const parts = [];
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(efforts, level)) continue;
+    const wire = efforts[level];
+    if (typeof wire !== "string" || wire === "") continue;
+    parts.push(wire === level ? level : `${level}=${wire}`);
+  }
+  return parts.join(", ");
+}
+function parseEfforts(text) {
+  const trimmed = typeof text === "string" ? text.trim() : "";
+  if (trimmed === "") return { ok: true, value: {} };
+  const tokens = trimmed.replace(/\s*=\s*/g, "=").split(/[,，\s]+/).filter((token) => token !== "");
+  const value = {};
+  for (const token of tokens) {
+    const separator = token.indexOf("=");
+    const level = separator === -1 ? token : token.slice(0, separator);
+    const wire = separator === -1 ? token : token.slice(separator + 1);
+    if (!EFFORT_LEVELS.includes(level)) return { ok: false, value: {} };
+    if (wire === "" || wire.length > EFFORT_WIRE_MAX) return { ok: false, value: {} };
+    value[level] = wire;
+  }
+  return { ok: true, value };
+}
+function modelDraft(model) {
+  const source = model !== null && typeof model === "object" ? model : {};
+  const efforts = source.reasoningEfforts !== null && typeof source.reasoningEfforts === "object" && !Array.isArray(source.reasoningEfforts) ? source.reasoningEfforts : {};
+  const modalities = Array.isArray(source.inputModalities) ? source.inputModalities : [];
+  return {
+    key: nextRowKey(),
+    id: stringValue(source.id),
+    name: stringValue(source.name),
+    contextWindow: typeof source.contextWindow === "number" && Number.isFinite(source.contextWindow) ? String(source.contextWindow) : "",
+    maxTokens: typeof source.maxTokens === "number" && Number.isFinite(source.maxTokens) ? String(source.maxTokens) : "",
+    text: modalities.includes("text"),
+    image: modalities.includes("image"),
+    efforts: serializeEfforts(efforts)
+  };
+}
+function draftFromForm(form) {
+  const profile = form !== null && typeof form === "object" && form.profile !== null && typeof form.profile === "object" ? form.profile : {};
+  const models = Array.isArray(profile.models) ? profile.models : [];
+  return {
+    displayName: stringValue(profile.displayName),
+    api: stringValue(profile.api),
+    baseURL: stringValue(profile.baseURL),
+    apiKeyEnv: stringValue(profile.apiKeyEnv),
+    models: models.map(modelDraft)
+  };
+}
+function modalitiesOf(row) {
+  const list = [];
+  if (row.text === true) list.push("text");
+  if (row.image === true) list.push("image");
+  return list;
+}
+function fieldsFromDraft(draft, capabilities) {
+  const fields = {};
+  if (capabilities.displayName === true) fields.displayName = trimmedOrNull(draft.displayName);
+  if (capabilities.api === true) fields.api = trimmedOrNull(draft.api);
+  if (capabilities.baseURL === true) fields.baseURL = trimmedOrNull(draft.baseURL);
+  if (capabilities.apiKeyEnv === true) fields.apiKeyEnv = trimmedOrNull(draft.apiKeyEnv);
+  if (capabilities.models === true) {
+    fields.models = draft.models.slice(0, MAX_MODELS).map((row) => ({
+      id: row.id.trim(),
+      name: trimmedOrNull(row.name),
+      contextWindow: positiveIntText(row.contextWindow).value,
+      maxTokens: positiveIntText(row.maxTokens).value,
+      inputModalities: modalitiesOf(row),
+      reasoningEfforts: parseEfforts(row.efforts).value
+    }));
+  }
+  return fields;
+}
+function validateDraft(draft, capabilities, writable) {
+  const fieldErrors = {};
+  const modelErrors = {};
+  if (writable === true) {
+    if (capabilities.displayName === true && draft.displayName.trim().length > DISPLAY_NAME_MAX) {
+      fieldErrors.displayName = "providers.edit.displayNameInvalid";
+    }
+    if (capabilities.api === true && draft.api !== "" && !PROTOCOLS.includes(draft.api)) {
+      fieldErrors.api = "errors.edit.invalidProtocol";
+    }
+    if (capabilities.baseURL === true) {
+      const baseURL = draft.baseURL.trim();
+      if (baseURL !== "" && !isHttpUrl(baseURL)) fieldErrors.baseURL = "providers.edit.baseURLInvalid";
+    }
+    if (capabilities.apiKeyEnv === true) {
+      const apiKeyEnv = draft.apiKeyEnv.trim();
+      if (apiKeyEnv !== "" && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) {
+        fieldErrors.apiKeyEnv = "providers.edit.apiKeyEnvInvalid";
+      }
+    }
+    if (capabilities.models === true) {
+      const seen = /* @__PURE__ */ new Set();
+      for (const row of draft.models) {
+        const rowErrors = {};
+        const id = row.id.trim();
+        if (id === "") rowErrors.id = "providers.edit.modelIdRequired";
+        else if (id.length > MODEL_ID_MAX) rowErrors.id = "providers.edit.modelIdInvalid";
+        else if (seen.has(id)) rowErrors.id = "providers.edit.modelIdDuplicate";
+        if (id !== "") seen.add(id);
+        if (row.name.trim().length > MODEL_NAME_MAX) rowErrors.name = "providers.edit.modelNameInvalid";
+        if (!positiveIntText(row.contextWindow).ok) rowErrors.contextWindow = "providers.edit.modelPositiveInt";
+        if (!positiveIntText(row.maxTokens).ok) rowErrors.maxTokens = "providers.edit.modelPositiveInt";
+        if (!parseEfforts(row.efforts).ok) rowErrors.efforts = "providers.edit.modelEffortInvalid";
+        if (Object.keys(rowErrors).length > 0) modelErrors[row.key] = rowErrors;
+      }
+    }
+  }
+  return {
+    valid: Object.keys(fieldErrors).length === 0 && Object.keys(modelErrors).length === 0,
+    fieldErrors,
+    modelErrors
+  };
+}
+function blankAddDraft() {
+  return { id: "", displayName: "", api: "", baseURL: "", apiKeyEnv: "" };
+}
+function validateAddDraft(draft) {
+  const errors = {};
+  const id = draft.id.trim();
+  if (id === "") errors.id = "providers.add.idRequired";
+  else if (!PROVIDER_ID_PATTERN.test(id)) errors.id = "providers.add.idInvalid";
+  if (draft.displayName.trim().length > DISPLAY_NAME_MAX) errors.displayName = "providers.add.displayNameInvalid";
+  if (draft.api === "") errors.api = "providers.add.protocolRequired";
+  else if (!PROTOCOLS.includes(draft.api)) errors.api = "providers.add.protocolRequired";
+  const baseURL = draft.baseURL.trim();
+  if (baseURL === "") errors.baseURL = "providers.add.baseURLRequired";
+  else if (!isHttpUrl(baseURL)) errors.baseURL = "providers.add.baseURLInvalid";
+  const apiKeyEnv = draft.apiKeyEnv.trim();
+  if (apiKeyEnv !== "" && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) errors.apiKeyEnv = "providers.add.apiKeyEnvInvalid";
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+function revisionOf(form) {
+  return typeof form?.revision === "number" && Number.isFinite(form.revision) ? form.revision : void 0;
+}
+function Field({ id, label, hint, error, required = false, children }) {
+  const description = [
+    hint !== void 0 && hint !== null ? `${id}-hint` : null,
+    error !== void 0 && error !== null ? `${id}-error` : null
+  ].filter(Boolean).join(" ");
+  let control = children;
+  if ((0, import_react.isValidElement)(children)) {
+    control = (0, import_react.cloneElement)(children, {
+      id,
+      ...description === "" ? {} : { "aria-describedby": description },
+      ...error !== void 0 && error !== null ? { "aria-invalid": true } : {}
+    });
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-field-label", htmlFor: id, children: [
+      label,
+      required ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-flag", "aria-hidden": "true", children: " *" }) : null
+    ] }),
+    control,
+    hint !== void 0 && hint !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-hint", id: `${id}-hint`, children: hint }) : null,
+    error !== void 0 && error !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${id}-error`, role: "alert", children: error }) : null
+  ] });
+}
+function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput }) {
+  const idField = `${idPrefix}-model-${index}-id`;
+  const nameField = `${idPrefix}-model-${index}-name`;
+  const contextField = `${idPrefix}-model-${index}-context`;
+  const maxField = `${idPrefix}-model-${index}-max`;
+  const effortsField = `${idPrefix}-model-${index}-efforts`;
+  const textField = `${idPrefix}-model-${index}-text`;
+  const imageField = `${idPrefix}-model-${index}-image`;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model-head", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.modelN", { n: index + 1 }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-danger",
+          "aria-label": t("providers.edit.removeModelAria", { id: row.id === "" ? index + 1 : row.id }),
+          onClick: () => onRemove(row.key),
+          children: t("providers.edit.removeModel")
+        }
+      )
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model-grid", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: idField, label: t("providers.edit.modelId"), required: true, error: errors.id === void 0 ? void 0 : t(errors.id), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "td-input td-mono",
+          value: row.id,
+          autoComplete: "off",
+          spellCheck: false,
+          ref: registerIdInput(row.key),
+          onChange: (event) => onUpdate(row.key, "id", event.target.value)
+        }
+      ) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: nameField, label: t("providers.edit.modelName"), error: errors.name === void 0 ? void 0 : t(errors.name), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "td-input",
+          value: row.name,
+          autoComplete: "off",
+          onChange: (event) => onUpdate(row.key, "name", event.target.value)
+        }
+      ) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: contextField, label: t("providers.edit.contextWindow"), error: errors.contextWindow === void 0 ? void 0 : t(errors.contextWindow), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "td-input td-mono",
+          type: "number",
+          min: "1",
+          step: "1",
+          value: row.contextWindow,
+          onChange: (event) => onUpdate(row.key, "contextWindow", event.target.value)
+        }
+      ) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: maxField, label: t("providers.edit.maxTokens"), error: errors.maxTokens === void 0 ? void 0 : t(errors.maxTokens), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "td-input td-mono",
+          type: "number",
+          min: "1",
+          step: "1",
+          value: row.maxTokens,
+          onChange: (event) => onUpdate(row.key, "maxTokens", event.target.value)
+        }
+      ) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: effortsField,
+          label: t("providers.edit.efforts"),
+          hint: t("providers.edit.effortsHint"),
+          error: errors.efforts === void 0 ? void 0 : t(errors.efforts),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input td-mono",
+              value: row.efforts,
+              autoComplete: "off",
+              spellCheck: false,
+              placeholder: t("providers.edit.effortsPlaceholder"),
+              onChange: (event) => onUpdate(row.key, "efforts", event.target.value)
+            }
+          )
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.modalities") }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-checks", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              id: textField,
+              className: "td-checkbox",
+              type: "checkbox",
+              checked: row.text === true,
+              onChange: (event) => onUpdate(row.key, "text", event.target.checked)
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "td-check-label", htmlFor: textField, children: t("providers.edit.modalityText") }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              id: imageField,
+              className: "td-checkbox",
+              type: "checkbox",
+              checked: row.image === true,
+              onChange: (event) => onUpdate(row.key, "image", event.target.checked)
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "td-check-label", htmlFor: imageField, children: t("providers.edit.modalityImage") })
+        ] })
+      ] })
+    ] })
+  ] });
+}
+function ProviderEditorView(props) {
+  const t = translateOf(props.t);
+  const { form, loading, loadError, providerId, providerName } = props;
+  const { onClose, onSaved, onRetryLoad, onRefreshForm } = props;
+  const [draft, setDraft] = (0, import_react.useState)(() => draftFromForm(form));
+  const [busy, setBusy] = (0, import_react.useState)(null);
+  const [formError, setFormError] = (0, import_react.useState)(null);
+  const [keyInput, setKeyInput] = (0, import_react.useState)("");
+  const [keyError, setKeyError] = (0, import_react.useState)(null);
+  const [clearConfirm, setClearConfirm] = (0, import_react.useState)(false);
+  const [deleteConfirm, setDeleteConfirm] = (0, import_react.useState)(false);
+  const [focusRowKey, setFocusRowKey] = (0, import_react.useState)(null);
+  const idInputs = (0, import_react.useRef)(/* @__PURE__ */ new Map());
+  const confirmDeleteRef = (0, import_react.useRef)(null);
+  const aliveRef = (0, import_react.useRef)(true);
+  (0, import_react.useEffect)(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+  (0, import_react.useEffect)(() => {
+    if (focusRowKey === null) return;
+    const node = idInputs.current.get(focusRowKey);
+    if (node !== void 0 && node !== null && typeof node.focus === "function") node.focus();
+    setFocusRowKey(null);
+  }, [focusRowKey, draft]);
+  (0, import_react.useEffect)(() => {
+    if (deleteConfirm && confirmDeleteRef.current !== null) confirmDeleteRef.current.focus();
+  }, [deleteConfirm]);
+  const updateScalar = (field) => (event) => {
+    const value = event.target.value;
+    setDraft((previous) => ({ ...previous, [field]: value }));
+  };
+  const updateModel = (key, field, value) => {
+    setDraft((previous) => ({
+      ...previous,
+      models: previous.models.map((row) => row.key === key ? { ...row, [field]: value } : row)
+    }));
+  };
+  const registerIdInput = (key) => (node) => {
+    if (node === null || node === void 0) idInputs.current.delete(key);
+    else idInputs.current.set(key, node);
+  };
+  const addModel = () => {
+    const row = modelDraft({});
+    setDraft((previous) => previous.models.length >= MAX_MODELS ? previous : { ...previous, models: [...previous.models, row] });
+    setFocusRowKey(row.key);
+  };
+  const removeModel = (key) => {
+    setDraft((previous) => ({ ...previous, models: previous.models.filter((row) => row.key !== key) }));
+  };
+  const ready = form !== null && typeof form === "object";
+  const profile = ready && form.profile !== null && typeof form.profile === "object" ? form.profile : {};
+  const capabilities = ready && form.capabilities !== null && typeof form.capabilities === "object" ? form.capabilities : {};
+  const credential = ready && form.credential !== null && typeof form.credential === "object" ? form.credential : {};
+  const writable = ready && form.writable === true;
+  const readOnly = !writable;
+  const canDelete = ready && writable && form.canDelete === true;
+  const modelsDeclared = profile.modelsDeclared === true;
+  const validation = validateDraft(draft, capabilities, writable);
+  const canSave = writable && busy === null && validation.valid;
+  const providerLabel = typeof providerName === "string" && providerName !== "" ? providerName : typeof providerId === "string" ? providerId : "";
+  const idPrefix = `td-edit-${String(providerId ?? "provider").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const credentialRef = typeof credential.ref === "string" && credential.ref !== "" ? credential.ref : null;
+  const keyRefDirty = credentialRef !== null && draft.apiKeyEnv.trim() !== credentialRef;
+  const credentialConfigured = credential.configured === true;
+  const credentialMasked = typeof credential.masked === "string" && credential.masked !== "" ? credential.masked : null;
+  const credentialSource = typeof credential.source === "string" && credential.source !== "" ? credential.source : null;
+  const revision = ready ? revisionOf(form) : void 0;
+  if (loading === true) {
+    const message = providerLabel === "" ? t("providers.edit.loadingGeneric") : t("providers.edit.loading", { provider: providerLabel });
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor", "aria-busy": "true", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { className: "td-editor-loading", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: message }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: message })
+    ] }) });
+  }
+  if (!ready || loadError !== null && loadError !== void 0) {
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Notice,
+        {
+          tone: "error",
+          action: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onRetryLoad?.(), children: t("actions.retry") }),
+          children: failureText(loadError, t, "errors.edit.loadFailed")
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-right", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onClose?.(), children: t("actions.cancel") }) }) })
+    ] });
+  }
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!writable || busy !== null) return;
+    const latest = validateDraft(draft, capabilities, writable);
+    if (!latest.valid) return;
+    setBusy("save");
+    setFormError(null);
+    try {
+      await saveProvider({
+        providerId,
+        ...revision === void 0 ? {} : { expectedRevision: revision },
+        fields: fieldsFromDraft(draft, capabilities)
+      });
+    } catch (failure) {
+      if (aliveRef.current) {
+        setFormError(failure);
+        setBusy(null);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    setBusy(null);
+    onSaved?.({ providerId });
+    void onRefreshForm?.();
+  };
+  const saveKey = async () => {
+    if (credentialRef === null || busy !== null) return;
+    const value = keyInput.trim();
+    if (value === "") {
+      setKeyError({ code: "invalid-key" });
+      return;
+    }
+    setBusy("key");
+    setKeyError(null);
+    try {
+      await setApiKey({ ref: credentialRef, value });
+    } catch (failure) {
+      if (aliveRef.current) {
+        setKeyError(failure);
+        setBusy(null);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    setBusy(null);
+    setKeyInput("");
+    setClearConfirm(false);
+    onSaved?.({ providerId });
+    void onRefreshForm?.();
+  };
+  const clearKey = async () => {
+    if (credentialRef === null || busy !== null) return;
+    setBusy("clear");
+    setKeyError(null);
+    try {
+      await setApiKey({ ref: credentialRef, clear: true });
+    } catch (failure) {
+      if (aliveRef.current) {
+        setKeyError(failure);
+        setBusy(null);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    setBusy(null);
+    setKeyInput("");
+    setClearConfirm(false);
+    onSaved?.({ providerId });
+    void onRefreshForm?.();
+  };
+  const confirmRemove = async () => {
+    if (!canDelete || busy !== null) return;
+    setBusy("remove");
+    setFormError(null);
+    try {
+      await removeProvider({
+        providerId,
+        ...revision === void 0 ? {} : { expectedRevision: revision }
+      });
+    } catch (failure) {
+      if (aliveRef.current) {
+        setFormError(failure);
+        setBusy(null);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    onSaved?.({ providerId, removed: true });
+  };
+  const showDisplayName = readOnly || capabilities.displayName === true;
+  const showApi = readOnly || capabilities.api === true;
+  const showBaseURL = readOnly || capabilities.baseURL === true;
+  const showApiKeyEnv = readOnly || capabilities.apiKeyEnv === true;
+  const showModels = readOnly || capabilities.models === true;
+  const showApiKey = writable && capabilities.apiKey === true;
+  const apiKeyNeedsRef = writable && capabilities.apiKey !== true;
+  const showDelete = writable && canDelete;
+  const conflict = codeOf(formError) === "conflict";
+  const apiOptions = PROTOCOLS.includes(draft.api) ? PROTOCOLS : ["", ...PROTOCOLS];
+  const footerVisible = writable;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor", children: [
+    formError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      Notice,
+      {
+        tone: "error",
+        action: conflict ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-secondary",
+            onClick: () => {
+              setFormError(null);
+              onRetryLoad?.();
+            },
+            children: t("providers.edit.reload")
+          }
+        ) : void 0,
+        children: failureText(formError, t, "errors.edit.generic")
+      }
+    ) : null,
+    readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "info", children: t("providers.edit.accountReadonly") }) : null,
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form", onSubmit: submit, noValidate: true, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-grid", children: [
+        showDisplayName ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          Field,
+          {
+            id: `${idPrefix}-display-name`,
+            label: t("providers.edit.displayName"),
+            error: validation.fieldErrors.displayName === void 0 ? void 0 : t(validation.fieldErrors.displayName),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: updateScalar("displayName") })
+          }
+        ) : null,
+        showApi ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          Field,
+          {
+            id: `${idPrefix}-protocol`,
+            label: t("providers.edit.protocol"),
+            error: validation.fieldErrors.api === void 0 ? void 0 : t(validation.fieldErrors.api),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.api, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("select", { className: "td-select", value: draft.api, onChange: updateScalar("api"), children: apiOptions.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol === "" ? t("providers.edit.protocolInherit") : protocol }, protocol === "" ? "inherit" : protocol)) })
+          }
+        ) : null,
+        showBaseURL ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          Field,
+          {
+            id: `${idPrefix}-base-url`,
+            label: t("providers.edit.baseURL"),
+            error: validation.fieldErrors.baseURL === void 0 ? void 0 : t(validation.fieldErrors.baseURL),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.baseURL, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "input",
+              {
+                className: "td-input td-mono",
+                value: draft.baseURL,
+                autoComplete: "off",
+                spellCheck: false,
+                placeholder: t("providers.edit.baseURLPlaceholder"),
+                onChange: updateScalar("baseURL")
+              }
+            )
+          }
+        ) : null,
+        showApiKeyEnv ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          Field,
+          {
+            id: `${idPrefix}-api-key-env`,
+            label: t("providers.edit.apiKeyEnv"),
+            hint: t("providers.edit.apiKeyEnvHint"),
+            error: validation.fieldErrors.apiKeyEnv === void 0 ? void 0 : t(validation.fieldErrors.apiKeyEnv),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.apiKeyEnv, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "input",
+              {
+                className: "td-input td-mono",
+                value: draft.apiKeyEnv,
+                autoComplete: "off",
+                spellCheck: false,
+                placeholder: t("providers.edit.apiKeyEnvPlaceholder"),
+                onChange: updateScalar("apiKeyEnv")
+              }
+            )
+          }
+        ) : null
+      ] }),
+      apiKeyNeedsRef ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "info", children: t("providers.edit.apiKeyNeedsRef") }) : null,
+      showApiKey ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": `${idPrefix}-api-key`, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-section-head", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-card-subtitle", id: `${idPrefix}-api-key`, children: t("providers.edit.apiKey") }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            Dot,
+            {
+              tone: credentialConfigured ? "ok" : "muted",
+              label: credentialConfigured ? t("providers.edit.apiKeyConfigured") : t("providers.edit.apiKeyMissing")
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: credentialConfigured ? "td-tone-ok" : "td-tone-muted", children: credentialConfigured ? t("providers.edit.apiKeyConfigured") : t("providers.edit.apiKeyMissing") }),
+          credentialMasked !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-mono td-ellipsis", title: credentialMasked, children: credentialMasked }) : null,
+          credentialSource !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.apiKeySource", { source: sourceText(t, credentialSource) }) }) : null
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.apiKeyStored") }),
+        keyRefDirty ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.apiKeyRefDirty") }) : null,
+        keyError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", role: "alert", children: failureText(keyError, t, "errors.edit.generic") }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-key-row", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: `${idPrefix}-api-key-input`, label: t("providers.edit.apiKeyInput"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input",
+              type: "password",
+              value: keyInput,
+              autoComplete: "new-password",
+              placeholder: t("providers.edit.apiKeyPlaceholder"),
+              disabled: busy !== null || keyRefDirty,
+              onChange: (event) => setKeyInput(event.target.value)
+            }
+          ) }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-key-actions", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-primary",
+                disabled: busy !== null || keyRefDirty || credentialRef === null || keyInput.trim() === "",
+                onClick: () => {
+                  void saveKey();
+                },
+                children: [
+                  busy === "key" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.saving") }) : null,
+                  busy === "key" ? t("providers.edit.saving") : t("providers.edit.apiKeySave")
+                ]
+              }
+            ),
+            clearConfirm ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+                "button",
+                {
+                  type: "button",
+                  className: "td-button td-button-small td-button-danger",
+                  disabled: busy !== null || keyRefDirty,
+                  onClick: () => {
+                    void clearKey();
+                  },
+                  children: [
+                    busy === "clear" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.saving") }) : null,
+                    t("providers.edit.apiKeyClearConfirm")
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "td-button td-button-small td-button-secondary",
+                  disabled: busy !== null,
+                  onClick: () => setClearConfirm(false),
+                  children: t("actions.cancel")
+                }
+              )
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                disabled: busy !== null || keyRefDirty || !credentialConfigured,
+                onClick: () => setClearConfirm(true),
+                children: t("providers.edit.apiKeyClear")
+              }
+            )
+          ] })
+        ] })
+      ] }) : null,
+      showModels ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": `${idPrefix}-models`, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-section-head", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-card-subtitle", id: `${idPrefix}-models`, children: [
+            t("providers.edit.models"),
+            " \xB7 ",
+            formatNumber(draft.models.length)
+          ] }),
+          writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-secondary",
+              disabled: draft.models.length >= MAX_MODELS,
+              onClick: addModel,
+              children: t("providers.edit.addModel")
+            }
+          ) : null
+        ] }),
+        modelsDeclared === false ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.modelsInherited") }) : null,
+        draft.models.length === 0 && modelsDeclared === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: t("providers.edit.modelsEmpty") }) : null,
+        draft.models.length > 0 ? writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-models", children: draft.models.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          ModelEditorRow,
+          {
+            t,
+            row,
+            index,
+            idPrefix,
+            errors: validation.modelErrors[row.key] ?? {},
+            onUpdate: updateModel,
+            onRemove: removeModel,
+            registerIdInput
+          },
+          row.key
+        )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: draft.models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { className: "td-model-row", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-model-main", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-name", children: row.name === "" ? row.id : row.name }),
+          row.id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-id td-mono", children: row.id }) : null
+        ] }) }, row.key)) }) : null
+      ] }) : null,
+      footerVisible ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-left", children: showDelete ? deleteConfirm ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-danger",
+              disabled: busy !== null,
+              ref: confirmDeleteRef,
+              onClick: () => {
+                void confirmRemove();
+              },
+              children: [
+                busy === "remove" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.saving") }) : null,
+                t("providers.edit.deleteConfirm")
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-secondary",
+              disabled: busy !== null,
+              onClick: () => setDeleteConfirm(false),
+              children: t("actions.cancel")
+            }
+          )
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-danger",
+            disabled: busy !== null,
+            onClick: () => setDeleteConfirm(true),
+            children: t("providers.edit.delete")
+          }
+        ) : null }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot-right", children: [
+          !validation.valid ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.invalidFields") }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-secondary",
+              disabled: busy !== null,
+              onClick: () => onClose?.(),
+              children: t("actions.cancel")
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "button",
+            {
+              type: "submit",
+              className: "td-button td-button-small td-button-primary",
+              disabled: !canSave,
+              children: [
+                busy === "save" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.saving") }) : null,
+                busy === "save" ? t("providers.edit.saving") : t("providers.edit.save")
+              ]
+            }
+          )
+        ] })
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-right", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          onClick: () => onClose?.(),
+          children: t("actions.cancel")
+        }
+      ) }) })
+    ] })
+  ] });
+}
+function ProviderEditor(props) {
+  const t = translateOf(props.t);
+  const { providerId } = props;
+  const [form, setForm] = (0, import_react.useState)(null);
+  const [generation, setGeneration] = (0, import_react.useState)(0);
+  const [loading, setLoading] = (0, import_react.useState)(true);
+  const [loadError, setLoadError] = (0, import_react.useState)(null);
+  const aliveRef = (0, import_react.useRef)(true);
+  (0, import_react.useEffect)(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+  const readForm = (0, import_react.useCallback)(async ({ quiet = false } = {}) => {
+    if (!quiet) {
+      setLoading(true);
+      setLoadError(null);
+    }
+    try {
+      const next = await fetchProviderForm(providerId);
+      if (!aliveRef.current) return;
+      setForm(next);
+      setGeneration((previous) => previous + 1);
+      setLoadError(null);
+      setLoading(false);
+    } catch (failure) {
+      if (!aliveRef.current) return;
+      if (quiet) return;
+      setLoadError(failure);
+      setLoading(false);
+    }
+  }, [providerId]);
+  (0, import_react.useEffect)(() => {
+    void readForm();
+  }, [readForm]);
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    ProviderEditorView,
+    {
+      form,
+      loading,
+      loadError,
+      providerId,
+      providerName: props.providerName,
+      t,
+      onClose: props.onClose,
+      onSaved: props.onSaved,
+      onRetryLoad: () => {
+        void readForm();
+      },
+      onRefreshForm: () => readForm({ quiet: true })
+    },
+    generation
+  );
+}
+function AddProviderForm(props) {
+  const t = translateOf(props.t);
+  const { expectedRevision, onClose, onCreated } = props;
+  const [draft, setDraft] = (0, import_react.useState)(blankAddDraft);
+  const [busy, setBusy] = (0, import_react.useState)(false);
+  const [error, setError] = (0, import_react.useState)(null);
+  const aliveRef = (0, import_react.useRef)(true);
+  (0, import_react.useEffect)(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+  const validation = validateAddDraft(draft);
+  const canCreate = !busy && validation.valid;
+  const update = (field) => (event) => {
+    const value = event.target.value;
+    setDraft((previous) => ({ ...previous, [field]: value }));
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!canCreate) return;
+    const id = draft.id.trim();
+    const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
+    const displayName = draft.displayName.trim();
+    if (displayName !== "") provider.displayName = displayName;
+    const apiKeyEnv = draft.apiKeyEnv.trim();
+    if (apiKeyEnv !== "") provider.apiKeyEnv = apiKeyEnv;
+    setBusy(true);
+    setError(null);
+    let created;
+    try {
+      const value = await addProvider({
+        ...typeof expectedRevision === "number" && Number.isFinite(expectedRevision) ? { expectedRevision } : {},
+        provider
+      });
+      created = value !== null && typeof value === "object" && typeof value.providerId === "string" && value.providerId !== "" ? value.providerId : id;
+    } catch (failure) {
+      if (aliveRef.current) {
+        setError(failure);
+        setBusy(false);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    setBusy(false);
+    setError(null);
+    onCreated?.(created);
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-provider-card", title: t("providers.add.title"), subtitle: t("providers.add.subtitle"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form", onSubmit: submit, noValidate: true, children: [
+    error !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "error", children: failureText(error, t, "errors.add.generic") }) : null,
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-grid", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-id",
+          label: t("providers.add.id"),
+          hint: t("providers.add.idHint"),
+          required: true,
+          error: validation.errors.id === void 0 ? void 0 : t(validation.errors.id),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input td-mono",
+              value: draft.id,
+              autoComplete: "off",
+              spellCheck: false,
+              placeholder: t("providers.add.idPlaceholder"),
+              onChange: update("id")
+            }
+          )
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-display-name",
+          label: t("providers.add.displayName"),
+          error: validation.errors.displayName === void 0 ? void 0 : t(validation.errors.displayName),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: update("displayName") })
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-protocol",
+          label: t("providers.add.protocol"),
+          required: true,
+          error: validation.errors.api === void 0 ? void 0 : t(validation.errors.api),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "td-select", value: draft.api, onChange: update("api"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: "", children: t("providers.add.protocolPlaceholder") }),
+            PROTOCOLS.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol }, protocol))
+          ] })
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-base-url",
+          label: t("providers.add.baseURL"),
+          required: true,
+          error: validation.errors.baseURL === void 0 ? void 0 : t(validation.errors.baseURL),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input td-mono",
+              value: draft.baseURL,
+              autoComplete: "off",
+              spellCheck: false,
+              placeholder: t("providers.add.baseURLPlaceholder"),
+              onChange: update("baseURL")
+            }
+          )
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-api-key-env",
+          label: t("providers.add.apiKeyEnv"),
+          hint: t("providers.add.apiKeyEnvHint"),
+          error: validation.errors.apiKeyEnv === void 0 ? void 0 : t(validation.errors.apiKeyEnv),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input td-mono",
+              value: draft.apiKeyEnv,
+              autoComplete: "off",
+              spellCheck: false,
+              placeholder: t("providers.add.apiKeyEnvPlaceholder"),
+              onChange: update("apiKeyEnv")
+            }
+          )
+        }
+      )
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot-right", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          disabled: busy,
+          onClick: () => onClose?.(),
+          children: t("actions.cancel")
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "submit", className: "td-button td-button-small td-button-primary", disabled: !canCreate, children: [
+        busy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.add.creating") }) : null,
+        busy ? t("providers.add.creating") : t("providers.add.create")
+      ] })
+    ] }) })
+  ] }) });
+}
+
+// src/client/Providers.jsx
+var import_jsx_runtime4 = require("react/jsx-runtime");
 var NOTE_KEYS = {
   dormant: "providers.note.dormant",
   "key-missing": "providers.note.key-missing",
@@ -1783,14 +3070,20 @@ function noteText(t, note) {
 }
 function Providers(props) {
   const t = props.t ?? ((key) => key);
-  const { snapshot, onRefreshBalances, balanceBusy, onSetDefault } = props;
-  const [expandedIds, setExpandedIds] = (0, import_react.useState)(() => /* @__PURE__ */ new Set());
-  if (snapshot === null || typeof snapshot !== "object") return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(CardSkeleton, { count: 4, label: t("loading.page") });
+  const { snapshot, onRefreshBalances, balanceBusy, onSetDefault, onReload } = props;
+  const [expandedIds, setExpandedIds] = (0, import_react2.useState)(() => /* @__PURE__ */ new Set());
+  const [editingId, setEditingId] = (0, import_react2.useState)(null);
+  const [addOpen, setAddOpen] = (0, import_react2.useState)(false);
+  const [addRevision, setAddRevision] = (0, import_react2.useState)(void 0);
+  const [addPreparing, setAddPreparing] = (0, import_react2.useState)(false);
+  if (snapshot === null || typeof snapshot !== "object") return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CardSkeleton, { count: 4, label: t("loading.page") });
   const providers = Array.isArray(snapshot.providers) ? snapshot.providers : [];
   const selection = snapshot.defaultSelection !== null && typeof snapshot.defaultSelection === "object" ? snapshot.defaultSelection : null;
   const expandable = providers.filter((provider) => typeof provider?.id === "string" && (Array.isArray(provider?.models) ? provider.models.length : 0) > 5);
   const allExpanded = expandable.length > 0 && expandable.every((provider) => expandedIds.has(provider.id));
   const refreshingAll = balanceBusy === "all";
+  const showAdd = true;
+  const piAiProvider = providers.find((provider) => typeof provider?.id === "string" && provider.id !== "" && typeof provider?.settingsNs === "string" && provider.settingsNs.includes("pi-ai"));
   const toggleProvider = (id) => {
     setExpandedIds((previous) => {
       const next = new Set(previous);
@@ -1809,9 +3102,46 @@ function Providers(props) {
       return next;
     });
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-toolbar", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-toolbar-group", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+  const openAdd = async () => {
+    if (addPreparing || addOpen) return;
+    setEditingId(null);
+    setAddPreparing(true);
+    let revision;
+    if (piAiProvider !== void 0) {
+      try {
+        const form = await fetchProviderForm(piAiProvider.id);
+        if (typeof form?.revision === "number" && Number.isFinite(form.revision)) revision = form.revision;
+      } catch {
+        revision = void 0;
+      }
+    }
+    setAddRevision(revision);
+    setAddPreparing(false);
+    setAddOpen(true);
+  };
+  const closeAdd = () => {
+    setAddOpen(false);
+    setAddRevision(void 0);
+  };
+  const afterSaved = async (info) => {
+    try {
+      await onReload?.();
+    } finally {
+      if (info !== null && typeof info === "object" && info.removed === true) setEditingId(null);
+    }
+  };
+  const afterCreated = async (providerId) => {
+    setAddOpen(false);
+    setAddRevision(void 0);
+    try {
+      await onReload?.();
+    } catch {
+    }
+    if (typeof providerId === "string" && providerId !== "") setEditingId(providerId);
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-toolbar", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar-group", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         "button",
         {
           type: "button",
@@ -1821,14 +3151,38 @@ function Providers(props) {
           children: refreshingAll ? t("actions.refreshingBalances") : t("actions.refreshBalances")
         }
       ),
-      expandable.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: toggleAll, children: allExpanded ? t("actions.collapseAll") : t("actions.expandAll") }) : null
+      expandable.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: toggleAll, children: allExpanded ? t("actions.collapseAll") : t("actions.expandAll") }) : null,
+      showAdd ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          disabled: addPreparing || addOpen,
+          onClick: () => {
+            void openAdd();
+          },
+          children: addPreparing ? t("providers.add.preparing") : t("providers.add.action")
+        }
+      ) : null
     ] }) }),
-    providers.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(EmptyState, { title: t("providers.empty") }) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-provider-list", children: providers.map((provider, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    addOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(AddProviderForm, { t, expectedRevision: addRevision, onClose: closeAdd, onCreated: (id) => {
+      void afterCreated(id);
+    } }) : null,
+    providers.length === 0 ? addOpen ? null : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("providers.empty") }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: cx("td-provider-list", addOpen && "td-section"), children: providers.map((provider, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
       ProviderCard,
       {
         provider,
         t,
         selection,
+        editing: typeof provider?.id === "string" && editingId === provider.id,
+        onEdit: () => {
+          if (typeof provider?.id === "string") {
+            setAddOpen(false);
+            setEditingId(provider.id);
+          }
+        },
+        onCloseEditor: () => setEditingId(null),
+        onSaved: afterSaved,
         expandedModels: typeof provider?.id === "string" && expandedIds.has(provider.id),
         onToggleModels: toggleProvider,
         onRefresh: (id) => onRefreshBalances?.({ providers: [id] }),
@@ -1852,7 +3206,7 @@ function hostErrorText(failure, t) {
   const key = known[code];
   return key === void 0 ? errorText(failure) : t(key);
 }
-function sourceText(t, source) {
+function sourceText2(t, source) {
   const known = {
     environment: "providers.source.environment",
     account: "providers.source.account",
@@ -1863,9 +3217,9 @@ function sourceText(t, source) {
   const key = known[source];
   return key === void 0 ? source : t(key);
 }
-function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
-  const [savingModel, setSavingModel] = (0, import_react.useState)(null);
-  const [saveError, setSaveError] = (0, import_react.useState)(null);
+function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
+  const [savingModel, setSavingModel] = (0, import_react2.useState)(null);
+  const [saveError, setSaveError] = (0, import_react2.useState)(null);
   const id = typeof provider?.id === "string" ? provider.id : "";
   const displayName = typeof provider?.displayName === "string" && provider.displayName !== "" ? provider.displayName : id || "\u2014";
   const models = Array.isArray(provider?.models) ? provider.models : [];
@@ -1874,11 +3228,13 @@ function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, 
   const busy = balanceBusy === "all" || id !== "" && balanceBusy === id;
   const keyConfigured = provider?.keyConfigured === true;
   const routeActive = provider?.registered === true;
+  const isAccountRoute = provider?.accountRoute === true;
   const baseURL = typeof provider?.baseURL === "string" ? provider.baseURL : "";
   const masked = typeof provider?.keyMasked === "string" && provider.keyMasked !== "" ? provider.keyMasked : null;
   const credentialRef = typeof provider?.apiKeyEnv === "string" && provider.apiKeyEnv !== "" ? provider.apiKeyEnv : null;
-  const keySource = keyConfigured && typeof provider?.keySource === "string" ? sourceText(t, provider.keySource) : null;
+  const keySource = keyConfigured && typeof provider?.keySource === "string" ? sourceText2(t, provider.keySource) : null;
   const notes = Array.isArray(provider?.notes) ? provider.notes : [];
+  const editingOpen = editing === true && id !== "";
   const saveDefault = async (model) => {
     if (typeof onSetDefault !== "function" || savingModel !== null) return;
     if (typeof model?.id !== "string" || model.id === "" || id === "") return;
@@ -1898,75 +3254,98 @@ function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, 
       setSavingModel(null);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Card, { className: "td-provider-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-provider-title", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Card, { className: "td-provider-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         Dot,
         {
           tone: keyConfigured ? "ok" : "error",
           label: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-provider-name", children: displayName }),
-      id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Chip, { children: id }) : null,
-      typeof provider?.protocol === "string" && provider.protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Chip, { title: t("providers.protocol"), children: provider.protocol }) : null,
-      provider?.isDefault === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Chip, { tone: "brand", children: t("providers.default") }) : null,
-      provider?.accountRoute === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.accountRoute") }) : null
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-provider-meta", children: [
-      baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-meta-item", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.baseUrl") }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-mono td-ellipsis td-provider-base", title: baseURL, children: baseURL })
-      ] }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-meta-item", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.credentials") }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: keyConfigured ? "td-tone-ok" : "td-tone-error", children: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing") }),
-        masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-mono", title: masked, children: masked }) : null,
-        credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.credentialRef", { ref: credentialRef }) }) : null,
-        keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: t("providers.keySource", { source: keySource }) }) : null
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-meta-item", children: provider?.registered === true ? t("providers.registered") : t("providers.notRegistered") })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-provider-balance", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.balance") }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        "button",
-        {
-          type: "button",
-          className: "td-button td-button-small td-button-secondary",
-          "aria-label": t("providers.refreshBalanceAria", { provider: displayName }),
-          disabled: busy,
-          onClick: () => onRefresh?.(id),
-          children: busy ? t("actions.refreshing") : t("actions.refreshBalance")
-        }
-      )
-    ] }),
-    notes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-notes", children: notes.map((note, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { className: "td-note", children: noteText(t, note) }, `${String(note)}-${index}`)) }) : null,
-    saveError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-inline-error", role: "alert", children: t("errors.save", { message: saveError }) }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-models", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-models-head", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-card-subtitle", children: [
-          t("providers.models"),
-          " \xB7 ",
-          formatNumber(models.length)
-        ] }),
-        models.length > 5 && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onToggleModels(id), children: expandedModels ? t("providers.collapseModels") : t("providers.showAllModels", { count: models.length }) }) : null
-      ] }),
-      models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: provider?.modelsIncomplete === true ? t("providers.modelsIncomplete") : t("providers.noModels") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: shown.map((model) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ModelRow,
-        {
-          model,
-          t,
-          isDefault: selection?.provider === id && selection?.model === model?.id,
-          saving: savingModel !== null && savingModel === model?.id,
-          disabled: !routeActive || savingModel !== null && savingModel !== model?.id,
-          onSelect: () => {
-            void saveDefault(model);
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-name", children: displayName }),
+      id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: id }) : null,
+      typeof provider?.protocol === "string" && provider.protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { title: t("providers.protocol"), children: provider.protocol }) : null,
+      provider?.isDefault === true ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone: "brand", children: t("providers.default") }) : null,
+      isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountRoute") }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-secondary",
+            "aria-label": t("providers.refreshBalanceAria", { provider: displayName }),
+            disabled: busy,
+            onClick: () => onRefresh?.(id),
+            children: busy ? t("actions.refreshing") : t("actions.refreshBalance")
           }
-        },
-        model?.id ?? String(model?.name)
-      )) })
+        ),
+        isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountManaged") }) : !editingOpen && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-secondary",
+            "aria-label": t("providers.editProviderAria", { provider: displayName }),
+            onClick: onEdit,
+            children: t("actions.editProvider")
+          }
+        ) : null
+      ] })
+    ] }),
+    editingOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      ProviderEditor,
+      {
+        providerId: id,
+        providerName: displayName,
+        t,
+        onClose: onCloseEditor,
+        onSaved
+      }
+    ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-meta", children: [
+        baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.baseUrl") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono td-ellipsis td-provider-base", title: baseURL, children: baseURL })
+        ] }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.credentials") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: keyConfigured ? "td-tone-ok" : "td-tone-error", children: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing") }),
+          masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono", title: masked, children: masked }) : null,
+          credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.credentialRef", { ref: credentialRef }) }) : null,
+          keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("providers.keySource", { source: keySource }) }) : null
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-meta-item", children: routeActive ? t("providers.registered") : t("providers.notRegistered") })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-balance", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.balance") }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text })
+      ] }),
+      notes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-notes", children: notes.map((note, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("li", { className: "td-note", children: noteText(t, note) }, `${String(note)}-${index}`)) }) : null,
+      saveError !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-inline-error", role: "alert", children: t("errors.save", { message: saveError }) }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-models", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-models-head", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-card-subtitle", children: [
+            t("providers.models"),
+            " \xB7 ",
+            formatNumber(models.length)
+          ] }),
+          models.length > 5 && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onToggleModels(id), children: expandedModels ? t("providers.collapseModels") : t("providers.showAllModels", { count: models.length }) }) : null
+        ] }),
+        models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-muted", children: provider?.modelsIncomplete === true ? t("providers.modelsIncomplete") : t("providers.noModels") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-model-list", children: shown.map((model) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          ModelRow,
+          {
+            model,
+            t,
+            isDefault: selection?.provider === id && selection?.model === model?.id,
+            saving: savingModel !== null && savingModel === model?.id,
+            disabled: !routeActive || savingModel !== null && savingModel !== model?.id,
+            onSelect: () => {
+              void saveDefault(model);
+            }
+          },
+          model?.id ?? String(model?.name)
+        )) })
+      ] })
     ] })
   ] });
 }
@@ -1974,20 +3353,20 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
   const efforts = Array.isArray(model?.reasoningEfforts) ? model.reasoningEfforts : [];
   const extra = efforts.length - 4;
   const contextWindow = typeof model?.contextWindow === "number" ? model.contextWindow : null;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("li", { className: "td-model-row", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-model-main", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-name", children: model?.name ?? model?.id ?? "\u2014" }),
-      typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-id td-mono", children: model.id }) : null
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: "td-model-row", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-model-main", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", children: model?.name ?? model?.id ?? "\u2014" }),
+      typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-id td-mono", children: model.id }) : null
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-model-context", children: contextWindow !== null ? t("providers.contextWindow", { value: formatTokens(contextWindow) }) : null }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-chips", children: [
-      efforts.slice(0, 4).map((effort) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Chip, { children: String(effort) }, String(effort))),
-      extra > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(Chip, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-model-context", children: contextWindow !== null ? t("providers.contextWindow", { value: formatTokens(contextWindow) }) : null }),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-chips", children: [
+      efforts.slice(0, 4).map((effort) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: String(effort) }, String(effort))),
+      extra > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Chip, { children: [
         "+",
         extra
       ] }) : null
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
       "button",
       {
         type: "button",
@@ -2002,8 +3381,8 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
 }
 
 // src/client/Usage.jsx
-var import_react2 = require("react");
-var import_jsx_runtime4 = require("react/jsx-runtime");
+var import_react3 = require("react");
+var import_jsx_runtime5 = require("react/jsx-runtime");
 var RANGES = ["today", "7d", "30d", "all"];
 var DEFAULT_RANGE = "7d";
 var POLL_INTERVAL_MS = 2500;
@@ -2057,18 +3436,18 @@ function sessionTitle(session, t) {
 }
 function Usage(props) {
   const t = props.t ?? ((key) => key);
-  const [range, setRange] = (0, import_react2.useState)(DEFAULT_RANGE);
-  const [report, setReport] = (0, import_react2.useState)(null);
-  const [loading, setLoading] = (0, import_react2.useState)(true);
-  const [refreshing, setRefreshing] = (0, import_react2.useState)(false);
-  const [error, setError] = (0, import_react2.useState)(null);
-  const [warning, setWarning] = (0, import_react2.useState)(null);
-  const [rescanning, setRescanning] = (0, import_react2.useState)(false);
-  const [showAllModels, setShowAllModels] = (0, import_react2.useState)(false);
-  const reportRef = (0, import_react2.useRef)(null);
-  const requestSequence = (0, import_react2.useRef)(0);
-  const pollGuard = (0, import_react2.useRef)({ key: "", count: 0 });
-  const loadReport = (0, import_react2.useCallback)(async (options = {}) => {
+  const [range, setRange] = (0, import_react3.useState)(DEFAULT_RANGE);
+  const [report, setReport] = (0, import_react3.useState)(null);
+  const [loading, setLoading] = (0, import_react3.useState)(true);
+  const [refreshing, setRefreshing] = (0, import_react3.useState)(false);
+  const [error, setError] = (0, import_react3.useState)(null);
+  const [warning, setWarning] = (0, import_react3.useState)(null);
+  const [rescanning, setRescanning] = (0, import_react3.useState)(false);
+  const [showAllModels, setShowAllModels] = (0, import_react3.useState)(false);
+  const reportRef = (0, import_react3.useRef)(null);
+  const requestSequence = (0, import_react3.useRef)(0);
+  const pollGuard = (0, import_react3.useRef)({ key: "", count: 0 });
+  const loadReport = (0, import_react3.useCallback)(async (options = {}) => {
     const silent = options.silent === true;
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
@@ -2096,13 +3475,13 @@ function Usage(props) {
       }
     }
   }, [range]);
-  (0, import_react2.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     setShowAllModels(false);
     if (reportRef.current === null) setLoading(true);
     void loadReport();
   }, [loadReport]);
   const scanning = report?.scan?.scanning === true;
-  (0, import_react2.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!scanning) return void 0;
     let cancelled = false;
     let timer;
@@ -2150,9 +3529,9 @@ function Usage(props) {
   const sessions = report !== null && Array.isArray(report.sessions) ? report.sessions.slice(0, SESSION_ROW_LIMIT) : [];
   const scanText = scanning ? typeof scan?.total === "number" && scan.total > 0 ? t("scan.progress", { scanned: typeof scan.scanned === "number" ? scan.scanned : 0, total: scan.total }) : t("scan.preparing") : null;
   const visibleModels = showAllModels ? models : models.slice(0, MODEL_ROW_LIMIT);
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { "aria-busy": loading || refreshing, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { "aria-busy": loading || refreshing, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-toolbar", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
         SegmentedControl,
         {
           value: range,
@@ -2161,42 +3540,42 @@ function Usage(props) {
           options: RANGES.map((value) => ({ value, label: rangeLabel(t, value) }))
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar-group", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: refreshing, onClick: refresh, children: refreshing ? t("actions.refreshing") : t("actions.refresh") }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: rescanning, onClick: () => {
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-toolbar-group", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: refreshing, onClick: refresh, children: refreshing ? t("actions.refreshing") : t("actions.refresh") }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: rescanning, onClick: () => {
           void rescan();
         }, children: rescanning ? t("actions.rescanning") : t("actions.rescan") })
       ] })
     ] }),
-    scanning && scanText !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-scan-line td-usage-scan", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Spinner, { label: scanText }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-scan-text", children: scanText }),
-      typeof scan?.total === "number" && scan.total > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ProgressBar, { value: scan.scanned, max: scan.total, label: scanText }) : null
+    scanning && scanText !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-scan-line td-usage-scan", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Spinner, { label: scanText }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "td-scan-text", children: scanText }),
+      typeof scan?.total === "number" && scan.total > 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ProgressBar, { value: scan.scanned, max: scan.total, label: scanText }) : null
     ] }) : null,
-    error !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    error !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
       Notice,
       {
         tone: "error",
-        action: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => {
+        action: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => {
           setError(null);
           void loadReport();
         }, children: t("actions.retry") }),
         children: t("errors.usage", { message: error })
       }
     ) : null,
-    warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warning.kind === "rescan" ? t("errors.rescan", { message: warning.message }) : t("errors.usageRefresh", { message: warning.message }) }) : null,
-    report === null ? error === null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CardSkeleton, { count: 4, label: t("loading.page") }) : null : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-caption td-caveat", children: t("usage.caveat", { count: typeof scan?.total === "number" ? formatNumber(scan.total) : "0" }) }),
-      calls === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("usage.empty"), hint: t("usage.emptyHint") }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-totals", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.totalTokens"), value: formatTokens(totalTokens(totals)) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.input"), value: formatTokens(totals?.input) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.output"), value: formatTokens(totals?.output) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.cacheRead"), value: formatTokens(totals?.cacheRead) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.cacheWrite"), value: formatTokens(totals?.cacheWrite) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.cacheHitRate"), value: formatPercent(totals?.cacheHitRate) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Stat, { label: t("usage.calls"), value: formatNumber(totals?.calls) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warning.kind === "rescan" ? t("errors.rescan", { message: warning.message }) : t("errors.usageRefresh", { message: warning.message }) }) : null,
+    report === null ? error === null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CardSkeleton, { count: 4, label: t("loading.page") }) : null : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption td-caveat", children: t("usage.caveat", { count: typeof scan?.total === "number" ? formatNumber(scan.total) : "0" }) }),
+      calls === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.empty"), hint: t("usage.emptyHint") }) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-totals", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.totalTokens"), value: formatTokens(totalTokens(totals)) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.input"), value: formatTokens(totals?.input) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.output"), value: formatTokens(totals?.output) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheRead"), value: formatTokens(totals?.cacheRead) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheWrite"), value: formatTokens(totals?.cacheWrite) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheHitRate"), value: formatPercent(totals?.cacheHitRate) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.calls"), value: formatNumber(totals?.calls) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             Stat,
             {
               label: t("usage.cost"),
@@ -2205,9 +3584,9 @@ function Usage(props) {
             }
           )
         ] }) }),
-        pricingConfigured ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-caption", children: t("usage.priceNote") }) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(DailyChartCard, { days, t }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        pricingConfigured ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption", children: t("usage.priceNote") }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(DailyChartCard, { days, t }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           BreakdownCard,
           {
             title: t("usage.byModel"),
@@ -2216,10 +3595,10 @@ function Usage(props) {
             t,
             currency,
             pricingConfigured,
-            footer: models.length > MODEL_ROW_LIMIT ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-ghost", onClick: () => setShowAllModels((previous) => !previous), children: showAllModels ? t("usage.showLess") : t("usage.showAll", { count: models.length }) }) : void 0
+            footer: models.length > MODEL_ROW_LIMIT ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-ghost", onClick: () => setShowAllModels((previous) => !previous), children: showAllModels ? t("usage.showLess") : t("usage.showAll", { count: models.length }) }) : void 0
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           BreakdownCard,
           {
             title: t("usage.byProvider"),
@@ -2230,7 +3609,7 @@ function Usage(props) {
             pricingConfigured
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(SessionsCard, { sessions, t, currency, pricingConfigured })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(SessionsCard, { sessions, t, currency, pricingConfigured })
       ] })
     ] })
   ] });
@@ -2247,58 +3626,58 @@ function DailyChartCard({ days, t }) {
     };
   });
   const hasUsage = items.some((item) => item.value > 0);
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", title: t("usage.chart.title"), children: items.length === 0 || !hasUsage ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("usage.chart.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BarChart, { items, ariaLabel: t("usage.chart.title") }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title: t("usage.chart.title"), children: items.length === 0 || !hasUsage ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.chart.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(BarChart, { items, ariaLabel: t("usage.chart.title") }) });
 }
 function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, footer }) {
   const firstColumn = kind === "model" ? t("usage.table.model") : t("usage.table.provider");
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", title, footer, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(TableWrap, { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("table", { className: "td-table", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("tr", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", children: firstColumn }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", children: t("usage.table.share") }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.input") }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.output") }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.cacheRead") }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.calls") }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.cost") })
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title, footer, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(TableWrap, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("table", { className: "td-table", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("tr", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", children: firstColumn }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", children: t("usage.table.share") }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.input") }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.output") }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.cacheRead") }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.calls") }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", className: "td-num", children: t("usage.table.cost") })
     ] }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("tbody", { children: rows.map((row, index) => {
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("tbody", { children: rows.map((row, index) => {
       const share = typeof row?.share === "number" && Number.isFinite(row.share) ? Math.min(Math.max(row.share, 0), 1) : 0;
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("tr", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("td", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-cell-main", children: kind === "model" ? row?.name ?? row?.model ?? "\u2014" : row?.displayName ?? row?.provider ?? "\u2014" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-cell-sub td-mono", children: kind === "model" ? `${row?.provider ?? "\u2014"}/${row?.model ?? "\u2014"}` : typeof row?.provider === "string" ? row.provider : "" })
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("tr", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("td", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-main", children: kind === "model" ? row?.name ?? row?.model ?? "\u2014" : row?.displayName ?? row?.provider ?? "\u2014" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-sub td-mono", children: kind === "model" ? `${row?.provider ?? "\u2014"}/${row?.model ?? "\u2014"}` : typeof row?.provider === "string" ? row.provider : "" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-share", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ProgressBar, { value: share, max: 1, label: t("usage.table.share") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-share-text", children: formatPercent(row?.share) })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-share", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ProgressBar, { value: share, max: 1, label: t("usage.table.share") }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "td-share-text", children: formatPercent(row?.share) })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { className: "td-num", children: formatTokens(row?.input) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { className: "td-num", children: formatTokens(row?.output) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { className: "td-num", children: formatTokens(row?.cacheRead) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { className: "td-num", children: formatNumber(row?.calls) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("td", { className: "td-num", children: pricingConfigured ? formatCost(row?.cost, currency) : "\u2014" })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { className: "td-num", children: formatTokens(row?.input) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { className: "td-num", children: formatTokens(row?.output) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { className: "td-num", children: formatTokens(row?.cacheRead) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { className: "td-num", children: formatNumber(row?.calls) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { className: "td-num", children: pricingConfigured ? formatCost(row?.cost, currency) : "\u2014" })
       ] }, `${kind}-${row?.provider ?? ""}-${row?.model ?? ""}-${index}`);
     }) })
   ] }) }) });
 }
 function SessionsCard({ sessions, t, currency, pricingConfigured }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", title: t("usage.sessions"), children: sessions.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("usage.sessions.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-session-list", children: sessions.map((session, index) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title: t("usage.sessions"), children: sessions.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.sessions.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { className: "td-session-list", children: sessions.map((session, index) => {
     const when = typeof session?.lastActivity === "number" ? session.lastActivity : session?.createdAt;
     const title = sessionTitle(session, t);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: "td-session-row", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-session-title", title, children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-session-meta", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: formatDateTime(when) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("usage.sessionTokens", { value: formatNumber(totalTokens(session)) }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("usage.sessionRequests", { count: formatNumber(session?.calls) }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: pricingConfigured ? formatCost(session?.cost, currency) : "\u2014" })
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { className: "td-session-row", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "td-session-title", title, children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { className: "td-session-meta", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: formatDateTime(when) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.sessionTokens", { value: formatNumber(totalTokens(session)) }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.sessionRequests", { count: formatNumber(session?.calls) }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: pricingConfigured ? formatCost(session?.cost, currency) : "\u2014" })
       ] })
     ] }, session?.id ?? `session-${index}`);
   }) }) });
 }
 
 // src/client/DashboardPage.jsx
-var import_jsx_runtime5 = require("react/jsx-runtime");
+var import_jsx_runtime6 = require("react/jsx-runtime");
 var TABS = ["overview", "providers", "usage"];
 var POLL_INTERVAL_MS2 = 2500;
 var MAX_POLLS2 = 120;
@@ -2322,19 +3701,19 @@ function balancesIdle(snapshot) {
 }
 function DashboardPage(props) {
   const t = props.t ?? ((key) => key);
-  const [tab, setTab] = (0, import_react3.useState)("overview");
-  const [snapshot, setSnapshot] = (0, import_react3.useState)(null);
-  const [loading, setLoading] = (0, import_react3.useState)(true);
-  const [refreshing, setRefreshing] = (0, import_react3.useState)(false);
-  const [error, setError] = (0, import_react3.useState)(null);
-  const [warning, setWarning] = (0, import_react3.useState)(null);
-  const [balanceBusy, setBalanceBusy] = (0, import_react3.useState)(null);
-  const snapshotRef = (0, import_react3.useRef)(null);
-  const aliveRef = (0, import_react3.useRef)(true);
-  const requestSequence = (0, import_react3.useRef)(0);
-  const pollGuard = (0, import_react3.useRef)({ key: "", count: 0 });
-  const tabRefs = (0, import_react3.useRef)({});
-  const loadSnapshot = (0, import_react3.useCallback)(async () => {
+  const [tab, setTab] = (0, import_react4.useState)("overview");
+  const [snapshot, setSnapshot] = (0, import_react4.useState)(null);
+  const [loading, setLoading] = (0, import_react4.useState)(true);
+  const [refreshing, setRefreshing] = (0, import_react4.useState)(false);
+  const [error, setError] = (0, import_react4.useState)(null);
+  const [warning, setWarning] = (0, import_react4.useState)(null);
+  const [balanceBusy, setBalanceBusy] = (0, import_react4.useState)(null);
+  const snapshotRef = (0, import_react4.useRef)(null);
+  const aliveRef = (0, import_react4.useRef)(true);
+  const requestSequence = (0, import_react4.useRef)(0);
+  const pollGuard = (0, import_react4.useRef)({ key: "", count: 0 });
+  const tabRefs = (0, import_react4.useRef)({});
+  const loadSnapshot = (0, import_react4.useCallback)(async () => {
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
     try {
@@ -2357,7 +3736,7 @@ function DashboardPage(props) {
       if (aliveRef.current && sequence === requestSequence.current) setLoading(false);
     }
   }, []);
-  (0, import_react3.useEffect)(() => {
+  (0, import_react4.useEffect)(() => {
     aliveRef.current = true;
     void loadSnapshot();
     return () => {
@@ -2367,7 +3746,7 @@ function DashboardPage(props) {
   const scanRunning = snapshot !== null && typeof snapshot === "object" && snapshot.scan?.scanning === true;
   const firstScanPending = snapshot !== null && typeof snapshot === "object" && snapshot.scan?.scanning !== true && (snapshot.usage === null || snapshot.usage === void 0 || snapshot.usage.builtAt === null);
   const scanning = scanRunning || firstScanPending;
-  (0, import_react3.useEffect)(() => {
+  (0, import_react4.useEffect)(() => {
     if (!scanning) return void 0;
     let cancelled = false;
     let timer;
@@ -2387,7 +3766,7 @@ function DashboardPage(props) {
       clearTimeout(timer);
     };
   }, [scanning, loadSnapshot]);
-  const refreshBalances = (0, import_react3.useCallback)(async (request = {}) => {
+  const refreshBalances = (0, import_react4.useCallback)(async (request = {}) => {
     const requested = Array.isArray(request?.providers) ? request.providers.filter((id) => typeof id === "string") : [];
     const scope = requested.length === 1 ? requested[0] : "all";
     setBalanceBusy(scope);
@@ -2401,11 +3780,11 @@ function DashboardPage(props) {
       if (aliveRef.current) setBalanceBusy(null);
     }
   }, [loadSnapshot]);
-  const setDefault = (0, import_react3.useCallback)(async (selection) => {
+  const setDefault = (0, import_react4.useCallback)(async (selection) => {
     await saveDefaultModel(selection);
     await loadSnapshot();
   }, [loadSnapshot]);
-  const refresh = (0, import_react3.useCallback)(async () => {
+  const refresh = (0, import_react4.useCallback)(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
@@ -2421,7 +3800,7 @@ function DashboardPage(props) {
       if (aliveRef.current) setRefreshing(false);
     }
   }, [refreshing, loadSnapshot]);
-  const retry = (0, import_react3.useCallback)(() => {
+  const retry = (0, import_react4.useCallback)(() => {
     setError(null);
     setLoading(true);
     void loadSnapshot();
@@ -2452,15 +3831,15 @@ function DashboardPage(props) {
   };
   const busy = loading || refreshing;
   const warningText = warning === null ? null : warning.kind === "balances" ? t("errors.balances", { message: warning.message }) : t("errors.refreshFailed", { message: warning.message });
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-page", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("style", { children: CSS }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-scroll", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-content", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-heading", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-heading-text", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h1", { children: t("panel.title") }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-subtitle", children: t("page.subtitle") })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-page", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("style", { children: CSS }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-scroll", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-content", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-heading", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-heading-text", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h1", { children: t("panel.title") }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "td-subtitle", children: t("page.subtitle") })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-heading-actions", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-heading-actions", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "button",
           {
             type: "button",
@@ -2473,18 +3852,18 @@ function DashboardPage(props) {
           }
         ) })
       ] }),
-      error !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      error !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         Notice,
         {
           tone: "error",
-          action: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: retry, children: t("actions.retry") }),
+          action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: retry, children: t("actions.retry") }),
           children: t("errors.snapshot", { message: error })
         }
       ) : null,
-      warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warningText }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-tabs", role: "tablist", "aria-label": t("tabs.label"), children: TABS.map((key) => {
+      warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warningText }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-tabs", role: "tablist", "aria-label": t("tabs.label"), children: TABS.map((key) => {
         const active = key === tab;
-        return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "button",
           {
             type: "button",
@@ -2503,8 +3882,8 @@ function DashboardPage(props) {
           key
         );
       }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-panel", role: "tabpanel", "aria-labelledby": `td-tab-${tab}`, children: [
-        tab === "overview" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-panel", role: "tabpanel", "aria-labelledby": `td-tab-${tab}`, children: [
+        tab === "overview" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           Overview,
           {
             snapshot,
@@ -2513,17 +3892,18 @@ function DashboardPage(props) {
             balanceBusy
           }
         ) : null,
-        tab === "providers" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        tab === "providers" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           Providers,
           {
             snapshot,
             t,
             onRefreshBalances: refreshBalances,
             balanceBusy,
-            onSetDefault: setDefault
+            onSetDefault: setDefault,
+            onReload: loadSnapshot
           }
         ) : null,
-        tab === "usage" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Usage, { t }) : null
+        tab === "usage" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Usage, { t }) : null
       ] })
     ] }) })
   ] });
@@ -2552,6 +3932,8 @@ var zh = {
   "actions.setDefault": "\u8BBE\u4E3A\u9ED8\u8BA4",
   "actions.saving": "\u8BBE\u7F6E\u4E2D\u2026",
   "actions.currentDefault": "\u5F53\u524D\u9ED8\u8BA4",
+  "actions.cancel": "\u53D6\u6D88",
+  "actions.editProvider": "\u7F16\u8F91",
   "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u9762\u677F\u2026",
   "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u9762\u677F\uFF1A{message}",
   "errors.refreshFailed": "\u5237\u65B0\u5931\u8D25\uFF0C\u6B63\u5728\u663E\u793A\u4E0A\u6B21\u7684\u6570\u636E\uFF1A{message}",
@@ -2566,6 +3948,27 @@ var zh = {
   "errors.code.invalidSelection": "\u8BF7\u5148\u9009\u62E9\u4E00\u4E2A\u6A21\u578B\u3002",
   "errors.code.saveFailed": "\u9ED8\u8BA4\u6A21\u578B\u4FDD\u5B58\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u914D\u7F6E\u540E\u91CD\u8BD5\u3002",
   "errors.code.unavailable": "\u5F53\u524D\u7EC4\u5408\u6CA1\u6709\u9ED8\u8BA4\u6A21\u578B\u7684\u6240\u6709\u8005\uFF0C\u65E0\u6CD5\u4FDD\u5B58\u3002",
+  "errors.edit.loadFailed": "\u65E0\u6CD5\u8BFB\u53D6\u8BE5\u4F9B\u5E94\u5546\u7684\u914D\u7F6E\uFF1A{message}",
+  "errors.edit.generic": "\u64CD\u4F5C\u5931\u8D25\uFF1A{message}",
+  "errors.edit.unknownProvider": "\u8BE5\u4F9B\u5E94\u5546\u672A\u5728\u53EF\u5199\u7684\u914D\u7F6E\u6863\u6848\u4E2D\u58F0\u660E\uFF0C\u65E0\u6CD5\u5728\u6B64\u7F16\u8F91\u3002",
+  "errors.edit.noSettings": "\u5F53\u524D\u7EC4\u5408\u6CA1\u6709\u53EF\u7528\u7684\u8BBE\u7F6E\u670D\u52A1\u3002",
+  "errors.edit.readonly": "\u8BE5\u8DEF\u7531\u7531\u8D26\u6237\u767B\u5F55\u6216\u7EC4\u5408\u914D\u7F6E\u7BA1\u7406\uFF0C\u4E0D\u80FD\u5728\u6B64\u4FEE\u6539\u3002",
+  "errors.edit.invalidBaseUrl": "\u63A5\u5165\u5730\u5740\u5FC5\u987B\u662F\u5B8C\u6574\u7684 http(s) \u5730\u5740\u3002",
+  "errors.edit.invalidProtocol": "\u4E0D\u652F\u6301\u8BE5\u534F\u8BAE\u3002",
+  "errors.edit.invalidCredentialRef": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
+  "errors.edit.invalidDisplayName": "\u663E\u793A\u540D\u79F0\u8FC7\u957F\u3002",
+  "errors.edit.invalidModel": "\u6A21\u578B\u9879\u65E0\u6548\uFF0C\u8BF7\u68C0\u67E5\u5FC5\u586B\u5B57\u6BB5\u4E0E\u6570\u503C\u3002",
+  "errors.edit.invalidModels": "\u6A21\u578B\u6E05\u5355\u65E0\u6548\u3002",
+  "errors.edit.duplicateModel": "\u6A21\u578B ID \u91CD\u590D\u3002",
+  "errors.edit.conflict": "\u914D\u7F6E\u5728\u6B64\u671F\u95F4\u88AB\u4FEE\u6539\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u540E\u518D\u4FDD\u5B58\u3002",
+  "errors.edit.writeFailed": "\u5199\u5165\u914D\u7F6E\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+  "errors.edit.invalidKey": "\u5BC6\u94A5\u4E0D\u80FD\u4E3A\u7A7A\u3002",
+  "errors.edit.noCredentials": "\u5F53\u524D\u7EC4\u5408\u6CA1\u6709\u51ED\u636E\u5E93\uFF0C\u65E0\u6CD5\u4FDD\u5B58\u5BC6\u94A5\u3002",
+  "errors.edit.keyWriteFailed": "\u5199\u5165\u5BC6\u94A5\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+  "errors.add.generic": "\u521B\u5EFA\u5931\u8D25\uFF1A{message}",
+  "errors.add.invalidProviderId": "\u4F9B\u5E94\u5546 ID \u65E0\u6548\uFF1A\u9700\u4EE5\u5C0F\u5199\u5B57\u6BCD\u6216\u6570\u5B57\u5F00\u5934\uFF0C\u53EA\u80FD\u5305\u542B\u5C0F\u5199\u5B57\u6BCD\u3001\u6570\u5B57\u4E0E\u8FDE\u5B57\u7B26\u3002",
+  "errors.add.providerExists": "\u8BE5\u4F9B\u5E94\u5546 ID \u5DF2\u5B58\u5728\u3002",
+  "errors.add.unavailable": "\u5F53\u524D\u7EC4\u5408\u672A\u6302\u8F7D\u591A\u4F9B\u5E94\u5546\u9002\u914D\u5668\uFF0C\u65E0\u6CD5\u65B0\u589E\u4F9B\u5E94\u5546\u3002",
   "scan.progress": "\u6B63\u5728\u626B\u63CF\u4F1A\u8BDD\u7528\u91CF {scanned} / {total}",
   "scan.preparing": "\u6B63\u5728\u51C6\u5907\u7528\u91CF\u626B\u63CF\u2026",
   "scan.hint": "\u9996\u6B21\u626B\u63CF\u53EF\u80FD\u9700\u8981\u51E0\u5206\u949F\uFF0C\u5B8C\u6210\u540E\u4F1A\u81EA\u52A8\u66F4\u65B0\u3002",
@@ -2635,12 +4038,94 @@ var zh = {
   "providers.modelsIncomplete": "\u6A21\u578B\u5217\u8868\u4E0D\u53EF\u7528",
   "providers.empty": "\u8FD8\u6CA1\u6709\u914D\u7F6E\u6A21\u578B\u4F9B\u5E94\u5546\uFF0C\u53EF\u5728 \u8BBE\u7F6E > \u6A21\u578B \u4E2D\u6DFB\u52A0",
   "providers.accountRoute": "\u5B98\u65B9\u8D26\u6237\u901A\u9053",
+  "providers.accountManaged": "\u7531\u8D26\u6237\u767B\u5F55\u7BA1\u7406",
+  "providers.editProviderAria": "\u7F16\u8F91 {provider} \u7684\u914D\u7F6E",
   "providers.contextWindow": "\u4E0A\u4E0B\u6587 {value}",
   "providers.note.dormant": "\u4F11\u7720\uFF08\u914D\u7F6E\u6587\u4EF6\u672A\u58F0\u660E\uFF09",
   "providers.note.key-missing": "\u7F3A\u5C11\u5BC6\u94A5",
   "providers.note.models-unavailable": "\u6A21\u578B\u5217\u8868\u4E0D\u53EF\u7528",
   "providers.note.no-models": "\u65E0\u6A21\u578B",
   "providers.readonlyRouteHint": "\u8BE5\u8DEF\u7531\u6CA1\u6709\u6D3B\u52A8\u7684\u9002\u914D\u5668\uFF0C\u65E0\u6CD5\u8BBE\u4E3A\u9ED8\u8BA4",
+  "providers.add.action": "\u65B0\u589E\u4F9B\u5E94\u5546",
+  "providers.add.preparing": "\u51C6\u5907\u4E2D\u2026",
+  "providers.add.title": "\u65B0\u589E\u4F9B\u5E94\u5546",
+  "providers.add.subtitle": "\u534F\u8BAE\u4E0E\u63A5\u5165\u5730\u5740\u5FC5\u586B\uFF1B\u521B\u5EFA\u540E\u53EF\u5728\u9762\u677F\u4E2D\u7EE7\u7EED\u914D\u7F6E\u6A21\u578B\u4E0E\u5BC6\u94A5\u3002",
+  "providers.add.id": "\u4F9B\u5E94\u5546 ID",
+  "providers.add.idHint": "\u5C0F\u5199\u5B57\u6BCD\u3001\u6570\u5B57\u4E0E\u8FDE\u5B57\u7B26\uFF0C\u4F8B\u5982 acme\u3002",
+  "providers.add.idPlaceholder": "acme",
+  "providers.add.idRequired": "\u8BF7\u586B\u5199\u4F9B\u5E94\u5546 ID\u3002",
+  "providers.add.idInvalid": "\u4F9B\u5E94\u5546 ID \u9700\u4EE5\u5C0F\u5199\u5B57\u6BCD\u6216\u6570\u5B57\u5F00\u5934\uFF0C\u53EA\u80FD\u5305\u542B\u5C0F\u5199\u5B57\u6BCD\u3001\u6570\u5B57\u4E0E\u8FDE\u5B57\u7B26\u3002",
+  "providers.add.displayName": "\u663E\u793A\u540D\u79F0",
+  "providers.add.displayNameInvalid": "\u663E\u793A\u540D\u79F0\u8FC7\u957F\u3002",
+  "providers.add.protocol": "\u534F\u8BAE",
+  "providers.add.protocolPlaceholder": "\u9009\u62E9\u534F\u8BAE",
+  "providers.add.protocolRequired": "\u8BF7\u9009\u62E9\u534F\u8BAE\u3002",
+  "providers.add.baseURL": "\u63A5\u5165\u5730\u5740",
+  "providers.add.baseURLRequired": "\u8BF7\u586B\u5199\u63A5\u5165\u5730\u5740\u3002",
+  "providers.add.baseURLInvalid": "\u8BF7\u8F93\u5165\u4EE5 http:// \u6216 https:// \u5F00\u5934\u7684\u5B8C\u6574\u5730\u5740\u3002",
+  "providers.add.baseURLPlaceholder": "https://provider.example/v1",
+  "providers.add.apiKeyEnv": "\u51ED\u636E\u5F15\u7528",
+  "providers.add.apiKeyEnvHint": "\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\uFF0C\u4F8B\u5982 ACME_KEY\uFF1B\u53EF\u7A0D\u540E\u518D\u586B\u3002",
+  "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
+  "providers.add.apiKeyEnvInvalid": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
+  "providers.add.create": "\u521B\u5EFA",
+  "providers.add.creating": "\u521B\u5EFA\u4E2D\u2026",
+  "providers.edit.loading": "\u6B63\u5728\u8BFB\u53D6 {provider} \u7684\u914D\u7F6E\u2026",
+  "providers.edit.loadingGeneric": "\u6B63\u5728\u8BFB\u53D6\u4F9B\u5E94\u5546\u914D\u7F6E\u2026",
+  "providers.edit.reload": "\u91CD\u65B0\u8BFB\u53D6",
+  "providers.edit.save": "\u4FDD\u5B58",
+  "providers.edit.saving": "\u4FDD\u5B58\u4E2D\u2026",
+  "providers.edit.displayName": "\u663E\u793A\u540D\u79F0",
+  "providers.edit.displayNameInvalid": "\u663E\u793A\u540D\u79F0\u8FC7\u957F\uFF08\u6700\u591A 120 \u4E2A\u5B57\u7B26\uFF09\u3002",
+  "providers.edit.protocol": "\u534F\u8BAE",
+  "providers.edit.protocolInherit": "\u7EE7\u627F\u9002\u914D\u5668\u9ED8\u8BA4",
+  "providers.edit.baseURL": "\u63A5\u5165\u5730\u5740",
+  "providers.edit.baseURLPlaceholder": "\u7EE7\u627F\u9002\u914D\u5668\u9ED8\u8BA4",
+  "providers.edit.baseURLInvalid": "\u8BF7\u8F93\u5165\u4EE5 http:// \u6216 https:// \u5F00\u5934\u7684\u5B8C\u6574\u5730\u5740\u3002",
+  "providers.edit.apiKeyEnv": "\u51ED\u636E\u5F15\u7528",
+  "providers.edit.apiKeyEnvHint": "\u51ED\u636E\u5F15\u7528\u662F\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\uFF1B\u5BC6\u94A5\u4FDD\u5B58\u5728\u51ED\u636E\u5E93\uFF0C\u4E0D\u5728\u6B64\u5904\u586B\u5199\u3002",
+  "providers.edit.apiKeyEnvPlaceholder": "ACME_KEY",
+  "providers.edit.apiKeyEnvInvalid": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
+  "providers.edit.apiKey": "API Key",
+  "providers.edit.apiKeyConfigured": "\u5DF2\u914D\u7F6E",
+  "providers.edit.apiKeyMissing": "\u672A\u914D\u7F6E",
+  "providers.edit.apiKeySource": "\u6765\u6E90 {source}",
+  "providers.edit.apiKeyStored": "\u5BC6\u94A5\u4FDD\u5B58\u5728 Harness \u51ED\u636E\u5E93\u4E2D\uFF0C\u4E0D\u4F1A\u5199\u5165\u914D\u7F6E\u6587\u4EF6\u3002",
+  "providers.edit.apiKeyInput": "\u65B0\u5BC6\u94A5",
+  "providers.edit.apiKeyPlaceholder": "\u7C98\u8D34\u5BC6\u94A5",
+  "providers.edit.apiKeySave": "\u4FDD\u5B58\u5BC6\u94A5",
+  "providers.edit.apiKeyClear": "\u6E05\u9664\u5BC6\u94A5",
+  "providers.edit.apiKeyClearConfirm": "\u786E\u8BA4\u6E05\u9664",
+  "providers.edit.apiKeyNeedsRef": "\u5148\u586B\u5199\u51ED\u636E\u5F15\u7528\u5E76\u4FDD\u5B58\uFF0C\u4E4B\u540E\u5373\u53EF\u5728\u6B64\u5F55\u5165\u5BC6\u94A5\u3002",
+  "providers.edit.apiKeyRefDirty": "\u51ED\u636E\u5F15\u7528\u5DF2\u4FEE\u6539\uFF1B\u8BF7\u5148\u4FDD\u5B58\u8868\u5355\uFF0C\u518D\u7BA1\u7406\u5BC6\u94A5\u3002",
+  "providers.edit.models": "\u6A21\u578B\u6E05\u5355",
+  "providers.edit.modelsInherited": "\u6863\u6848\u672A\u58F0\u660E\u6A21\u578B\uFF0C\u5F53\u524D\u7EE7\u627F\u9002\u914D\u5668\u63D0\u4F9B\u7684\u76EE\u5F55\uFF1B\u4FDD\u5B58\u7A7A\u6E05\u5355\u5373\u4FDD\u6301\u7EE7\u627F\u3002",
+  "providers.edit.modelsEmpty": "\u6E05\u5355\u4E3A\u7A7A\uFF1B\u4FDD\u5B58\u540E\u5C06\u7EE7\u627F\u9002\u914D\u5668\u76EE\u5F55\u3002",
+  "providers.edit.modelN": "\u6A21\u578B {n}",
+  "providers.edit.modelId": "\u6A21\u578B ID",
+  "providers.edit.modelName": "\u540D\u79F0",
+  "providers.edit.contextWindow": "\u4E0A\u4E0B\u6587\u7A97\u53E3",
+  "providers.edit.maxTokens": "\u6700\u5927\u8F93\u51FA",
+  "providers.edit.modalities": "\u6A21\u6001",
+  "providers.edit.modalityText": "\u6587\u672C",
+  "providers.edit.modalityImage": "\u56FE\u7247",
+  "providers.edit.efforts": "\u63A8\u7406\u6863\u4F4D",
+  "providers.edit.effortsHint": "\u5F62\u5982 low=low, max=max\uFF1B\u53EA\u5199\u6863\u4F4D\u540D\u8868\u793A\u540C\u540D\u6620\u5C04\uFF0C\u4F8B\u5982 high, max\u3002",
+  "providers.edit.effortsPlaceholder": "low=low, max=max",
+  "providers.edit.addModel": "\u6DFB\u52A0\u6A21\u578B",
+  "providers.edit.removeModel": "\u5220\u9664",
+  "providers.edit.removeModelAria": "\u5220\u9664\u6A21\u578B {id}",
+  "providers.edit.modelIdRequired": "\u8BF7\u586B\u5199\u6A21\u578B ID\u3002",
+  "providers.edit.modelIdInvalid": "\u6A21\u578B ID \u8FC7\u957F\u6216\u683C\u5F0F\u65E0\u6548\u3002",
+  "providers.edit.modelIdDuplicate": "\u6A21\u578B ID \u91CD\u590D\u3002",
+  "providers.edit.modelNameInvalid": "\u6A21\u578B\u540D\u79F0\u8FC7\u957F\u3002",
+  "providers.edit.modelPositiveInt": "\u9700\u4E3A\u6B63\u6574\u6570\u3002",
+  "providers.edit.modelEffortInvalid": "\u63A8\u7406\u6863\u4F4D\u683C\u5F0F\u65E0\u6548\uFF1B\u53EF\u7528\u6863\u4F4D\u4E3A off\u3001minimal\u3001low\u3001medium\u3001high\u3001xhigh\u3001max\u3002",
+  "providers.edit.delete": "\u5220\u9664\u4F9B\u5E94\u5546",
+  "providers.edit.deleteConfirm": "\u786E\u8BA4\u5220\u9664",
+  "providers.edit.invalidFields": "\u8BF7\u5148\u4FEE\u6B63\u6807\u51FA\u7684\u5B57\u6BB5\u3002",
+  "providers.edit.accountReadonly": "\u8BE5\u4F9B\u5E94\u5546\u7531\u8D26\u6237\u767B\u5F55\u7BA1\u7406\uFF0C\u6B64\u5904\u53EA\u8BFB\u5C55\u793A\u3002",
+  "providers.edit.notSet": "\u672A\u8BBE\u7F6E",
   "usage.range.label": "\u65F6\u95F4\u8303\u56F4",
   "usage.range.today": "\u4ECA\u65E5",
   "usage.range.7d": "\u8FD1 7 \u65E5",
@@ -2702,6 +4187,8 @@ var en = {
   "actions.setDefault": "Set as default",
   "actions.saving": "Saving\u2026",
   "actions.currentDefault": "Current default",
+  "actions.cancel": "Cancel",
+  "actions.editProvider": "Edit",
   "loading.page": "Loading the model panel\u2026",
   "errors.snapshot": "Could not load the model panel: {message}",
   "errors.refreshFailed": "Refresh failed; showing the previous data: {message}",
@@ -2716,6 +4203,27 @@ var en = {
   "errors.code.invalidSelection": "Pick a model first.",
   "errors.code.saveFailed": "The default model could not be saved; check the configuration and retry.",
   "errors.code.unavailable": "This composition owns no default model, so nothing can be saved.",
+  "errors.edit.loadFailed": "Could not read this provider's configuration: {message}",
+  "errors.edit.generic": "The operation failed: {message}",
+  "errors.edit.unknownProvider": "This provider is not declared in a writable profile, so it cannot be edited here.",
+  "errors.edit.noSettings": "This composition has no settings service.",
+  "errors.edit.readonly": "This route is managed by the account sign-in or the composition, so it cannot be changed here.",
+  "errors.edit.invalidBaseUrl": "The endpoint must be an absolute http(s) URL.",
+  "errors.edit.invalidProtocol": "That protocol is not supported.",
+  "errors.edit.invalidCredentialRef": "A credential reference must be an environment-style name.",
+  "errors.edit.invalidDisplayName": "The display name is too long.",
+  "errors.edit.invalidModel": "A model entry is invalid; check the required fields and numbers.",
+  "errors.edit.invalidModels": "The model list is invalid.",
+  "errors.edit.duplicateModel": "Duplicate model ID.",
+  "errors.edit.conflict": "The configuration changed meanwhile; reload and save again.",
+  "errors.edit.writeFailed": "Writing the configuration failed; try again.",
+  "errors.edit.invalidKey": "The key cannot be empty.",
+  "errors.edit.noCredentials": "This composition has no credential store, so the key cannot be saved.",
+  "errors.edit.keyWriteFailed": "Writing the key failed; try again.",
+  "errors.add.generic": "Could not create the provider: {message}",
+  "errors.add.invalidProviderId": "Invalid provider ID: start with a lowercase letter or digit and use only lowercase letters, digits, and hyphens.",
+  "errors.add.providerExists": "A provider with that ID already exists.",
+  "errors.add.unavailable": "The multi-provider adapter is not mounted, so a provider cannot be added.",
   "scan.progress": "Scanning session usage {scanned} / {total}",
   "scan.preparing": "Preparing the usage scan\u2026",
   "scan.hint": "The first scan may take a few minutes; this page updates automatically.",
@@ -2785,12 +4293,94 @@ var en = {
   "providers.modelsIncomplete": "Model list unavailable",
   "providers.empty": "No model providers configured yet. Add one under Settings > Models.",
   "providers.accountRoute": "Official account route",
+  "providers.accountManaged": "Managed by the account sign-in",
+  "providers.editProviderAria": "Edit the {provider} configuration",
   "providers.contextWindow": "{value} context",
   "providers.note.dormant": "Dormant (not declared in the profile)",
   "providers.note.key-missing": "Missing API key",
   "providers.note.models-unavailable": "Model list unavailable",
   "providers.note.no-models": "No models",
   "providers.readonlyRouteHint": "This route has no live adapter, so it cannot become the default",
+  "providers.add.action": "Add provider",
+  "providers.add.preparing": "Preparing\u2026",
+  "providers.add.title": "Add provider",
+  "providers.add.subtitle": "Protocol and endpoint are required; configure models and keys in the panel after creating it.",
+  "providers.add.id": "Provider ID",
+  "providers.add.idHint": "Lowercase letters, digits, and hyphens, e.g. acme.",
+  "providers.add.idPlaceholder": "acme",
+  "providers.add.idRequired": "A provider ID is required.",
+  "providers.add.idInvalid": "The provider ID must start with a lowercase letter or digit and contain only lowercase letters, digits, and hyphens.",
+  "providers.add.displayName": "Display name",
+  "providers.add.displayNameInvalid": "The display name is too long.",
+  "providers.add.protocol": "Protocol",
+  "providers.add.protocolPlaceholder": "Choose a protocol",
+  "providers.add.protocolRequired": "Choose a protocol.",
+  "providers.add.baseURL": "Endpoint",
+  "providers.add.baseURLRequired": "An endpoint is required.",
+  "providers.add.baseURLInvalid": "Enter a full URL starting with http:// or https://.",
+  "providers.add.baseURLPlaceholder": "https://provider.example/v1",
+  "providers.add.apiKeyEnv": "Credential reference",
+  "providers.add.apiKeyEnvHint": "An environment-style name, e.g. ACME_KEY; you can add it later.",
+  "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
+  "providers.add.apiKeyEnvInvalid": "A credential reference must be an environment-style name.",
+  "providers.add.create": "Create",
+  "providers.add.creating": "Creating\u2026",
+  "providers.edit.loading": "Loading the {provider} configuration\u2026",
+  "providers.edit.loadingGeneric": "Loading the provider configuration\u2026",
+  "providers.edit.reload": "Reload",
+  "providers.edit.save": "Save",
+  "providers.edit.saving": "Saving\u2026",
+  "providers.edit.displayName": "Display name",
+  "providers.edit.displayNameInvalid": "The display name is too long (120 characters max).",
+  "providers.edit.protocol": "Protocol",
+  "providers.edit.protocolInherit": "Inherit the adapter default",
+  "providers.edit.baseURL": "Endpoint",
+  "providers.edit.baseURLPlaceholder": "Inherit the adapter default",
+  "providers.edit.baseURLInvalid": "Enter a full URL starting with http:// or https://.",
+  "providers.edit.apiKeyEnv": "Credential reference",
+  "providers.edit.apiKeyEnvHint": "A credential reference is an environment-style name; the key lives in the credential store, not here.",
+  "providers.edit.apiKeyEnvPlaceholder": "ACME_KEY",
+  "providers.edit.apiKeyEnvInvalid": "A credential reference must be an environment-style name.",
+  "providers.edit.apiKey": "API Key",
+  "providers.edit.apiKeyConfigured": "Configured",
+  "providers.edit.apiKeyMissing": "Not configured",
+  "providers.edit.apiKeySource": "Source {source}",
+  "providers.edit.apiKeyStored": "The key is stored in the Harness credential store and never written into the profile.",
+  "providers.edit.apiKeyInput": "New key",
+  "providers.edit.apiKeyPlaceholder": "Paste a key",
+  "providers.edit.apiKeySave": "Save key",
+  "providers.edit.apiKeyClear": "Clear key",
+  "providers.edit.apiKeyClearConfirm": "Confirm clear",
+  "providers.edit.apiKeyNeedsRef": "Set a credential reference and save first; then a key can be stored here.",
+  "providers.edit.apiKeyRefDirty": "The credential reference changed; save the form before managing the key.",
+  "providers.edit.models": "Models",
+  "providers.edit.modelsInherited": "No models are declared in the profile, so the adapter catalog is used; leaving it empty keeps the inheritance.",
+  "providers.edit.modelsEmpty": "The list is empty; saving falls back to the adapter catalog.",
+  "providers.edit.modelN": "Model {n}",
+  "providers.edit.modelId": "Model ID",
+  "providers.edit.modelName": "Name",
+  "providers.edit.contextWindow": "Context window",
+  "providers.edit.maxTokens": "Max output",
+  "providers.edit.modalities": "Modalities",
+  "providers.edit.modalityText": "Text",
+  "providers.edit.modalityImage": "Image",
+  "providers.edit.efforts": "Reasoning levels",
+  "providers.edit.effortsHint": "Use low=low, max=max; a bare level maps to itself, e.g. high, max.",
+  "providers.edit.effortsPlaceholder": "low=low, max=max",
+  "providers.edit.addModel": "Add model",
+  "providers.edit.removeModel": "Remove",
+  "providers.edit.removeModelAria": "Remove model {id}",
+  "providers.edit.modelIdRequired": "A model ID is required.",
+  "providers.edit.modelIdInvalid": "The model ID is too long or invalid.",
+  "providers.edit.modelIdDuplicate": "Duplicate model ID.",
+  "providers.edit.modelNameInvalid": "The model name is too long.",
+  "providers.edit.modelPositiveInt": "Must be a positive integer.",
+  "providers.edit.modelEffortInvalid": "Invalid reasoning levels; allowed: off, minimal, low, medium, high, xhigh, max.",
+  "providers.edit.delete": "Delete provider",
+  "providers.edit.deleteConfirm": "Confirm delete",
+  "providers.edit.invalidFields": "Fix the highlighted fields first.",
+  "providers.edit.accountReadonly": "This provider is managed by the account sign-in and shown read-only here.",
+  "providers.edit.notSet": "Not set",
   "usage.range.label": "Time range",
   "usage.range.today": "Today",
   "usage.range.7d": "7 days",
@@ -2836,7 +4426,7 @@ var en = {
 var PANEL_ID = "token-dashboard";
 var PANEL_ORDER = 20;
 function PanelIcon({ size = 18 } = {}) {
-  return (0, import_react4.createElement)(
+  return (0, import_react5.createElement)(
     "svg",
     {
       width: size,
@@ -2846,21 +4436,21 @@ function PanelIcon({ size = 18 } = {}) {
       focusable: "false",
       style: { display: "block" }
     },
-    (0, import_react4.createElement)("path", {
+    (0, import_react5.createElement)("path", {
       d: "M8.45 30.13A13.5 13.5 0 1 1 27.55 30.13",
       fill: "none",
       stroke: "currentColor",
       strokeWidth: 2.25,
       strokeLinecap: "round"
     }),
-    (0, import_react4.createElement)("path", {
+    (0, import_react5.createElement)("path", {
       d: "M18 20.58 24.87 13.71",
       fill: "none",
       stroke: "currentColor",
       strokeWidth: 2,
       strokeLinecap: "round"
     }),
-    (0, import_react4.createElement)("circle", { cx: 18, cy: 20.58, r: 2.9, fill: "currentColor" })
+    (0, import_react5.createElement)("circle", { cx: 18, cy: 20.58, r: 2.9, fill: "currentColor" })
   );
 }
 var inject = ["slots", "locale"];

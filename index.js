@@ -130,7 +130,12 @@ function createRouteHandler(ctx, dashboard) {
     usage: (body) => dashboard.usage(body),
     balances: (body) => dashboard.balances(body),
     rescan: (body) => dashboard.rescan(body),
-    "set-default": (body) => dashboard.setDefault(body)
+    "set-default": (body) => dashboard.setDefault(body),
+    "provider-form": (body) => dashboard.providerForm(body),
+    "save-provider": (body) => dashboard.saveProvider(body),
+    "add-provider": (body) => dashboard.addProvider(body),
+    "remove-provider": (body) => dashboard.removeProvider(body),
+    "set-api-key": (body) => dashboard.setApiKey(body)
   };
   return async function route(req, res) {
     try {
@@ -902,6 +907,408 @@ function messageOf2(error) {
   return String(error);
 }
 
+// src/host/editing.js
+var PI_AI_PACKAGE = "@deepseek-ai/dsh-llm-pi-ai";
+var DEEPSEEK_API_KEY_PACKAGE = "@deepseek-ai/dsh-llm-deepseek-api-key";
+var DEEPSEEK_ACCOUNT_PACKAGE = "@deepseek-ai/dsh-llm-deepseek-account";
+var DEEPSEEK_PROVIDER = "deepseek-official";
+var DEEPSEEK_ACCOUNT_PROVIDER = "deepseek-account";
+var PI_AI_PROTOCOLS = ["openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai"];
+var EFFORT_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+var PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+var CREDENTIAL_REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+var MAX_MODELS = 200;
+function createProviderEditor(ctx, hooks) {
+  async function resolveTarget(providerId) {
+    if (typeof providerId !== "string" || providerId === "") {
+      throw new HostError("unknown-provider", "A provider id is required.", 400);
+    }
+    const settings = ctx.get("settings");
+    const editor = ctx.get("configEditor");
+    if (settings === void 0 || typeof settings.describe !== "function") {
+      throw new HostError("no-settings", "This composition has no settings service.", 503);
+    }
+    if (editor === void 0 || typeof editor.entries !== "function") {
+      throw new HostError("no-settings", "This composition cannot locate profile entries.", 503);
+    }
+    const descriptors = await describeAll(ctx);
+    const byNs = new Map(descriptors.map((descriptor) => [String(descriptor.ns), descriptor]));
+    const rows = editor.entries();
+    const entryFor = (name2) => rows.find((row) => row?.options?.name === name2);
+    const piEntry = entryFor(PI_AI_PACKAGE);
+    const dsEntry = entryFor(DEEPSEEK_API_KEY_PACKAGE);
+    const accountEntry = entryFor(DEEPSEEK_ACCOUNT_PACKAGE);
+    const piDescriptor = piEntry === void 0 ? void 0 : byNs.get(String(piEntry.options.id));
+    const dsDescriptor = dsEntry === void 0 ? void 0 : byNs.get(String(dsEntry.options.id));
+    const accountDescriptor = accountEntry === void 0 ? void 0 : byNs.get(String(accountEntry.options.id));
+    const piProviders = piDescriptor === void 0 ? void 0 : readPath(piDescriptor.value, ["providers"]);
+    if (piDescriptor !== void 0 && piProviders !== null && typeof piProviders === "object" && Object.hasOwn(piProviders, providerId)) {
+      return {
+        kind: "pi-ai",
+        ns: String(piDescriptor.ns),
+        descriptor: piDescriptor,
+        path: ["providers", providerId],
+        effective: piProviders[providerId] ?? {},
+        user: readPath(piDescriptor.user, ["providers", providerId]) ?? null
+      };
+    }
+    if (dsDescriptor !== void 0 && providerId === DEEPSEEK_PROVIDER) {
+      return {
+        kind: "deepseek-api-key",
+        ns: String(dsDescriptor.ns),
+        descriptor: dsDescriptor,
+        path: [],
+        effective: dsDescriptor.value ?? {},
+        user: dsDescriptor.user ?? null
+      };
+    }
+    if (accountDescriptor !== void 0 && (providerId === DEEPSEEK_ACCOUNT_PROVIDER || providerId === DEEPSEEK_PROVIDER)) {
+      return {
+        kind: "account",
+        ns: String(accountDescriptor.ns),
+        descriptor: accountDescriptor,
+        path: [],
+        effective: accountDescriptor.value ?? {},
+        user: accountDescriptor.user ?? null
+      };
+    }
+    throw new HostError("unknown-provider", `Provider "${providerId}" is not declared in a writable profile entry.`, 404);
+  }
+  async function providerForm(body = {}) {
+    const providerId = typeof body?.providerId === "string" ? body.providerId : "";
+    const target = await resolveTarget(providerId);
+    const readOnly = target.kind === "account";
+    const profile = normalizeProfile(target);
+    const canDelete = target.kind === "pi-ai" && target.user !== null;
+    const credential = await readCredential(ctx, profile.apiKeyEnv);
+    return {
+      providerId,
+      settingsNs: target.ns,
+      kind: target.kind,
+      revision: target.descriptor.revision,
+      writable: !readOnly,
+      canDelete,
+      inherited: target.kind === "pi-ai" && target.user === null,
+      profile,
+      capabilities: {
+        displayName: target.kind === "pi-ai",
+        api: target.kind === "pi-ai",
+        baseURL: !readOnly,
+        apiKeyEnv: !readOnly,
+        models: !readOnly,
+        apiKey: !readOnly && profile.apiKeyEnv !== null
+      },
+      credential
+    };
+  }
+  async function saveProvider(body = {}) {
+    const providerId = typeof body?.providerId === "string" ? body.providerId : "";
+    const target = await resolveTarget(providerId);
+    if (target.kind === "account") {
+      throw new HostError("readonly", "The account route is configured by the account sign-in, not by this form.", 409);
+    }
+    const fields = body?.fields !== null && typeof body?.fields === "object" && !Array.isArray(body.fields) ? body.fields : {};
+    const ops = buildFieldOps(target, fields);
+    if (ops.length === 0) {
+      return { ok: true, revision: target.descriptor.revision, unchanged: true };
+    }
+    return writeOps(ctx, hooks, target, ops, body?.expectedRevision);
+  }
+  async function addProvider(body = {}) {
+    const editor = ctx.get("configEditor");
+    const settings = ctx.get("settings");
+    if (editor === void 0 || settings === void 0) {
+      throw new HostError("no-settings", "This composition has no writable settings service.", 503);
+    }
+    const rows = editor.entries();
+    const piEntry = rows.find((row) => row?.options?.name === PI_AI_PACKAGE);
+    if (piEntry === void 0) {
+      throw new HostError("unavailable", "The multi-provider adapter is not mounted in this profile.", 503);
+    }
+    const descriptors = await describeAll(ctx);
+    const descriptor = descriptors.find((row) => String(row.ns) === String(piEntry.options.id));
+    if (descriptor === void 0) throw new HostError("unavailable", "The multi-provider settings entry is not configurable.", 503);
+    const provider = body?.provider !== null && typeof body?.provider === "object" && !Array.isArray(body.provider) ? body.provider : {};
+    const id = typeof provider.id === "string" ? provider.id.trim() : "";
+    if (!PROVIDER_ID_PATTERN.test(id)) {
+      throw new HostError("invalid-provider-id", "A provider id is lowercase letters, digits, and hyphens.", 400);
+    }
+    const existing = readPath(descriptor.value, ["providers"]);
+    if (existing !== null && typeof existing === "object" && Object.hasOwn(existing, id)) {
+      throw new HostError("provider-exists", `Provider "${id}" is already declared.`, 409);
+    }
+    const value = sanitizeProfile(id, { ...provider }, "pi-ai", true);
+    const target = {
+      kind: "pi-ai",
+      ns: String(descriptor.ns),
+      descriptor,
+      path: ["providers", id],
+      effective: null,
+      user: null
+    };
+    return writeOps(ctx, hooks, target, [{ op: "set", path: ["providers", id], value }], body?.expectedRevision);
+  }
+  async function removeProvider(body = {}) {
+    const providerId = typeof body?.providerId === "string" ? body.providerId : "";
+    const target = await resolveTarget(providerId);
+    if (target.kind !== "pi-ai") {
+      throw new HostError("readonly", "Only a declared provider route can be removed here.", 409);
+    }
+    if (target.user === null) {
+      throw new HostError("readonly", "This route is inherited from the composition, not declared in your profile patch.", 409);
+    }
+    return writeOps(ctx, hooks, target, [{ op: "unset", path: ["providers", providerId] }], body?.expectedRevision);
+  }
+  async function setApiKey(body = {}) {
+    const ref = typeof body?.ref === "string" ? body.ref.trim() : "";
+    if (!CREDENTIAL_REF_PATTERN.test(ref)) {
+      throw new HostError("invalid-credential-ref", "A credential reference is an environment-style name.", 400);
+    }
+    const credentials = ctx.get("credentials");
+    if (credentials === void 0 || typeof credentials.set !== "function") {
+      throw new HostError("no-credentials", "This composition has no credential store.", 503);
+    }
+    try {
+      if (body?.clear === true) {
+        await credentials.unset(ref);
+      } else {
+        const value = typeof body?.value === "string" ? body.value.trim() : "";
+        if (value === "") throw new HostError("invalid-key", "A key value is required.", 400);
+        await credentials.set(ref, value);
+      }
+    } catch (error) {
+      if (error instanceof HostError) throw error;
+      throw new HostError("key-write-failed", messageOf3(error), 500);
+    }
+    hooks.invalidate();
+    return { ok: true, credential: await readCredential(ctx, ref) };
+  }
+  return { providerForm, saveProvider, addProvider, removeProvider, setApiKey };
+}
+function normalizeProfile(target) {
+  const effective = target.effective !== null && typeof target.effective === "object" ? target.effective : {};
+  const models = Array.isArray(effective.models) ? effective.models : [];
+  return {
+    displayName: stringOrNull(effective.displayName),
+    api: stringOrNull(effective.api),
+    baseURL: stringOrNull(effective.baseURL),
+    apiKeyEnv: stringOrNull(effective.apiKeyEnv),
+    models: models.map((model) => normalizeModel(model, target.kind)),
+    modelsDeclared: models.length > 0
+  };
+}
+function normalizeModel(model, kind) {
+  const source = model !== null && typeof model === "object" && !Array.isArray(model) ? model : {};
+  const efforts = source.reasoningEfforts !== null && typeof source.reasoningEfforts === "object" && !Array.isArray(source.reasoningEfforts) ? Object.fromEntries(Object.entries(source.reasoningEfforts).filter(([, value]) => typeof value === "string")) : {};
+  const modalities = Array.isArray(kind === "deepseek-api-key" ? source.inputModalities : source.input) ? (kind === "deepseek-api-key" ? source.inputModalities : source.input).filter(isModality2) : [];
+  return {
+    id: typeof source.id === "string" ? source.id : "",
+    name: stringOrNull(source.name),
+    contextWindow: positiveIntOrNull(source.contextWindow),
+    maxTokens: positiveIntOrNull(source.maxTokens),
+    inputModalities: modalities,
+    reasoningEfforts: efforts,
+    extra: extraFields(source)
+  };
+}
+function extraFields(source) {
+  const known = /* @__PURE__ */ new Set([
+    "id",
+    "name",
+    "contextWindow",
+    "maxTokens",
+    "input",
+    "inputModalities",
+    "reasoningEfforts"
+  ]);
+  return Object.fromEntries(Object.entries(source).filter(([key]) => !known.has(key)));
+}
+function buildFieldOps(target, fields) {
+  const effective = target.effective !== null && typeof target.effective === "object" ? target.effective : {};
+  const base = target.path;
+  const ops = [];
+  const scalars = target.kind === "pi-ai" ? ["displayName", "api", "baseURL", "apiKeyEnv"] : ["baseURL", "apiKeyEnv"];
+  for (const field of scalars) {
+    if (!Object.hasOwn(fields, field)) continue;
+    const next = fields[field];
+    if (next === null || next === "") {
+      if (stringOrNull(effective[field]) !== null) ops.push({ op: "unset", path: [...base, field] });
+      continue;
+    }
+    if (typeof next !== "string") throw new HostError(`invalid-${field}`, `"${field}" must be a string.`, 400);
+    const trimmed = next.trim();
+    validateScalar(field, trimmed);
+    if (trimmed === stringOrNull(effective[field])) continue;
+    ops.push({ op: "set", path: [...base, field], value: trimmed });
+  }
+  if (Object.hasOwn(fields, "models")) {
+    const current = Array.isArray(effective.models) ? sanitizeModels(effective.models.map((model) => normalizeModel(model, target.kind)), target.kind, effective.models) : [];
+    const next = sanitizeModels(fields.models, target.kind, effective.models);
+    if (JSON.stringify(next) !== JSON.stringify(current)) {
+      ops.push({ op: "set", path: [...base, "models"], value: next });
+    }
+  }
+  return ops;
+}
+function validateScalar(field, value) {
+  if (field === "baseURL") {
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new HostError("invalid-base-url", "The base URL must be an absolute http(s) URL.", 400);
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new HostError("invalid-base-url", "The base URL must use http or https.", 400);
+    }
+  }
+  if (field === "api" && !PI_AI_PROTOCOLS.includes(value)) {
+    throw new HostError("invalid-protocol", `Unsupported protocol "${value}".`, 400);
+  }
+  if (field === "apiKeyEnv" && !CREDENTIAL_REF_PATTERN.test(value)) {
+    throw new HostError("invalid-credential-ref", "A credential reference is an environment-style name.", 400);
+  }
+  if (field === "displayName" && value.length > 120) {
+    throw new HostError("invalid-display-name", "The display name is too long.", 400);
+  }
+}
+function sanitizeModels(models, kind, previous) {
+  if (!Array.isArray(models)) throw new HostError("invalid-models", "Models must be a list.", 400);
+  if (models.length > MAX_MODELS) throw new HostError("invalid-models", `At most ${MAX_MODELS} models are allowed.`, 400);
+  const previousById = /* @__PURE__ */ new Map();
+  if (Array.isArray(previous)) {
+    for (const entry of previous) {
+      if (entry !== null && typeof entry === "object" && typeof entry.id === "string") previousById.set(entry.id, entry);
+    }
+  }
+  const seen = /* @__PURE__ */ new Set();
+  return models.map((model, index) => {
+    const source = model !== null && typeof model === "object" && !Array.isArray(model) ? model : {};
+    const id = typeof source.id === "string" ? source.id.trim() : "";
+    if (id === "" || id.length > 160) throw new HostError("invalid-model", `Model ${index + 1} needs a non-empty id.`, 400);
+    if (seen.has(id)) throw new HostError("duplicate-model", `Model "${id}" appears twice.`, 400);
+    seen.add(id);
+    const prior = previousById.get(id);
+    const extra = prior !== null && typeof prior === "object" ? extraFields(prior) : {};
+    const name2 = stringOrNull(source.name);
+    if (name2 !== null && name2.length > 160) throw new HostError("invalid-model", `Model "${id}" has a name that is too long.`, 400);
+    const contextWindow = positiveIntOrNull(source.contextWindow);
+    if (source.contextWindow !== void 0 && source.contextWindow !== null && contextWindow === null) {
+      throw new HostError("invalid-model", `Model "${id}" context window must be a positive integer.`, 400);
+    }
+    const maxTokens = positiveIntOrNull(source.maxTokens);
+    if (source.maxTokens !== void 0 && source.maxTokens !== null && maxTokens === null) {
+      throw new HostError("invalid-model", `Model "${id}" max tokens must be a positive integer.`, 400);
+    }
+    const modalities = Array.isArray(source.inputModalities) ? source.inputModalities.filter(isModality2) : Array.isArray(source.input) ? source.input.filter(isModality2) : [];
+    const reasoningEfforts = sanitizeEfforts(source.reasoningEfforts);
+    if (kind === "deepseek-api-key") {
+      const entry2 = { id, ...extra };
+      if (name2 !== null) entry2.name = name2;
+      if (contextWindow !== null) entry2.contextWindow = contextWindow;
+      if (maxTokens !== null) entry2.maxTokens = maxTokens;
+      entry2.inputModalities = modalities.length > 0 ? modalities : ["text"];
+      return entry2;
+    }
+    const entry = { id, ...extra };
+    if (name2 !== null) entry.name = name2;
+    if (contextWindow !== null) entry.contextWindow = contextWindow;
+    if (maxTokens !== null) entry.maxTokens = maxTokens;
+    if (modalities.length > 0) entry.input = modalities;
+    if (Object.keys(reasoningEfforts).length > 0) entry.reasoningEfforts = reasoningEfforts;
+    return entry;
+  });
+}
+function sanitizeEfforts(value) {
+  if (value === null || value === void 0) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new HostError("invalid-model", "Reasoning levels must be an object.", 400);
+  }
+  const efforts = {};
+  for (const [level, wire] of Object.entries(value)) {
+    if (!EFFORT_LEVELS.includes(level)) throw new HostError("invalid-model", `Unknown reasoning level "${level}".`, 400);
+    if (typeof wire !== "string" || wire.trim() === "" || wire.length > 40) {
+      throw new HostError("invalid-model", `Reasoning level "${level}" needs a wire value.`, 400);
+    }
+    efforts[level] = wire.trim();
+  }
+  return efforts;
+}
+function sanitizeProfile(id, source, kind, strict) {
+  const entry = {};
+  const displayName = stringOrNull(source.displayName);
+  if (displayName !== null) entry.displayName = displayName;
+  const api = stringOrNull(source.api);
+  if (api !== null) validateScalar("api", api);
+  if (strict && api === null) throw new HostError("invalid-protocol", "A protocol is required.", 400);
+  if (api !== null) entry.api = api;
+  const baseURL = stringOrNull(source.baseURL);
+  if (baseURL !== null) validateScalar("baseURL", baseURL);
+  if (strict && baseURL === null) throw new HostError("invalid-base-url", "A base URL is required.", 400);
+  if (baseURL !== null) entry.baseURL = baseURL;
+  const apiKeyEnv = stringOrNull(source.apiKeyEnv);
+  if (apiKeyEnv !== null) validateScalar("apiKeyEnv", apiKeyEnv);
+  if (apiKeyEnv !== null) entry.apiKeyEnv = apiKeyEnv;
+  if (source.models !== void 0) entry.models = sanitizeModels(source.models, kind, void 0);
+  return entry;
+}
+async function writeOps(ctx, hooks, target, ops, expectedRevision) {
+  const settings = ctx.get("settings");
+  const expected = typeof expectedRevision === "number" && Number.isFinite(expectedRevision) ? expectedRevision : void 0;
+  try {
+    await settings.mutate(target.ns, ops, expected);
+  } catch (error) {
+    if (error !== null && typeof error === "object" && error.code === "SETTINGS_CONFLICT") {
+      throw new HostError("conflict", "The configuration changed since this form was read; reload and retry.", 409);
+    }
+    throw new HostError("write-failed", messageOf3(error), 500);
+  }
+  hooks.invalidate();
+  const descriptors = await describeAll(ctx);
+  const descriptor = descriptors.find((row) => String(row.ns) === target.ns);
+  const providerId = target.path.length > 0 ? target.path[1] : void 0;
+  return { ok: true, revision: descriptor?.revision, ...providerId === void 0 ? {} : { providerId } };
+}
+async function describeAll(ctx) {
+  const settings = ctx.get("settings");
+  try {
+    return await settings.describe({ redactSecrets: true });
+  } catch (error) {
+    throw new HostError("no-settings", messageOf3(error), 503);
+  }
+}
+async function readCredential(ctx, ref) {
+  const empty = { ref: ref ?? null, configured: false, source: null, masked: null, writable: false };
+  if (ref === null) return empty;
+  const credentials = ctx.get("credentials");
+  if (credentials === void 0 || typeof credentials.describe !== "function") return empty;
+  try {
+    const info = await credentials.describe(ref);
+    return {
+      ref,
+      configured: info?.configured === true,
+      source: typeof info?.source === "string" ? info.source : null,
+      masked: typeof info?.masked === "string" ? info.masked : null,
+      writable: info?.writable === true
+    };
+  } catch {
+    return empty;
+  }
+}
+function stringOrNull(value) {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+function positiveIntOrNull(value) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+function isModality2(value) {
+  return value === "text" || value === "image";
+}
+function messageOf3(error) {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 // src/host/usage.js
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -1337,6 +1744,12 @@ function createDashboard(ctx, config) {
   const balances = createBalances(ctx, config);
   const usage = createUsage(ctx, config);
   const discovery = { at: 0, value: null, pending: null };
+  const editor = createProviderEditor(ctx, {
+    invalidate() {
+      discovery.value = null;
+      discovery.at = 0;
+    }
+  });
   async function discover(force = false) {
     if (!force && discovery.value !== null && Date.now() - discovery.at < DISCOVERY_TTL_MS) {
       return discovery.value;
@@ -1453,6 +1866,11 @@ function createDashboard(ctx, config) {
     setDefault,
     rescan,
     currentSelection,
+    providerForm: editor.providerForm,
+    saveProvider: editor.saveProvider,
+    addProvider: editor.addProvider,
+    removeProvider: editor.removeProvider,
+    setApiKey: editor.setApiKey,
     dispose() {
     }
   };

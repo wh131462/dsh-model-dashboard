@@ -288,6 +288,7 @@ export function DashboardPage(props) {
                 onRefreshBalances={refreshBalances}
                 balanceBusy={balanceBusy}
                 onSetDefault={setDefault}
+                onReload={loadSnapshot}
               />
             ) : null}
             {tab === 'usage' ? <Usage t={t} /> : null}

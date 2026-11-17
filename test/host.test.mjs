@@ -19,6 +19,7 @@ import { createRouteHandler } from '../src/host/api.js';
 import { createBalances } from '../src/host/balances.js';
 import { estimateCost, normalizeConfig, priceFor } from '../src/host/config.js';
 import { createDashboard } from '../src/host/dashboard.js';
+import { createProviderEditor } from '../src/host/editing.js';
 import { readProviders } from '../src/host/discovery.js';
 import { createUsage } from '../src/host/usage.js';
 
@@ -555,6 +556,272 @@ test('route handler admits owners, rejects others, and wraps every reply', async
   await ownerRoute(malformed, malformedRes);
   assert.equal(malformedRes.statusCode, 400);
   assert.equal(JSON.parse(malformedRes.body).error.code, 'bad-json');
+});
+
+
+/** A settings/configEditor/credentials triple for the editing tests. */
+function editorFixture(overrides = {}) {
+  const descriptors = overrides.descriptors ?? [
+    {
+      ns: 'llm-pi-ai',
+      revision: 3,
+      value: {
+        providers: {
+          acme: {
+            displayName: 'Acme',
+            api: 'openai-completions',
+            baseURL: 'https://acme.example/v1',
+            apiKeyEnv: 'ACME_KEY',
+            models: [{ id: 'm1', name: 'M1', contextWindow: 1000, compat: { supportsStore: false } }],
+          },
+          inherited: { displayName: 'Inherited', baseURL: 'https://inherited.example/v1' },
+        },
+      },
+      user: { providers: { acme: { baseURL: 'https://acme.example/v1' } } },
+    },
+    {
+      ns: 'llm-deepseek',
+      revision: 1,
+      value: { baseURL: 'https://api.deepseek.com/anthropic', apiKeyEnv: 'DEEPSEEK_API_KEY', models: [{ id: 'deepseek-flash', inputModalities: ['text'] }] },
+      user: {},
+    },
+    { ns: 'llm-deepseek-account', revision: 0, value: {}, user: {} },
+  ];
+  const calls = { mutate: [], set: [], unset: [] };
+  const failure = overrides.mutateError;
+  const settings = {
+    async describe() {
+      return descriptors;
+    },
+    async mutate(ns, ops, expected) {
+      calls.mutate.push({ ns, ops, expected });
+      if (failure !== undefined) throw failure;
+    },
+  };
+  const configEditor = {
+    entries() {
+      return [
+        { options: { id: 'llm-pi-ai', name: '@deepseek-ai/dsh-llm-pi-ai' } },
+        { options: { id: 'llm-deepseek', name: '@deepseek-ai/dsh-llm-deepseek-api-key' } },
+        { options: { id: 'llm-deepseek-account', name: '@deepseek-ai/dsh-llm-deepseek-account' } },
+      ];
+    },
+  };
+  const credentials = {
+    async describe(ref) {
+      return ref === 'ACME_KEY'
+        ? { configured: true, source: 'environment', masked: 'sk-…cme', writable: false }
+        : { configured: false, writable: true };
+    },
+    async set(ref, value) {
+      calls.set.push({ ref, value });
+    },
+    async unset(ref) {
+      calls.unset.push({ ref });
+    },
+  };
+  return { ctx: makeCtx({ settings, configEditor, credentials }), calls, descriptors };
+}
+
+test('provider form exposes an editable profile with capability flags per route kind', async () => {
+  const { ctx } = editorFixture();
+  const editor = createProviderEditor(ctx, { invalidate() {} });
+
+  const piAi = await editor.providerForm({ providerId: 'acme' });
+  assert.equal(piAi.kind, 'pi-ai');
+  assert.equal(piAi.settingsNs, 'llm-pi-ai');
+  assert.equal(piAi.revision, 3);
+  assert.equal(piAi.writable, true);
+  assert.equal(piAi.canDelete, true);
+  assert.equal(piAi.inherited, false);
+  assert.deepEqual(piAi.capabilities, {
+    displayName: true, api: true, baseURL: true, apiKeyEnv: true, models: true, apiKey: true,
+  });
+  assert.equal(piAi.profile.displayName, 'Acme');
+  assert.equal(piAi.profile.protocol, undefined);
+  assert.equal(piAi.profile.api, 'openai-completions');
+  assert.equal(piAi.profile.baseURL, 'https://acme.example/v1');
+  assert.equal(piAi.profile.models.length, 1);
+  assert.equal(piAi.profile.models[0].id, 'm1');
+  assert.deepEqual(piAi.profile.models[0].extra, { compat: { supportsStore: false } });
+  assert.equal(piAi.credential.configured, true);
+  assert.equal(piAi.credential.masked, 'sk-…cme');
+
+  const inherited = await editor.providerForm({ providerId: 'inherited' });
+  assert.equal(inherited.canDelete, false);
+  assert.equal(inherited.inherited, true);
+
+  const deepseek = await editor.providerForm({ providerId: 'deepseek-official' });
+  assert.equal(deepseek.kind, 'deepseek-api-key');
+  assert.equal(deepseek.capabilities.api, false);
+  assert.equal(deepseek.capabilities.baseURL, true);
+  assert.equal(deepseek.capabilities.models, true);
+
+  const account = await editor.providerForm({ providerId: 'deepseek-account' });
+  assert.equal(account.kind, 'account');
+  assert.equal(account.writable, false);
+  assert.equal(account.capabilities.baseURL, false);
+});
+
+test('saving a provider writes only changed leaf paths and validates input', async () => {
+  const { ctx, calls } = editorFixture();
+  const editor = createProviderEditor(ctx, { invalidate() {} });
+
+  const unchanged = await editor.saveProvider({
+    providerId: 'acme',
+    expectedRevision: 3,
+    fields: { baseURL: 'https://acme.example/v1' },
+  });
+  assert.equal(unchanged.unchanged, true);
+  assert.equal(calls.mutate.length, 0);
+
+  await editor.saveProvider({
+    providerId: 'acme',
+    expectedRevision: 3,
+    fields: {
+      baseURL: 'https://acme2.example/v1',
+      api: 'anthropic-messages',
+      models: [{ id: 'm1', name: 'M1 renamed', contextWindow: 2000, inputModalities: ['text', 'image'], reasoningEfforts: { low: 'low', max: 'max' } }],
+    },
+  });
+  assert.equal(calls.mutate.length, 1);
+  const call = calls.mutate[0];
+  assert.equal(call.ns, 'llm-pi-ai');
+  assert.equal(call.expected, 3);
+  assert.deepEqual(call.ops, [
+    { op: 'set', path: ['providers', 'acme', 'api'], value: 'anthropic-messages' },
+    { op: 'set', path: ['providers', 'acme', 'baseURL'], value: 'https://acme2.example/v1' },
+    {
+      op: 'set',
+      path: ['providers', 'acme', 'models'],
+      value: [{
+        id: 'm1',
+        compat: { supportsStore: false },
+        name: 'M1 renamed',
+        contextWindow: 2000,
+        input: ['text', 'image'],
+        reasoningEfforts: { low: 'low', max: 'max' },
+      }],
+    },
+  ]);
+
+  await assert.rejects(
+    () => editor.saveProvider({ providerId: 'acme', expectedRevision: 3, fields: { baseURL: 'ftp://nope' } }),
+    (error) => error.code === 'invalid-base-url',
+  );
+  await assert.rejects(
+    () => editor.saveProvider({ providerId: 'acme', expectedRevision: 3, fields: { api: 'carrier-pigeon' } }),
+    (error) => error.code === 'invalid-protocol',
+  );
+  await assert.rejects(
+    () => editor.saveProvider({
+      providerId: 'acme',
+      expectedRevision: 3,
+      fields: { models: [{ id: 'm1' }, { id: 'm1' }] },
+    }),
+    (error) => error.code === 'duplicate-model',
+  );
+  await assert.rejects(
+    () => editor.saveProvider({ providerId: 'nobody', expectedRevision: 3, fields: {} }),
+    (error) => error.code === 'unknown-provider',
+  );
+});
+
+test('a save while the profile changed is a conflict and a write failure is mapped', async () => {
+  const conflict = Object.assign(new Error('conflict'), { code: 'SETTINGS_CONFLICT' });
+  const conflictFixture = editorFixture({ mutateError: conflict });
+  const conflictEditor = createProviderEditor(conflictFixture.ctx, { invalidate() {} });
+  await assert.rejects(
+    () => conflictEditor.saveProvider({ providerId: 'acme', expectedRevision: 3, fields: { baseURL: 'https://x.example/v1' } }),
+    (error) => error.code === 'conflict' && error.status === 409,
+  );
+
+  const brokenFixture = editorFixture({ mutateError: new Error('disk full') });
+  const brokenEditor = createProviderEditor(brokenFixture.ctx, { invalidate() {} });
+  await assert.rejects(
+    () => brokenEditor.saveProvider({ providerId: 'acme', expectedRevision: 3, fields: { baseURL: 'https://x.example/v1' } }),
+    (error) => error.code === 'write-failed',
+  );
+});
+
+test('adding and removing a provider route uses the providers dictionary', async () => {
+  const { ctx, calls } = editorFixture();
+  const editor = createProviderEditor(ctx, { invalidate() {} });
+
+  const added = await editor.addProvider({
+    expectedRevision: 3,
+    provider: {
+      id: 'acme-2',
+      displayName: 'Acme 2',
+      api: 'openai-completions',
+      baseURL: 'https://acme2.example/v1',
+      apiKeyEnv: 'ACME2_KEY',
+      models: [{ id: 'gpt-x', inputModalities: ['text'] }],
+    },
+  });
+  assert.equal(added.ok, true);
+  assert.equal(added.providerId, 'acme-2');
+  assert.equal(calls.mutate[0].ns, 'llm-pi-ai');
+  assert.deepEqual(calls.mutate[0].ops, [{
+    op: 'set',
+    path: ['providers', 'acme-2'],
+    value: {
+      displayName: 'Acme 2',
+      api: 'openai-completions',
+      baseURL: 'https://acme2.example/v1',
+      apiKeyEnv: 'ACME2_KEY',
+      models: [{ id: 'gpt-x', input: ['text'] }],
+    },
+  }]);
+
+  await assert.rejects(
+    () => editor.addProvider({ expectedRevision: 3, provider: { id: 'acme', api: 'openai-completions', baseURL: 'https://x/v1' } }),
+    (error) => error.code === 'provider-exists',
+  );
+  await assert.rejects(
+    () => editor.addProvider({ expectedRevision: 3, provider: { id: 'Bad Id', baseURL: 'https://x/v1' } }),
+    (error) => error.code === 'invalid-provider-id',
+  );
+  await assert.rejects(
+    () => editor.addProvider({ expectedRevision: 3, provider: { id: 'no-url', api: 'openai-completions' } }),
+    (error) => error.code === 'invalid-base-url',
+  );
+
+  await editor.removeProvider({ providerId: 'acme', expectedRevision: 3 });
+  assert.deepEqual(calls.mutate[1].ops, [{ op: 'unset', path: ['providers', 'acme'] }]);
+  await assert.rejects(
+    () => editor.removeProvider({ providerId: 'inherited', expectedRevision: 3 }),
+    (error) => error.code === 'readonly',
+  );
+  await assert.rejects(
+    () => editor.removeProvider({ providerId: 'deepseek-official', expectedRevision: 1 }),
+    (error) => error.code === 'readonly',
+  );
+});
+
+test('credentials are written through the credential seam, never through the profile', async () => {
+  const { ctx, calls } = editorFixture();
+  let invalidated = 0;
+  const editor = createProviderEditor(ctx, { invalidate() { invalidated += 1; } });
+
+  const stored = await editor.setApiKey({ ref: 'ACME_KEY', value: 'sk-new-value' });
+  assert.equal(stored.ok, true);
+  assert.deepEqual(calls.set, [{ ref: 'ACME_KEY', value: 'sk-new-value' }]);
+  assert.equal(invalidated, 1);
+
+  const cleared = await editor.setApiKey({ ref: 'ACME_KEY', clear: true });
+  assert.equal(cleared.ok, true);
+  assert.deepEqual(calls.unset, [{ ref: 'ACME_KEY' }]);
+  assert.equal(calls.mutate.length, 0);
+
+  await assert.rejects(
+    () => editor.setApiKey({ ref: 'not a ref', value: 'x' }),
+    (error) => error.code === 'invalid-credential-ref',
+  );
+  await assert.rejects(
+    () => editor.setApiKey({ ref: 'ACME_KEY', value: '   ' }),
+    (error) => error.code === 'invalid-key',
+  );
 });
 
 test('dashboard snapshot wires discovery, balances, and the usage summary together', async (t) => {

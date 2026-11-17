@@ -1,9 +1,9 @@
 {
   "name": "@local/dsh-token-dashboard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Model panel for DeepSeek Harness: a Model panel beside the sidebar's automation tasks that shows the live model configuration, per-provider balances, and token usage statistics.",
+  "description": "Model panel for DeepSeek Harness: a dashboard beside the sidebar automation tasks that shows and edits the model configuration, per-provider balances, and token usage statistics.",
   "license": "MIT",
   "author": "EternalHeart <hao131462@qq.com>",
   "engines": {

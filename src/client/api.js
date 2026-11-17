@@ -128,6 +128,46 @@ export function rescanUsage(request = {}, options) {
 }
 
 /**
+ * Read one provider's editable profile.
+ * @param {string} providerId - provider route id.
+ */
+export function fetchProviderForm(providerId, options) {
+  return call('provider-form', { providerId }, options);
+}
+
+/**
+ * Save edited fields on one provider.
+ * @param {{providerId: string, expectedRevision?: number, fields: object}} payload - the edit.
+ */
+export function saveProvider(payload, options) {
+  return call('save-provider', payload, options);
+}
+
+/**
+ * Declare a new provider route.
+ * @param {{expectedRevision?: number, provider: object}} payload - the declaration.
+ */
+export function addProvider(payload, options) {
+  return call('add-provider', payload, options);
+}
+
+/**
+ * Remove a declared provider route.
+ * @param {{providerId: string, expectedRevision?: number}} payload - the removal.
+ */
+export function removeProvider(payload, options) {
+  return call('remove-provider', payload, options);
+}
+
+/**
+ * Store or clear one provider credential.
+ * @param {{ref: string, value?: string, clear?: boolean}} payload - the write.
+ */
+export function setApiKey(payload, options) {
+  return call('set-api-key', payload, options);
+}
+
+/**
  * Map a thrown value onto a message a view can show.
  * @param {unknown} error - any rejection.
  * @returns {string} human readable text.

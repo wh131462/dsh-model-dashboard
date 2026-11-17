@@ -269,3 +269,123 @@ Body: `{ "full": false }`. `full: true` discards the usage cache first.
 ```json
 { "value": { "started": true, "scan": ScanProgress } }
 ```
+
+## Provider configuration editing
+
+The panel writes the same profile layers the shipped **Settings > Models** page
+writes: leaf path edits through `settings.mutate(ns, ops, expectedRevision)` and
+secrets through `credentials.set/unset`. A secret never enters the profile patch
+and is never returned to the page. Every route edit carries the `revision` the
+form was read at, so a concurrent change is refused with `conflict` instead of
+being overwritten.
+
+Allowed protocol values: `openai-completions`, `openai-responses`,
+`anthropic-messages`, `google-generative-ai`. Allowed reasoning levels:
+`off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. Allowed input
+modalities: `text`, `image`. A provider id is `^[a-z0-9][a-z0-9-]{0,63}$`.
+
+### `POST provider-form`
+
+Body: `{ "providerId": "acme" }`.
+
+```json
+{
+  "value": {
+    "providerId": "acme",
+    "settingsNs": "llm-pi-ai",
+    "kind": "pi-ai",
+    "revision": 3,
+    "writable": true,
+    "canDelete": true,
+    "inherited": false,
+    "profile": {
+      "displayName": "Acme",
+      "api": "openai-completions",
+      "baseURL": "https://acme.example/v1",
+      "apiKeyEnv": "ACME_KEY",
+      "models": [
+        {
+          "id": "m1",
+          "name": "M1",
+          "contextWindow": 1000,
+          "maxTokens": null,
+          "inputModalities": ["text"],
+          "reasoningEfforts": { "low": "low" },
+          "extra": { "compat": { "supportsStore": false } }
+        }
+      ],
+      "modelsDeclared": true
+    },
+    "capabilities": {
+      "displayName": true,
+      "api": true,
+      "baseURL": true,
+      "apiKeyEnv": true,
+      "models": true,
+      "apiKey": true
+    },
+    "credential": { "ref": "ACME_KEY", "configured": true, "source": "environment", "masked": "sk-…cme", "writable": false }
+  }
+}
+```
+
+- `kind` is `pi-ai`, `deepseek-api-key`, or `account`. An `account` route is
+  read-only: its settings belong to the account sign-in.
+- `inherited` is true when the route comes from the composition rather than the
+  user's profile patch; such a route cannot be deleted.
+- `capabilities` says which fields this route's adapter accepts.
+- `models` lists only the models the profile declares. Empty plus
+  `modelsDeclared:false` means the route inherits the adapter catalog.
+- `extra` carries profile fields this build does not interpret; the Host
+  re-applies them when the model is saved.
+- Error codes: `unknown-provider`, `no-settings`.
+
+### `POST save-provider`
+
+Body:
+
+```json
+{
+  "providerId": "acme",
+  "expectedRevision": 3,
+  "fields": {
+    "displayName": "Acme",
+    "api": "openai-completions",
+    "baseURL": "https://acme.example/v1",
+    "apiKeyEnv": "ACME_KEY",
+    "models": [
+      { "id": "m1", "name": "M1", "contextWindow": 1000, "maxTokens": null,
+        "inputModalities": ["text"], "reasoningEfforts": { "low": "low" } }
+    ]
+  }
+}
+```
+
+Only fields present in `fields` are touched; `null` or `""` clears a field.
+Value: `{ "ok": true, "revision": 4, "providerId": "acme", "unchanged": true|absent }`.
+Error codes: `unknown-provider`, `readonly`, `invalid-base-url`,
+`invalid-protocol`, `invalid-credential-ref`, `invalid-display-name`,
+`invalid-model`, `invalid-models`, `duplicate-model`, `conflict` (409),
+`write-failed`.
+
+### `POST add-provider`
+
+Body: `{ "expectedRevision": 3, "provider": { "id": "acme-2", "displayName": "Acme 2", "api": "openai-completions", "baseURL": "https://acme2.example/v1", "apiKeyEnv": "ACME2_KEY", "models": [] } }`.
+`expectedRevision` may be omitted when no pi-ai route exists yet.
+Value: `{ "ok": true, "revision": 4, "providerId": "acme-2" }`.
+Error codes: `invalid-provider-id`, `provider-exists`, `invalid-protocol`,
+`invalid-base-url`, `conflict`, `unavailable`, `write-failed`.
+
+### `POST remove-provider`
+
+Body: `{ "providerId": "acme-2", "expectedRevision": 4 }`.
+Value: `{ "ok": true, "revision": 5, "providerId": "acme-2" }`.
+Error codes: `readonly` (the route is inherited from the composition or is not a
+declared pi-ai route), `unknown-provider`, `conflict`, `write-failed`.
+
+### `POST set-api-key`
+
+Body: `{ "ref": "ACME_KEY", "value": "sk-…" }` or `{ "ref": "ACME_KEY", "clear": true }`.
+Value: `{ "ok": true, "credential": { "ref": "ACME_KEY", "configured": true, "source": "stored", "masked": "sk-…", "writable": true } }`.
+Error codes: `invalid-credential-ref`, `invalid-key`, `no-credentials`,
+`key-write-failed`.

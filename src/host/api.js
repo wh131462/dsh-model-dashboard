@@ -25,6 +25,11 @@ export function createRouteHandler(ctx, dashboard) {
     balances: (body) => dashboard.balances(body),
     rescan: (body) => dashboard.rescan(body),
     'set-default': (body) => dashboard.setDefault(body),
+    'provider-form': (body) => dashboard.providerForm(body),
+    'save-provider': (body) => dashboard.saveProvider(body),
+    'add-provider': (body) => dashboard.addProvider(body),
+    'remove-provider': (body) => dashboard.removeProvider(body),
+    'set-api-key': (body) => dashboard.setApiKey(body),
   };
 
   return async function route(req, res) {

@@ -4,13 +4,17 @@
  *
  * Model selection is saved through the page's `onSetDefault` callback; a failed
  * save reports the Host message inline beside that provider instead of in a
- * page-wide alert.
+ * page-wide alert. Every non-account route can also be edited in place: the card
+ * body becomes a `ProviderEditor`, and a successful write reloads the page
+ * snapshot through `onReload`. The toolbar's 新增供应商 action declares a fresh
+ * pi-ai route through `AddProviderForm`.
  */
 
 import { useState } from 'react';
-import { errorText } from './api.js';
+import { errorText, fetchProviderForm } from './api.js';
 import { Card, CardSkeleton, Chip, Dot, EmptyState, cx } from './ui.jsx';
 import { formatBalance, formatNumber, formatTokens } from './format.js';
+import { AddProviderForm, ProviderEditor } from './ProviderEditor.jsx';
 
 /** Localized copy for the Host's short provider note codes. */
 const NOTE_KEYS = {
@@ -33,13 +37,17 @@ function noteText(t, note) {
 
 /**
  * Render the model-configuration tab.
- * @param {{ snapshot: any, t: (key: string, params?: Record<string, unknown>) => string, onRefreshBalances?: (request?: object) => void, balanceBusy?: string|null, onSetDefault?: (selection: { provider: string, model: string }) => Promise<any> }} props - snapshot, translate, and host actions.
+ * @param {{ snapshot: any, t: (key: string, params?: Record<string, unknown>) => string, onRefreshBalances?: (request?: object) => void, balanceBusy?: string|null, onSetDefault?: (selection: { provider: string, model: string }) => Promise<any>, onReload?: () => Promise<void> }} props - snapshot, translate, and host actions.
  * @returns the providers tab element.
  */
 export function Providers(props) {
   const t = props.t ?? ((key) => key);
-  const { snapshot, onRefreshBalances, balanceBusy, onSetDefault } = props;
+  const { snapshot, onRefreshBalances, balanceBusy, onSetDefault, onReload } = props;
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [editingId, setEditingId] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addRevision, setAddRevision] = useState(undefined);
+  const [addPreparing, setAddPreparing] = useState(false);
   if (snapshot === null || typeof snapshot !== 'object') return <CardSkeleton count={4} label={t('loading.page')} />;
 
   const providers = Array.isArray(snapshot.providers) ? snapshot.providers : [];
@@ -52,6 +60,16 @@ export function Providers(props) {
   ));
   const allExpanded = expandable.length > 0 && expandable.every((provider) => expandedIds.has(provider.id));
   const refreshingAll = balanceBusy === 'all';
+  // Always offer the create action: a profile with no multi-provider route yet
+  // is exactly the case where declaring one is useful, and the Host answers
+  // `unavailable` (localized) when the adapter is not mounted at all.
+  const showAdd = true;
+  const piAiProvider = providers.find((provider) => (
+    typeof provider?.id === 'string'
+    && provider.id !== ''
+    && typeof provider?.settingsNs === 'string'
+    && provider.settingsNs.includes('pi-ai')
+  ));
 
   const toggleProvider = (id) => {
     setExpandedIds((previous) => {
@@ -72,6 +90,55 @@ export function Providers(props) {
     });
   };
 
+  // Read one existing pi-ai form before opening the add form: its namespace
+  // revision is the CAS token the Host wants for a create. The Host accepts an
+  // omitted revision, so a failed read only weakens the concurrency check.
+  const openAdd = async () => {
+    if (addPreparing || addOpen) return;
+    setEditingId(null);
+    setAddPreparing(true);
+    let revision;
+    if (piAiProvider !== undefined) {
+      try {
+        const form = await fetchProviderForm(piAiProvider.id);
+        if (typeof form?.revision === 'number' && Number.isFinite(form.revision)) revision = form.revision;
+      } catch {
+        revision = undefined;
+      }
+    }
+    setAddRevision(revision);
+    setAddPreparing(false);
+    setAddOpen(true);
+  };
+
+  const closeAdd = () => {
+    setAddOpen(false);
+    setAddRevision(undefined);
+  };
+
+  // A successful write is the feedback: reload the page snapshot. An edit or a
+  // key write keeps the form open (it refetches its own revision and masked
+  // preview); only a removal returns the card to its read-only state.
+  const afterSaved = async (info) => {
+    try {
+      await onReload?.();
+    } finally {
+      if (info !== null && typeof info === 'object' && info.removed === true) setEditingId(null);
+    }
+  };
+
+  const afterCreated = async (providerId) => {
+    setAddOpen(false);
+    setAddRevision(undefined);
+    try {
+      await onReload?.();
+    } catch {
+      // The page reports its own snapshot failure; the new card may be missing
+      // until the next refresh, so the editor is only opened after the read.
+    }
+    if (typeof providerId === 'string' && providerId !== '') setEditingId(providerId);
+  };
+
   return (
     <div>
       <div className="td-toolbar">
@@ -89,21 +156,44 @@ export function Providers(props) {
               {allExpanded ? t('actions.collapseAll') : t('actions.expandAll')}
             </button>
           ) : null}
+          {showAdd ? (
+            <button
+              type="button"
+              className="td-button td-button-small td-button-secondary"
+              disabled={addPreparing || addOpen}
+              onClick={() => { void openAdd(); }}
+            >
+              {addPreparing ? t('providers.add.preparing') : t('providers.add.action')}
+            </button>
+          ) : null}
         </div>
       </div>
 
+      {addOpen ? <AddProviderForm t={t} expectedRevision={addRevision} onClose={closeAdd} onCreated={(id) => { void afterCreated(id); }} /> : null}
+
       {providers.length === 0 ? (
-        <Card className="td-section">
-          <EmptyState title={t('providers.empty')} />
-        </Card>
+        addOpen ? null : (
+          <Card className="td-section">
+            <EmptyState title={t('providers.empty')} />
+          </Card>
+        )
       ) : (
-        <div className="td-provider-list">
+        <div className={cx('td-provider-list', addOpen && 'td-section')}>
           {providers.map((provider, index) => (
             <ProviderCard
               key={provider?.id ?? `provider-${index}`}
               provider={provider}
               t={t}
               selection={selection}
+              editing={typeof provider?.id === 'string' && editingId === provider.id}
+              onEdit={() => {
+                if (typeof provider?.id === 'string') {
+                  setAddOpen(false);
+                  setEditingId(provider.id);
+                }
+              }}
+              onCloseEditor={() => setEditingId(null)}
+              onSaved={afterSaved}
               expandedModels={typeof provider?.id === 'string' && expandedIds.has(provider.id)}
               onToggleModels={toggleProvider}
               onRefresh={(id) => onRefreshBalances?.({ providers: [id] })}
@@ -159,7 +249,7 @@ function sourceText(t, source) {
 }
 
 /** One provider card; owns the save-in-flight state for its model rows. */
-function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
+function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
   const [savingModel, setSavingModel] = useState(null);
   const [saveError, setSaveError] = useState(null);
 
@@ -171,6 +261,7 @@ function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, 
   const busy = balanceBusy === 'all' || (id !== '' && balanceBusy === id);
   const keyConfigured = provider?.keyConfigured === true;
   const routeActive = provider?.registered === true;
+  const isAccountRoute = provider?.accountRoute === true;
   const baseURL = typeof provider?.baseURL === 'string' ? provider.baseURL : '';
   // A masked preview is a secret fragment; the reference name is configuration,
   // so the two never share one label slot.
@@ -178,6 +269,7 @@ function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, 
   const credentialRef = typeof provider?.apiKeyEnv === 'string' && provider.apiKeyEnv !== '' ? provider.apiKeyEnv : null;
   const keySource = keyConfigured && typeof provider?.keySource === 'string' ? sourceText(t, provider.keySource) : null;
   const notes = Array.isArray(provider?.notes) ? provider.notes : [];
+  const editingOpen = editing === true && id !== '';
 
   const saveDefault = async (model) => {
     if (typeof onSetDefault !== 'function' || savingModel !== null) return;
@@ -215,85 +307,111 @@ function ProviderCard({ provider, t, selection, expandedModels, onToggleModels, 
           ? <Chip title={t('providers.protocol')}>{provider.protocol}</Chip>
           : null}
         {provider?.isDefault === true ? <Chip tone="brand">{t('providers.default')}</Chip> : null}
-        {provider?.accountRoute === true ? <span className="td-caption">{t('providers.accountRoute')}</span> : null}
-      </div>
-
-      <div className="td-provider-meta">
-        {baseURL !== '' ? (
-          <span className="td-meta-item">
-            <span className="td-caption">{t('providers.baseUrl')}</span>
-            <span className="td-mono td-ellipsis td-provider-base" title={baseURL}>{baseURL}</span>
-          </span>
-        ) : null}
-        <span className="td-meta-item">
-          <span className="td-caption">{t('providers.credentials')}</span>
-          <span className={keyConfigured ? 'td-tone-ok' : 'td-tone-error'}>
-            {keyConfigured ? t('providers.keyConfigured') : t('providers.keyMissing')}
-          </span>
-          {masked !== null ? (
-            <span className="td-mono" title={masked}>{masked}</span>
-          ) : null}
-          {credentialRef !== null ? (
-            <span className="td-caption">{t('providers.credentialRef', { ref: credentialRef })}</span>
-          ) : null}
-          {keySource !== null ? <span>{t('providers.keySource', { source: keySource })}</span> : null}
-        </span>
-        <span className="td-meta-item">
-          {provider?.registered === true ? t('providers.registered') : t('providers.notRegistered')}
-        </span>
-      </div>
-
-      <div className="td-provider-balance">
-        <span className="td-caption">{t('providers.balance')}</span>
-        <span className={cx('td-balance-text', `td-tone-${balance.tone}`)}>{balance.text}</span>
-        <button
-          type="button"
-          className="td-button td-button-small td-button-secondary"
-          aria-label={t('providers.refreshBalanceAria', { provider: displayName })}
-          disabled={busy}
-          onClick={() => onRefresh?.(id)}
-        >
-          {busy ? t('actions.refreshing') : t('actions.refreshBalance')}
-        </button>
-      </div>
-
-      {notes.length > 0 ? (
-        <ul className="td-notes">
-          {notes.map((note, index) => <li className="td-note" key={`${String(note)}-${index}`}>{noteText(t, note)}</li>)}
-        </ul>
-      ) : null}
-
-      {saveError !== null ? (
-        <p className="td-inline-error" role="alert">{t('errors.save', { message: saveError })}</p>
-      ) : null}
-
-      <div className="td-models">
-        <div className="td-models-head">
-          <span className="td-card-subtitle">{t('providers.models')} · {formatNumber(models.length)}</span>
-          {models.length > 5 && id !== '' ? (
-            <button type="button" className="td-button td-button-small td-button-secondary" onClick={() => onToggleModels(id)}>
-              {expandedModels ? t('providers.collapseModels') : t('providers.showAllModels', { count: models.length })}
+        {isAccountRoute ? <span className="td-caption">{t('providers.accountRoute')}</span> : null}
+        <div className="td-provider-actions">
+          <button
+            type="button"
+            className="td-button td-button-small td-button-secondary"
+            aria-label={t('providers.refreshBalanceAria', { provider: displayName })}
+            disabled={busy}
+            onClick={() => onRefresh?.(id)}
+          >
+            {busy ? t('actions.refreshing') : t('actions.refreshBalance')}
+          </button>
+          {isAccountRoute ? (
+            <span className="td-caption">{t('providers.accountManaged')}</span>
+          ) : !editingOpen && id !== '' ? (
+            <button
+              type="button"
+              className="td-button td-button-small td-button-secondary"
+              aria-label={t('providers.editProviderAria', { provider: displayName })}
+              onClick={onEdit}
+            >
+              {t('actions.editProvider')}
             </button>
           ) : null}
         </div>
-        {models.length === 0 ? (
-          <p className="td-muted">{provider?.modelsIncomplete === true ? t('providers.modelsIncomplete') : t('providers.noModels')}</p>
-        ) : (
-          <ul className="td-model-list">
-            {shown.map((model) => (
-              <ModelRow
-                key={model?.id ?? String(model?.name)}
-                model={model}
-                t={t}
-                isDefault={selection?.provider === id && selection?.model === model?.id}
-                saving={savingModel !== null && savingModel === model?.id}
-                disabled={!routeActive || (savingModel !== null && savingModel !== model?.id)}
-                onSelect={() => { void saveDefault(model); }}
-              />
-            ))}
-          </ul>
-        )}
       </div>
+
+      {editingOpen ? (
+        <ProviderEditor
+          providerId={id}
+          providerName={displayName}
+          t={t}
+          onClose={onCloseEditor}
+          onSaved={onSaved}
+        />
+      ) : (
+        <>
+          <div className="td-provider-meta">
+            {baseURL !== '' ? (
+              <span className="td-meta-item">
+                <span className="td-caption">{t('providers.baseUrl')}</span>
+                <span className="td-mono td-ellipsis td-provider-base" title={baseURL}>{baseURL}</span>
+              </span>
+            ) : null}
+            <span className="td-meta-item">
+              <span className="td-caption">{t('providers.credentials')}</span>
+              <span className={keyConfigured ? 'td-tone-ok' : 'td-tone-error'}>
+                {keyConfigured ? t('providers.keyConfigured') : t('providers.keyMissing')}
+              </span>
+              {masked !== null ? (
+                <span className="td-mono" title={masked}>{masked}</span>
+              ) : null}
+              {credentialRef !== null ? (
+                <span className="td-caption">{t('providers.credentialRef', { ref: credentialRef })}</span>
+              ) : null}
+              {keySource !== null ? <span>{t('providers.keySource', { source: keySource })}</span> : null}
+            </span>
+            <span className="td-meta-item">
+              {routeActive ? t('providers.registered') : t('providers.notRegistered')}
+            </span>
+          </div>
+
+          <div className="td-provider-balance">
+            <span className="td-caption">{t('providers.balance')}</span>
+            <span className={cx('td-balance-text', `td-tone-${balance.tone}`)}>{balance.text}</span>
+          </div>
+
+          {notes.length > 0 ? (
+            <ul className="td-notes">
+              {notes.map((note, index) => <li className="td-note" key={`${String(note)}-${index}`}>{noteText(t, note)}</li>)}
+            </ul>
+          ) : null}
+
+          {saveError !== null ? (
+            <p className="td-inline-error" role="alert">{t('errors.save', { message: saveError })}</p>
+          ) : null}
+
+          <div className="td-models">
+            <div className="td-models-head">
+              <span className="td-card-subtitle">{t('providers.models')} · {formatNumber(models.length)}</span>
+              {models.length > 5 && id !== '' ? (
+                <button type="button" className="td-button td-button-small td-button-secondary" onClick={() => onToggleModels(id)}>
+                  {expandedModels ? t('providers.collapseModels') : t('providers.showAllModels', { count: models.length })}
+                </button>
+              ) : null}
+            </div>
+            {models.length === 0 ? (
+              <p className="td-muted">{provider?.modelsIncomplete === true ? t('providers.modelsIncomplete') : t('providers.noModels')}</p>
+            ) : (
+              <ul className="td-model-list">
+                {shown.map((model) => (
+                  <ModelRow
+                    key={model?.id ?? String(model?.name)}
+                    model={model}
+                    t={t}
+                    isDefault={selection?.provider === id && selection?.model === model?.id}
+                    saving={savingModel !== null && savingModel === model?.id}
+                    disabled={!routeActive || (savingModel !== null && savingModel !== model?.id)}
+                    onSelect={() => { void saveDefault(model); }}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
     </Card>
   );
 }

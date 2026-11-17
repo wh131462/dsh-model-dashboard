@@ -19,7 +19,9 @@ in three tabs:
 - **Model configuration** — one card per provider: endpoint, protocol, credential
   reference and whether the key is configured, the models the adapter advertises
   (context window and reasoning levels included), each provider's current
-  balance, and a one-click **Set as default** for any model.
+  balance, and a one-click **Set as default** for any model. **Edit** opens an
+  inline form that writes the same profile layers **Settings > Models** writes
+  (see below).
 - **Usage statistics** — token totals, a daily bar chart, per-provider and
   per-model breakdowns, the largest sessions, and an optional cost estimate.
 
@@ -37,6 +39,35 @@ reads services the Harness already owns.
 | Official balance | `deepseekAccount.getBalance()` (the same wallets **Settings > Account** shows) |
 | Other balances | a couple of HTTPS `GET`s per provider, described below |
 | Token usage | this profile's session logs, read through `sessionPersistence` |
+
+## Editing model configuration
+
+The 模型配置 tab edits the profile in place. It uses the same two seams the
+shipped **Settings > Models** page uses, and no private shortcut:
+
+- `settings.mutate(ns, ops, expectedRevision)` applies leaf edits to the
+  profile's volatile settings form, so unrelated configuration and every field
+  you have not touched stay as they were. The form sends the `revision` it read;
+  a concurrent change is refused with a **conflict** and a **reload** action
+  instead of being overwritten.
+- `credentials.set/unset(ref, value)` owns the secret. An API key is never
+  written into the profile patch, never returned to the page, and only ever
+  shown as the credential store's masked preview.
+
+What you can edit depends on the route (`capabilities` in the form):
+
+| Route | Editable |
+|---|---|
+| A provider declared in the multi-provider adapter (`llm-pi-ai`) | display name, protocol, endpoint, credential reference, API key, declared models; the route can be removed when your profile patch declares it, and new routes can be added |
+| The official API-key route (`deepseek-official`) | endpoint, credential reference, API key, declared models |
+| The official account route (`deepseek-account`) | read-only — its settings belong to the account sign-in |
+
+Every value is validated on the Host before a write (`http(s)` endpoint,
+supported protocol, environment-style credential reference, unique non-empty
+model ids, positive capacities, known reasoning levels). Models the profile does
+not declare keep inheriting the adapter's catalog; the editor says so instead of
+silently copying the catalog. Unmodeled profile fields on an existing model
+(the adapter's `compat` switches and similar) are preserved by id.
 
 ## Balances
 

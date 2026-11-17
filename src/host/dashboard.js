@@ -10,6 +10,7 @@
 
 import { createBalances } from './balances.js';
 import { readDefaultSelection, readProviders } from './discovery.js';
+import { createProviderEditor } from './editing.js';
 import { HostError, messageOf } from './errors.js';
 import { createUsage } from './usage.js';
 
@@ -37,6 +38,12 @@ export function createDashboard(ctx, config) {
   const usage = createUsage(ctx, config);
   /** @type {{at: number, value: object|null, pending: Promise<object>|null}} */
   const discovery = { at: 0, value: null, pending: null };
+  const editor = createProviderEditor(ctx, {
+    invalidate() {
+      discovery.value = null;
+      discovery.at = 0;
+    },
+  });
 
   /**
    * Discover providers, reusing the last result for a few seconds.
@@ -203,6 +210,11 @@ export function createDashboard(ctx, config) {
     setDefault,
     rescan,
     currentSelection,
+    providerForm: editor.providerForm,
+    saveProvider: editor.saveProvider,
+    addProvider: editor.addProvider,
+    removeProvider: editor.removeProvider,
+    setApiKey: editor.setApiKey,
     dispose() {
       /* the tracker's timer is unref'd; nothing keeps the process alive */
     },
