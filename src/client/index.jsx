@@ -21,9 +21,11 @@ const PANEL_ORDER = 20;
  * accessible label, so the glyph itself is hidden from assistive technology and
  * matches the requested edge exactly.
  *
- * Geometry matches `icon.svg`: a 270-degree gauge whose visible bounds are
- * centred on (18, 18) with a slightly larger top margin, so the glyph does not
- * read as sitting low inside its square.
+ * Geometry matches `icon.svg` and the shipped icon system: outline glyphs draw a
+ * 1px regular stroke in a 16px box (81.25% ink), so this gauge's visible bounds
+ * are 29.25 wide in its 36 box with a 2.25 stroke (1px at 16px) and a bbox that
+ * sits ~0.6 units low for the arc's higher mass. It therefore reads the same
+ * size as the clock glyph beside it in the sidebar.
  * @param {{ size?: number }} props - the sidebar's icon share.
  * @returns the icon element.
  */
@@ -39,20 +41,20 @@ export function PanelIcon({ size = 18 } = {}) {
       style: { display: 'block' },
     },
     h('path', {
-      d: 'M11.07 26.83A9.8 9.8 0 1 1 24.93 26.83',
+      d: 'M8.45 30.13A13.5 13.5 0 1 1 27.55 30.13',
       fill: 'none',
       stroke: 'currentColor',
-      strokeWidth: 3,
+      strokeWidth: 2.25,
       strokeLinecap: 'round',
     }),
     h('path', {
-      d: 'M18 19.9 23.23 14.67',
+      d: 'M18 20.58 24.87 13.71',
       fill: 'none',
       stroke: 'currentColor',
-      strokeWidth: 2.6,
+      strokeWidth: 2,
       strokeLinecap: 'round',
     }),
-    h('circle', { cx: 18, cy: 19.9, r: 2.2, fill: 'currentColor' }),
+    h('circle', { cx: 18, cy: 20.58, r: 2.9, fill: 'currentColor' }),
   );
 }
 

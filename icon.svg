@@ -1,9 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" role="img">
   <title>Model panel</title>
-  <!-- A 270-degree gauge glyph: the visible bounds are centred on (18, 18) and
-       the bottom opening carries slightly less margin than the top, which keeps
-       the mass optically centred instead of sitting low in the 36px box. -->
-  <path d="M11.07 26.83A9.8 9.8 0 1 1 24.93 26.83" fill="none" stroke="#247bbf" stroke-width="3" stroke-linecap="round"/>
-  <path d="M18 19.9 23.23 14.67" fill="none" stroke="#247bbf" stroke-width="2.6" stroke-linecap="round"/>
-  <circle cx="18" cy="19.9" r="2.2" fill="#247bbf"/>
+  <!-- A 270-degree gauge glyph sized to the Harness icon system: the shipped
+       outline icons use a 16px box with a 1px regular stroke, so their ink fills
+       81.25% of the box. This glyph's visible bounds are 29.25 x 25.3 (81.25% of
+       36 wide) with a 2.25 stroke — the 16px-rendered stroke is exactly 1px — and
+       the bbox sits ~0.6 units low so the arc's higher mass still looks centred. -->
+  <path d="M8.45 30.13A13.5 13.5 0 1 1 27.55 30.13" fill="none" stroke="#247bbf" stroke-width="2.25" stroke-linecap="round"/>
+  <path d="M18 20.58 24.87 13.71" fill="none" stroke="#247bbf" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="18" cy="20.58" r="2.9" fill="#247bbf"/>
 </svg>
