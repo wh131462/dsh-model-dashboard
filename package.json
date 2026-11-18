@@ -1,7 +1,6 @@
 {
   "name": "@eternalheart/dsh-model-dashboard",
-  "version": "1.4.0",
-  "private": true,
+  "version": "1.0.0",
   "type": "module",
   "description": "model-dashboard: a control-room dashboard for DeepSeek Harness beside the sidebar automation tasks — inspect and edit the model configuration, see per-provider balances and gateway model catalogs, detect reasoning-effort support, and read token usage statistics.",
   "license": "MIT",
@@ -26,10 +25,16 @@
     "LICENSE",
     "docs"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.com"
+  },
   "scripts": {
     "build": "node build.mjs",
     "prepare": "node build.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "pub": "node scripts/pub.mjs",
+    "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
     "esbuild": "0.25.12"
