@@ -556,6 +556,7 @@ async function safeList(read) {
 }
 
 // src/host/balances.js
+var UNLIMITED_QUOTA_THRESHOLD = 1e6;
 var ACCOUNT_TTL_MS = 6e4;
 var JSON_HEADERS = { accept: "application/json" };
 var DEFAULT_BASES = {
@@ -840,6 +841,23 @@ async function billingProbe(base, key, timeoutMs) {
       continue;
     }
     const used = totalUsage === null ? null : totalUsage / 100;
+    if (limit !== null && limit >= UNLIMITED_QUOTA_THRESHOLD) {
+      return {
+        ok: true,
+        balance: {
+          status: "ok",
+          kind: "probe",
+          source: "openai-billing",
+          amount: null,
+          limit: null,
+          used,
+          unlimited: true,
+          currency: "USD",
+          detail: void 0,
+          updatedAt: Date.now()
+        }
+      };
+    }
     const amount = limit === null ? null : used === null ? limit : limit - used;
     return {
       ok: true,

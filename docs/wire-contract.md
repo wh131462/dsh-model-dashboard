@@ -73,6 +73,9 @@ Exactly one of:
 `reason` is one of `signed-out`, `no-key`, `no-endpoint`, `disabled`,
 `unsupported`; `source` is one of `openai-billing`, `deepseek`, `custom`.
 `amount`/`limit`/`used` are `null` when the provider did not report them.
+`unlimited: true` marks a compatibility-quota sentinel (one-api/new-api report
+100,000,000 "USD" for an account without a finite quota): `amount` and `limit`
+are then `null` and only `used` is meaningful.
 
 ### ModelView
 

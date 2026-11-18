@@ -355,6 +355,28 @@ test('balance probes parse both compatibility shapes and derive the account wall
   assert.deepEqual(resolved.account.wallets, [{ currency: 'CNY', balance: '12.34' }]);
 });
 
+test('a compatibility quota sentinel is reported as unlimited, not as a balance', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/dashboard/billing/subscription')) {
+      return new Response(JSON.stringify({ object: 'billing_subscription', hard_limit_usd: 100000000, soft_limit_usd: 100000000 }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ object: 'list', total_usage: 697.089 }), { status: 200 });
+  };
+  const ctx = makeCtx({ credentials: { async resolve() { return { value: 'secret', source: 'stored' }; }, async readRecord() { return undefined; } } });
+  const balances = createBalances(ctx, normalizeConfig({ balanceTimeoutMs: 1000 }));
+  const resolved = await balances.forProviders([
+    { id: 'relay', displayName: 'Relay', accountRoute: false, apiKeyEnv: 'RELAY_KEY', baseURL: 'https://relay.example/v1' },
+  ], { refresh: true, budgetMs: 0 });
+  const balance = resolved.relay;
+  assert.equal(balance.status, 'ok');
+  assert.equal(balance.unlimited, true);
+  assert.equal(balance.amount, null);
+  assert.equal(balance.limit, null);
+  assert.equal(Math.round(balance.used * 1000) / 1000, 6.971);
+});
+
 test('the official API-key route probes its default endpoint without a configured base URL', async (t) => {
   const originalFetch = globalThis.fetch;
   /** @type {string[]} */

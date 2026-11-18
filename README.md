@@ -172,7 +172,9 @@ a relay commonly serves its API under `/v1` while the billing compatibility rout
 live at the origin.
 
 A provider that answers neither shape shows an unavailable balance instead of an
-error. A relay with its own endpoint can be described in the plugin config:
+error. one-api/new-api report a compatibility-quota sentinel (100,000,000 "USD")
+for accounts without a finite quota; that is reported as 无限额度 / Unlimited
+quota with the consumed amount instead of a four-digit-million balance. A relay with its own endpoint can be described in the plugin config:
 
 ```yaml
 providerBalance:

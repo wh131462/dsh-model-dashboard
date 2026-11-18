@@ -212,6 +212,14 @@ function probeBalanceText(balance, t) {
   const amount = finiteNumber(balance.amount);
   const limit = finiteNumber(balance.limit);
   const used = finiteNumber(balance.used);
+  if (balance.unlimited === true) {
+    // One-api/new-api accounts without a finite quota report a sentinel limit;
+    // only the consumed amount is meaningful there.
+    return {
+      text: used === null ? t('balance.unlimited') : t('balance.unlimitedUsed', { used: moneyFormat(used, currency) }),
+      tone: 'ok',
+    };
+  }
   if (amount === null) {
     // A custom probe may be configured with only a used/limit pair; showing the
     // used and limit amounts is more honest than "not reported".

@@ -2028,6 +2028,12 @@ function probeBalanceText(balance, t) {
   const amount = finiteNumber(balance.amount);
   const limit = finiteNumber(balance.limit);
   const used = finiteNumber(balance.used);
+  if (balance.unlimited === true) {
+    return {
+      text: used === null ? t("balance.unlimited") : t("balance.unlimitedUsed", { used: moneyFormat(used, currency) }),
+      tone: "ok"
+    };
+  }
   if (amount === null) {
     const parts = [];
     if (used !== null) parts.push(t("balance.used", { used: moneyFormat(used, currency) }));
@@ -5096,6 +5102,8 @@ var zh = {
   "balance.idle": "\u672A\u67E5\u8BE2",
   "balance.none": "\u65E0\u4F59\u989D",
   "balance.unknown": "\u672A\u62A5\u544A",
+  "balance.unlimited": "\u65E0\u9650\u989D\u5EA6",
+  "balance.unlimitedUsed": "\u65E0\u9650\u989D\u5EA6 \xB7 \u5DF2\u7528 {used}",
   "balance.bonus": "\u8D60\u9001 {amount}",
   "balance.unavailable": "\u4E0D\u53EF\u7528",
   "balance.error": "\u8BFB\u53D6\u5931\u8D25",
@@ -5420,6 +5428,8 @@ var en = {
   "balance.idle": "Not checked",
   "balance.none": "No balance",
   "balance.unknown": "Not reported",
+  "balance.unlimited": "Unlimited quota",
+  "balance.unlimitedUsed": "Unlimited quota \xB7 used {used}",
   "balance.bonus": "Bonus {amount}",
   "balance.unavailable": "Unavailable",
   "balance.error": "Check failed",

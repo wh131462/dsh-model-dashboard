@@ -13,6 +13,13 @@
 import { numberOrNull, readPath, withDeadline } from './shared.js';
 import { pickLocale } from './discovery.js';
 
+/**
+ * The compatibility quota one-api/new-api reports for an unlimited account
+ * (100,000,000 "USD"). Above this a remaining amount is not a fact about the
+ * wallet, so it is reported as unlimited and only the consumed amount is kept.
+ */
+const UNLIMITED_QUOTA_THRESHOLD = 1_000_000;
+
 /** How long one account read is reused, independent of the provider TTL. */
 const ACCOUNT_TTL_MS = 60000;
 
@@ -464,6 +471,25 @@ async function billingProbe(base, key, timeoutMs) {
     }
     // `total_usage` is expressed in cents by the compatibility API.
     const used = totalUsage === null ? null : totalUsage / 100;
+    if (limit !== null && limit >= UNLIMITED_QUOTA_THRESHOLD) {
+      // Unlimited accounts get a sentinel quota, not a balance; report the
+      // consumed amount instead of a meaningless "remaining".
+      return {
+        ok: true,
+        balance: {
+          status: 'ok',
+          kind: 'probe',
+          source: 'openai-billing',
+          amount: null,
+          limit: null,
+          used,
+          unlimited: true,
+          currency: 'USD',
+          detail: undefined,
+          updatedAt: Date.now(),
+        },
+      };
+    }
     const amount = limit === null ? null : used === null ? limit : limit - used;
     return {
       ok: true,
