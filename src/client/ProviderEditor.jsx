@@ -277,7 +277,11 @@ function fieldsFromDraft(draft, capabilities) {
       contextWindow: positiveIntText(row.contextWindow).value,
       maxTokens: positiveIntText(row.maxTokens).value,
       inputModalities: modalitiesOf(row),
-      reasoningEfforts: parseEfforts(row.efforts).value,
+      // Only routes whose adapter reads the map get it; DeepSeek routes publish
+      // a fixed level set, and sending a map there would be dropped silently.
+      ...capabilities.modelReasoning === true
+        ? { reasoningEfforts: parseEfforts(row.efforts).value }
+        : {},
     }));
   }
   return fields;
@@ -322,7 +326,9 @@ function validateDraft(draft, capabilities, writable) {
         if (row.name.trim().length > MODEL_NAME_MAX) rowErrors.name = 'providers.edit.modelNameInvalid';
         if (!positiveIntText(row.contextWindow).ok) rowErrors.contextWindow = 'providers.edit.modelPositiveInt';
         if (!positiveIntText(row.maxTokens).ok) rowErrors.maxTokens = 'providers.edit.modelPositiveInt';
-        if (!parseEfforts(row.efforts).ok) rowErrors.efforts = 'providers.edit.modelEffortInvalid';
+        if (capabilities.modelReasoning === true && !parseEfforts(row.efforts).ok) {
+          rowErrors.efforts = 'providers.edit.modelEffortInvalid';
+        }
         if (Object.keys(rowErrors).length > 0) modelErrors[row.key] = rowErrors;
       }
     }
@@ -393,7 +399,7 @@ function Field({ id, label, hint, error, required = false, children }) {
 }
 
 /** One editable model row. */
-function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput }) {
+function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput, reasoningEditable }) {
   const idField = `${idPrefix}-model-${index}-id`;
   const nameField = `${idPrefix}-model-${index}-name`;
   const contextField = `${idPrefix}-model-${index}-context`;
@@ -453,21 +459,23 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
             onChange={(event) => onUpdate(row.key, 'maxTokens', event.target.value)}
           />
         </Field>
-        <Field
-          id={effortsField}
-          label={t('providers.edit.efforts')}
-          hint={t('providers.edit.effortsHint')}
-          error={errors.efforts === undefined ? undefined : t(errors.efforts)}
-        >
-          <input
-            className="td-input td-mono"
-            value={row.efforts}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={t('providers.edit.effortsPlaceholder')}
-            onChange={(event) => onUpdate(row.key, 'efforts', event.target.value)}
-          />
-        </Field>
+        {reasoningEditable === true ? (
+          <Field
+            id={effortsField}
+            label={t('providers.edit.efforts')}
+            hint={t('providers.edit.effortsHint')}
+            error={errors.efforts === undefined ? undefined : t(errors.efforts)}
+          >
+            <input
+              className="td-input td-mono"
+              value={row.efforts}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('providers.edit.effortsPlaceholder')}
+              onChange={(event) => onUpdate(row.key, 'efforts', event.target.value)}
+            />
+          </Field>
+        ) : null}
         <div className="td-field">
           <span className="td-field-label">{t('providers.edit.modalities')}</span>
           <div className="td-editor-checks">
@@ -933,6 +941,9 @@ export function ProviderEditorView(props) {
                 </button>
               ) : null}
             </div>
+            {capabilities.modelReasoning !== true ? (
+              <p className="td-caption">{t('providers.edit.effortsFixed')}</p>
+            ) : null}
             {modelsDeclared === false ? <p className="td-caption">{t('providers.edit.modelsInherited')}</p> : null}
             {draft.models.length === 0 && modelsDeclared === true ? (
               <p className="td-muted">{t('providers.edit.modelsEmpty')}</p>
@@ -951,6 +962,7 @@ export function ProviderEditorView(props) {
                       onUpdate={updateModel}
                       onRemove={removeModel}
                       registerIdInput={registerIdInput}
+                      reasoningEditable={capabilities.modelReasoning === true}
                     />
                   ))}
                 </div>

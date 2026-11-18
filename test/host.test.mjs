@@ -635,7 +635,7 @@ test('provider form exposes an editable profile with capability flags per route 
   assert.equal(piAi.canDelete, true);
   assert.equal(piAi.inherited, false);
   assert.deepEqual(piAi.capabilities, {
-    displayName: true, api: true, baseURL: true, apiKeyEnv: true, models: true, apiKey: true,
+    displayName: true, api: true, baseURL: true, apiKeyEnv: true, models: true, apiKey: true, modelReasoning: true,
   });
   assert.equal(piAi.profile.displayName, 'Acme');
   assert.equal(piAi.profile.protocol, undefined);
@@ -656,11 +656,14 @@ test('provider form exposes an editable profile with capability flags per route 
   assert.equal(deepseek.capabilities.api, false);
   assert.equal(deepseek.capabilities.baseURL, true);
   assert.equal(deepseek.capabilities.models, true);
+  // Only the multi-provider adapter reads per-model reasoningEfforts.
+  assert.equal(deepseek.capabilities.modelReasoning, false);
 
   const account = await editor.providerForm({ providerId: 'deepseek-account' });
   assert.equal(account.kind, 'account');
   assert.equal(account.writable, false);
   assert.equal(account.capabilities.baseURL, false);
+  assert.equal(account.capabilities.modelReasoning, false);
 });
 
 test('saving a provider writes only changed leaf paths and validates input', async () => {

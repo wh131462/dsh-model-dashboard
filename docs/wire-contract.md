@@ -322,7 +322,8 @@ Body: `{ "providerId": "acme" }`.
       "baseURL": true,
       "apiKeyEnv": true,
       "models": true,
-      "apiKey": true
+      "apiKey": true,
+      "modelReasoning": true
     },
     "credential": { "ref": "ACME_KEY", "configured": true, "source": "environment", "masked": "sk-…cme", "writable": false }
   }
@@ -333,7 +334,9 @@ Body: `{ "providerId": "acme" }`.
   read-only: its settings belong to the account sign-in.
 - `inherited` is true when the route comes from the composition rather than the
   user's profile patch; such a route cannot be deleted.
-- `capabilities` says which fields this route's adapter accepts.
+- `capabilities` says which fields this route's adapter accepts. `modelReasoning`
+  is true only where per-model `reasoningEfforts` are read (the multi-provider
+  adapter); DeepSeek routes publish the adapter's fixed level set instead.
 - `models` lists only the models the profile declares. Empty plus
   `modelsDeclared:false` means the route inherits the adapter catalog.
 - `extra` carries profile fields this build does not interpret; the Host

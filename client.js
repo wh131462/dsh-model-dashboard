@@ -2169,7 +2169,9 @@ function fieldsFromDraft(draft, capabilities) {
       contextWindow: positiveIntText(row.contextWindow).value,
       maxTokens: positiveIntText(row.maxTokens).value,
       inputModalities: modalitiesOf(row),
-      reasoningEfforts: parseEfforts(row.efforts).value
+      // Only routes whose adapter reads the map get it; DeepSeek routes publish
+      // a fixed level set, and sending a map there would be dropped silently.
+      ...capabilities.modelReasoning === true ? { reasoningEfforts: parseEfforts(row.efforts).value } : {}
     }));
   }
   return fields;
@@ -2206,7 +2208,9 @@ function validateDraft(draft, capabilities, writable) {
         if (row.name.trim().length > MODEL_NAME_MAX) rowErrors.name = "providers.edit.modelNameInvalid";
         if (!positiveIntText(row.contextWindow).ok) rowErrors.contextWindow = "providers.edit.modelPositiveInt";
         if (!positiveIntText(row.maxTokens).ok) rowErrors.maxTokens = "providers.edit.modelPositiveInt";
-        if (!parseEfforts(row.efforts).ok) rowErrors.efforts = "providers.edit.modelEffortInvalid";
+        if (capabilities.modelReasoning === true && !parseEfforts(row.efforts).ok) {
+          rowErrors.efforts = "providers.edit.modelEffortInvalid";
+        }
         if (Object.keys(rowErrors).length > 0) modelErrors[row.key] = rowErrors;
       }
     }
@@ -2261,7 +2265,7 @@ function Field({ id, label, hint, error, required = false, children }) {
     error !== void 0 && error !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${id}-error`, role: "alert", children: error }) : null
   ] });
 }
-function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput }) {
+function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput, reasoningEditable }) {
   const idField = `${idPrefix}-model-${index}-id`;
   const nameField = `${idPrefix}-model-${index}-name`;
   const contextField = `${idPrefix}-model-${index}-context`;
@@ -2326,7 +2330,7 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
           onChange: (event) => onUpdate(row.key, "maxTokens", event.target.value)
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      reasoningEditable === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         Field,
         {
           id: effortsField,
@@ -2345,7 +2349,7 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
             }
           )
         }
-      ),
+      ) : null,
       /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field", children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.modalities") }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-checks", children: [
@@ -2751,6 +2755,7 @@ function ProviderEditorView(props) {
             }
           ) : null
         ] }),
+        capabilities.modelReasoning !== true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.effortsFixed") }) : null,
         modelsDeclared === false ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.modelsInherited") }) : null,
         draft.models.length === 0 && modelsDeclared === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: t("providers.edit.modelsEmpty") }) : null,
         draft.models.length > 0 ? writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-models", children: draft.models.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -2763,7 +2768,8 @@ function ProviderEditorView(props) {
             errors: validation.modelErrors[row.key] ?? {},
             onUpdate: updateModel,
             onRemove: removeModel,
-            registerIdInput
+            registerIdInput,
+            reasoningEditable: capabilities.modelReasoning === true
           },
           row.key
         )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: draft.models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { className: "td-model-row", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-model-main", children: [
@@ -4099,6 +4105,7 @@ var zh = {
   "providers.edit.apiKeyNeedsRef": "\u5148\u586B\u5199\u51ED\u636E\u5F15\u7528\u5E76\u4FDD\u5B58\uFF0C\u4E4B\u540E\u5373\u53EF\u5728\u6B64\u5F55\u5165\u5BC6\u94A5\u3002",
   "providers.edit.apiKeyRefDirty": "\u51ED\u636E\u5F15\u7528\u5DF2\u4FEE\u6539\uFF1B\u8BF7\u5148\u4FDD\u5B58\u8868\u5355\uFF0C\u518D\u7BA1\u7406\u5BC6\u94A5\u3002",
   "providers.edit.models": "\u6A21\u578B\u6E05\u5355",
+  "providers.edit.effortsFixed": "\u8BE5\u8DEF\u7531\u7684\u63A8\u7406\u6863\u4F4D\u7531\u9002\u914D\u5668\u56FA\u5B9A\uFF08DeepSeek \u63D0\u4F9B Off / Low / High / Max\uFF09\uFF0C\u4E0D\u80FD\u5728\u8FD9\u91CC\u6539",
   "providers.edit.modelsInherited": "\u6863\u6848\u672A\u58F0\u660E\u6A21\u578B\uFF0C\u5F53\u524D\u7EE7\u627F\u9002\u914D\u5668\u63D0\u4F9B\u7684\u76EE\u5F55\uFF1B\u4FDD\u5B58\u7A7A\u6E05\u5355\u5373\u4FDD\u6301\u7EE7\u627F\u3002",
   "providers.edit.modelsEmpty": "\u6E05\u5355\u4E3A\u7A7A\uFF1B\u4FDD\u5B58\u540E\u5C06\u7EE7\u627F\u9002\u914D\u5668\u76EE\u5F55\u3002",
   "providers.edit.modelN": "\u6A21\u578B {n}",
@@ -4354,6 +4361,7 @@ var en = {
   "providers.edit.apiKeyNeedsRef": "Set a credential reference and save first; then a key can be stored here.",
   "providers.edit.apiKeyRefDirty": "The credential reference changed; save the form before managing the key.",
   "providers.edit.models": "Models",
+  "providers.edit.effortsFixed": "This route\u2019s reasoning levels are fixed by its adapter (DeepSeek offers Off / Low / High / Max) and cannot be edited here.",
   "providers.edit.modelsInherited": "No models are declared in the profile, so the adapter catalog is used; leaving it empty keeps the inheritance.",
   "providers.edit.modelsEmpty": "The list is empty; saving falls back to the adapter catalog.",
   "providers.edit.modelN": "Model {n}",

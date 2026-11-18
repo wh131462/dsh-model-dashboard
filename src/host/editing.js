@@ -154,6 +154,9 @@ export function createProviderEditor(ctx, hooks) {
         apiKeyEnv: !readOnly,
         models: !readOnly,
         apiKey: !readOnly && profile.apiKeyEnv !== null,
+        // Only the multi-provider adapter reads per-model reasoningEfforts; the
+        // DeepSeek adapters publish a fixed level set instead.
+        modelReasoning: target.kind === 'pi-ai',
       },
       credential,
     };
