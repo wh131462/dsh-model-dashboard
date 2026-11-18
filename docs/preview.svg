@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300" role="img">
   <rect width="640" height="300" rx="20" fill="#f3f5f9"/>
-  <!-- Sidebar rail with the Model panel entry active below the other two. -->
+  <!-- Sidebar rail with the Model cockpit entry active below the other two. -->
   <rect x="32" y="32" width="56" height="236" rx="14" fill="#e7edf5"/>
   <rect x="49" y="52" width="22" height="22" rx="7" fill="#cfd9e6"/>
   <rect x="49" y="84" width="22" height="22" rx="7" fill="#cfd9e6"/>

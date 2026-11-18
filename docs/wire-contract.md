@@ -5,9 +5,9 @@ Internal contract between this bundle's two halves. Both sides ship together, so
 
 ## Transport
 
-- The Host half registers a `prefix` route at `/dsh-token-dashboard` on the
+- The Host half registers a `prefix` route at `/dsh-model-cockpit` on the
   composition's web server.
-- Every endpoint is `POST /dsh-token-dashboard/api/<endpoint>` with
+- Every endpoint is `POST /dsh-model-cockpit/api/<endpoint>` with
   `content-type: application/json`. The route admits owner peers only
   (`ctx.connection.admit`), so the page sends `credentials: 'same-origin'`.
 - Request bodies are JSON objects; absent fields mean "use the default".

@@ -1,5 +1,5 @@
 /**
- * Every style the Model panel uses, injected once by `DashboardPage` as a
+ * Every style the Model cockpit uses, injected once by `DashboardPage` as a
  * `<style>` child.
  *
  * Design system (defined once on `.td-page`, applied everywhere below):

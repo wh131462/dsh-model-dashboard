@@ -18,7 +18,7 @@ function messageOf(error) {
 }
 
 // src/host/shared.js
-var PREFIX = "/dsh-token-dashboard";
+var PREFIX = "/dsh-model-cockpit";
 var CACHE_VERSION = 2;
 var SLICE = 6;
 function blankSlice() {
@@ -1732,7 +1732,7 @@ var MAX_SERIES_DAYS = 366;
 var SESSION_ROWS = 50;
 var SCAN_THROTTLE_MS = 5e3;
 function createUsage(ctx, config) {
-  const cacheDir = config.cacheDir !== "" ? config.cacheDir : join(dshHome(), "cache", "token-dashboard");
+  const cacheDir = config.cacheDir !== "" ? config.cacheDir : join(dshHome(), "cache", "model-cockpit");
   const cacheFile = join(cacheDir, "usage-cache.json");
   let cache = null;
   let loadPromise;
@@ -2327,7 +2327,7 @@ function accountBalanceView(account) {
 }
 
 // src/host/index.js
-var name = "@local/dsh-token-dashboard";
+var name = "@local/dsh-model-cockpit";
 var inject = [];
 function apply(ctx, rawConfig) {
   const config = normalizeConfig(rawConfig);
@@ -2340,17 +2340,17 @@ function apply(ctx, rawConfig) {
         path: PREFIX,
         handler: createRouteHandler(webCtx, dashboard)
       }),
-      "token-dashboard: authenticated JSON channel"
+      "model-cockpit: authenticated JSON channel"
     );
   });
-  ctx.effect(() => () => dashboard.dispose(), "token-dashboard: state");
+  ctx.effect(() => () => dashboard.dispose(), "model-cockpit: state");
   log(ctx, "info", `ready at ${PREFIX}/api (currency ${config.currency}, ${Object.keys(config.pricing).length} priced models)`);
 }
 function log(ctx, level, message) {
   try {
     const logger = ctx.logger;
     if (logger !== void 0 && typeof logger[level] === "function") {
-      logger[level](`[token-dashboard] ${message}`);
+      logger[level](`[model-cockpit] ${message}`);
     }
   } catch {
   }

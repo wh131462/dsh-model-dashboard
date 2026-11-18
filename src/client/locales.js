@@ -1,5 +1,5 @@
 /**
- * Client copy for the `token-dashboard` namespace.
+ * Client copy for the `model-cockpit` namespace.
  *
  * Flat keys only: `index.jsx` registers the namespace, the page binds `t`, and
  * the views pass substitute objects as the second argument. Provider ids, model
@@ -7,15 +7,15 @@
  */
 
 /** Locale namespace the page is registered under. */
-export const NS = 'token-dashboard';
+export const NS = 'model-cockpit';
 
 /** Chinese dictionary (the Harness default locale). */
 export const zh = {
-  'panel.title': '模型面板',
+  'panel.title': '模型驾驶舱',
   'ui.listSeparator': '、',
   'page.subtitle': '模型配置、账户余额与 Token 用量一览',
 
-  'tabs.label': '模型面板视图',
+  'tabs.label': '模型驾驶舱视图',
   'tabs.overview': '概览',
   'tabs.providers': '模型配置',
   'tabs.usage': '用量统计',
@@ -49,9 +49,9 @@ export const zh = {
   'actions.copyModelId': '复制模型 ID',
   'actions.copied': '已复制',
 
-  'loading.page': '正在加载模型面板…',
+  'loading.page': '正在加载模型驾驶舱…',
 
-  'errors.snapshot': '无法加载模型面板：{message}',
+  'errors.snapshot': '无法加载模型驾驶舱：{message}',
   'errors.refreshFailed': '刷新失败，正在显示上次的数据：{message}',
   'errors.balances': '余额刷新失败：{message}',
   'errors.usage': '用量数据加载失败：{message}',
@@ -362,11 +362,11 @@ export const zh = {
 
 /** English dictionary. */
 export const en = {
-  'panel.title': 'Model panel',
+  'panel.title': 'Model cockpit',
   'ui.listSeparator': ', ',
   'page.subtitle': 'Model configuration, account balances, and token usage at a glance',
 
-  'tabs.label': 'Model panel sections',
+  'tabs.label': 'Model cockpit sections',
   'tabs.overview': 'Overview',
   'tabs.providers': 'Models',
   'tabs.usage': 'Usage',
@@ -400,9 +400,9 @@ export const en = {
   'actions.copyModelId': 'Copy model ID',
   'actions.copied': 'Copied',
 
-  'loading.page': 'Loading the model panel…',
+  'loading.page': 'Loading the model cockpit…',
 
-  'errors.snapshot': 'Could not load the model panel: {message}',
+  'errors.snapshot': 'Could not load the model cockpit: {message}',
   'errors.refreshFailed': 'Refresh failed; showing the previous data: {message}',
   'errors.balances': 'Balance refresh failed: {message}',
   'errors.usage': 'Could not load usage: {message}',

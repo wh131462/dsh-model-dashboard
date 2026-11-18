@@ -413,7 +413,7 @@ test('the official API-key route probes its default endpoint without a configure
 });
 
 test('usage folds session logs, keeps ranges and cost, and updates incrementally', async (t) => {
-  const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-token-dashboard-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-model-cockpit-'));
   const cleanup = async () => {
     await rm(cacheDir, { recursive: true, force: true });
   };
@@ -540,42 +540,42 @@ test('route handler admits owners, rejects others, and wraps every reply', async
   const ownerRoute = createRouteHandler(ownerCtx, dashboard);
 
   const okRes = recorder();
-  await ownerRoute(request('POST', '/dsh-token-dashboard/api/snapshot', {}), okRes);
+  await ownerRoute(request('POST', '/dsh-model-cockpit/api/snapshot', {}), okRes);
   assert.equal(okRes.statusCode, 200);
   assert.deepEqual(JSON.parse(okRes.body), { value: { version: 1, providers: [] } });
 
   const usageRes = recorder();
-  await ownerRoute(request('POST', '/dsh-token-dashboard/api/usage', { range: '7d' }), usageRes);
+  await ownerRoute(request('POST', '/dsh-model-cockpit/api/usage', { range: '7d' }), usageRes);
   assert.deepEqual(JSON.parse(usageRes.body).value, { echo: { range: '7d' } });
 
   const unknownRes = recorder();
-  await ownerRoute(request('POST', '/dsh-token-dashboard/api/nope', {}), unknownRes);
+  await ownerRoute(request('POST', '/dsh-model-cockpit/api/nope', {}), unknownRes);
   assert.equal(unknownRes.statusCode, 404);
   assert.equal(JSON.parse(unknownRes.body).error.code, 'not-found');
 
   const methodRes = recorder();
-  await ownerRoute(request('GET', '/dsh-token-dashboard/api/snapshot'), methodRes);
+  await ownerRoute(request('GET', '/dsh-model-cockpit/api/snapshot'), methodRes);
   assert.equal(methodRes.statusCode, 405);
 
   const failureRes = recorder();
-  await ownerRoute(request('POST', '/dsh-token-dashboard/api/rescan', {}), failureRes);
+  await ownerRoute(request('POST', '/dsh-model-cockpit/api/rescan', {}), failureRes);
   assert.equal(failureRes.statusCode, 500);
   assert.equal(JSON.parse(failureRes.body).error.code, 'internal');
 
   const strangerRoute = createRouteHandler(strangerCtx, dashboard);
   const strangerRes = recorder();
-  await strangerRoute(request('POST', '/dsh-token-dashboard/api/snapshot', {}), strangerRes);
+  await strangerRoute(request('POST', '/dsh-model-cockpit/api/snapshot', {}), strangerRes);
   assert.equal(strangerRes.statusCode, 403);
 
   const deniedRes = recorder();
   const deniedRoute = createRouteHandler(makeCtx({ connection: { admit: () => ({ rejection: 401 }) } }), dashboard);
-  await deniedRoute(request('POST', '/dsh-token-dashboard/api/snapshot', {}), deniedRes);
+  await deniedRoute(request('POST', '/dsh-model-cockpit/api/snapshot', {}), deniedRes);
   assert.equal(deniedRes.statusCode, 401);
 
   const malformedRes = recorder();
   const malformed = Readable.from([Buffer.from('{nope')]);
   malformed.method = 'POST';
-  malformed.url = '/dsh-token-dashboard/api/usage';
+  malformed.url = '/dsh-model-cockpit/api/usage';
   malformed.headers = { 'content-type': 'application/json' };
   await ownerRoute(malformed, malformedRes);
   assert.equal(malformedRes.statusCode, 400);
@@ -1086,7 +1086,7 @@ test('reasoning detection refuses protocols it cannot speak and endpoints withou
 });
 
 test('dashboard snapshot wires discovery, balances, and the usage summary together', async (t) => {
-  const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-token-dashboard-snap-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'dsh-model-cockpit-snap-'));
   t.after(async () => {
     await rm(cacheDir, { recursive: true, force: true });
   });

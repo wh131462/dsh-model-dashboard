@@ -11,7 +11,7 @@ import { DashboardPage } from './DashboardPage.jsx';
 import { zh, en, NS } from './locales.js';
 
 /** Sidebar panel id; the `main` page registers under the same key. */
-export const PANEL_ID = 'token-dashboard';
+export const PANEL_ID = 'model-cockpit';
 
 /** Sidebar order: the shipped Plugins entry is 0, Automation tasks is 10. */
 const PANEL_ORDER = 20;
@@ -61,11 +61,11 @@ export function PanelIcon({ size = 18 } = {}) {
 export const inject = ['slots', 'locale'];
 
 /**
- * Register the Model panel entry and its page.
+ * Register the Model cockpit entry and its page.
  * @param {object} ctx - the browser services this half needs.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'token-dashboard: dictionaries');
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'model-cockpit: dictionaries');
   const t = ctx.locale.bind(NS);
   ctx.inject(['slots'], (slotted) => {
     const slots = slotted.slots;

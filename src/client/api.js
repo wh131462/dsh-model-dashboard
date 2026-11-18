@@ -7,7 +7,7 @@
  */
 
 /** Channel prefix; the Host registers it at the server root. */
-const PREFIX = 'dsh-token-dashboard';
+const PREFIX = 'dsh-model-cockpit';
 
 /** The wire contract this page understands. */
 export const WIRE_VERSION = 1;

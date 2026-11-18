@@ -1,9 +1,9 @@
 {
-  "name": "@local/dsh-token-dashboard",
+  "name": "@local/dsh-model-cockpit",
   "version": "1.4.0",
   "private": true,
   "type": "module",
-  "description": "Model panel for DeepSeek Harness: a control-room dashboard beside the sidebar automation tasks for inspecting and editing the model configuration, per-provider balances, gateway model import and reasoning-level detection, and token usage statistics.",
+  "description": "Model cockpit for DeepSeek Harness: a control-room dashboard beside the sidebar automation tasks for inspecting and editing the model configuration, per-provider balances, gateway model import and reasoning-level detection, and token usage statistics.",
   "license": "MIT",
   "author": "EternalHeart <hao131462@qq.com>",
   "engines": {

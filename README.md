@@ -1,15 +1,15 @@
 ---
-description: "Model panel: the live model configuration, per-provider balances, and token usage statistics as a dashboard beside the sidebar's Automation tasks."
+description: "Model cockpit: the live model configuration, per-provider balances, and token usage statistics as a dashboard beside the sidebar's Automation tasks."
 kind: "package-reference"
 ---
 
-# Model panel
+# Model cockpit
 
 English | [中文](README.zh.md)
 
 ## Summary
 
-Adds one sidebar panel entry, **Model panel**, under **Automation tasks**. The
+Adds one sidebar panel entry, **Model cockpit**, under **Automation tasks**. The
 page opens on the same main column the other panel entries use and is organised
 in three tabs:
 
@@ -198,7 +198,7 @@ page; only the resulting amount and status cross the channel.
 
 The page folds `assistant/message` events out of every stored session log — the
 durable `usage` record the adapter reported, the route that produced it, and the
-event time. The result is cached under `$DSH_HOME/cache/token-dashboard/`, keyed by
+event time. The result is cached under `$DSH_HOME/cache/model-cockpit/`, keyed by
 each session's persistence revision, and later refreshes read only the new tail of
 a session that changed.
 
@@ -237,7 +237,7 @@ plugin config (`CNY` or `USD`).
 | `currency` | `CNY` | Currency label for cost estimation and probe amounts |
 | `scanConcurrency` | `3` | Session logs read in parallel while scanning |
 | `maxSessions` | `0` | Newest sessions scanned per pass; `0` scans everything |
-| `cacheDir` | `''` | Usage cache directory; empty uses `$DSH_HOME/cache/token-dashboard` |
+| `cacheDir` | `''` | Usage cache directory; empty uses `$DSH_HOME/cache/model-cockpit` |
 | `balanceTimeoutMs` | `8000` | Deadline for one balance probe |
 | `balanceCacheSeconds` | `300` | How long one probe result is reused (seconds) |
 | `pricing` | `{}` | Cost estimate table, per 1,000,000 tokens |
@@ -246,7 +246,7 @@ plugin config (`CNY` or `USD`).
 ## Install
 
 **Plugins** > **Add plugin** > a local directory: pick this package directory. The
-bundle row is `token-dashboard`; disabling it removes the sidebar entry and the
+bundle row is `model-cockpit`; disabling it removes the sidebar entry and the
 page, and the Host channel is not served.
 
 ## Limitations

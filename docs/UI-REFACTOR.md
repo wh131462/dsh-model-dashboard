@@ -92,8 +92,8 @@ Page hierarchy after the refactor:
 2. **No URL deep links or router.** The host owns the URL for the main column and
    the plugin only fills a slot, so tab/expanded/editing state cannot be encoded
    in the URL. It is persisted per session instead:
-   `dsh-token-dashboard.tab`, `dsh-token-dashboard.providers.expanded`,
-   `dsh-token-dashboard.providers.editing`. Stale or unavailable
+   `dsh-model-cockpit.tab`, `dsh-model-cockpit.providers.expanded`,
+   `dsh-model-cockpit.providers.editing`. Stale or unavailable
    `sessionStorage` degrades to in-memory state.
 3. **Skip link and scroll container are host-owned.** This page renders inside
    the host's main column and scroll frame (`.td-scroll`); it must not introduce
