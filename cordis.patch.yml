@@ -1,9 +1,9 @@
-# Model cockpit: one Host row (balances, usage scan, authenticated JSON channel) and
-# its Client half (the sidebar "Model cockpit" entry and the dashboard page under it).
+# Model dashboard: one Host row (balances, usage scan, authenticated JSON channel) and
+# its Client half (the sidebar "Model dashboard" entry and the dashboard page under it).
 # The profile's own patch layer may repeat this id to override any field below.
 - insert:
-    - id: model-cockpit
-      name: '@local/dsh-model-cockpit'
+    - id: model-dashboard
+      name: '@local/dsh-model-dashboard'
       config:
         # Host locale used for description text sent to the page; `auto` follows the
         # Harness locale, `zh` and `en` pin one.
@@ -14,7 +14,7 @@
         scanConcurrency: 3
         # Newest sessions scanned per pass; 0 means the whole corpus.
         maxSessions: 0
-        # Empty keeps the cache under $DSH_HOME/cache/model-cockpit.
+        # Empty keeps the cache under $DSH_HOME/cache/model-dashboard.
         cacheDir: ''
         # Per-request deadline for one provider balance probe.
         balanceTimeoutMs: 8000

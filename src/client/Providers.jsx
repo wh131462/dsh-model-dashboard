@@ -30,10 +30,10 @@ const NOTE_KEYS = {
 };
 
 /** Session key for the expanded provider rows. */
-const EXPANDED_KEY = 'dsh-model-cockpit.providers.expanded';
+const EXPANDED_KEY = 'dsh-model-dashboard.providers.expanded';
 
 /** Session key for the provider whose editor is open. */
-const EDITING_KEY = 'dsh-model-cockpit.providers.editing';
+const EDITING_KEY = 'dsh-model-dashboard.providers.editing';
 
 /**
  * Read one session value, tolerating a browser that refuses storage access.

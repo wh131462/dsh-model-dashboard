@@ -1,5 +1,5 @@
 /**
- * Model cockpit — Host half.
+ * Model dashboard — Host half.
  *
  * Registers one authenticated JSON channel and owns everything the page reads:
  * provider/model discovery from the Harness services, the official account's
@@ -16,7 +16,7 @@ import { normalizeConfig } from './config.js';
 import { createDashboard } from './dashboard.js';
 import { PREFIX } from './shared.js';
 
-export const name = '@local/dsh-model-cockpit';
+export const name = '@local/dsh-model-dashboard';
 
 /** No hard dependency: each capability is resolved at use time. */
 export const inject = [];
@@ -37,10 +37,10 @@ export function apply(ctx, rawConfig) {
         path: PREFIX,
         handler: createRouteHandler(webCtx, dashboard),
       }),
-      'model-cockpit: authenticated JSON channel',
+      'model-dashboard: authenticated JSON channel',
     );
   });
-  ctx.effect(() => () => dashboard.dispose(), 'model-cockpit: state');
+  ctx.effect(() => () => dashboard.dispose(), 'model-dashboard: state');
   log(ctx, 'info', `ready at ${PREFIX}/api (currency ${config.currency}, ${Object.keys(config.pricing).length} priced models)`);
 }
 
@@ -55,7 +55,7 @@ function log(ctx, level, message) {
   try {
     const logger = ctx.logger;
     if (logger !== undefined && typeof logger[level] === 'function') {
-      logger[level](`[model-cockpit] ${message}`);
+      logger[level](`[model-dashboard] ${message}`);
     }
   } catch {
     /* logging is never worth a failed activation */

@@ -1,5 +1,5 @@
 /**
- * Root page of the Model cockpit.
+ * Root page of the Model dashboard.
  *
  * Owns the snapshot request and its polling, the page shell, tabs, and the
  * balance/default-model actions; the tabs themselves (`Overview`, `Providers`,
@@ -32,7 +32,7 @@ const MAX_POLLS = 120;
 
 /** Session key for the active tab; the host owns the URL, so this is the only
  * place the view can survive a remount. */
-const TAB_STORAGE_KEY = 'dsh-model-cockpit.tab';
+const TAB_STORAGE_KEY = 'dsh-model-dashboard.tab';
 
 /**
  * Read one session value, tolerating a browser that refuses storage access.
@@ -145,7 +145,7 @@ function liveScanState(snapshot, scanning, t) {
 }
 
 /**
- * Render the Model cockpit page.
+ * Render the Model dashboard page.
  * @param {{ t?: (key: string, params?: Record<string, unknown>) => string }} props - the namespace-bound translate seat.
  * @returns the page element.
  */

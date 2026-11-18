@@ -55,7 +55,7 @@ const SCAN_THROTTLE_MS = 5000;
  * }} the tracker.
  */
 export function createUsage(ctx, config) {
-  const cacheDir = config.cacheDir !== '' ? config.cacheDir : join(dshHome(), 'cache', 'model-cockpit');
+  const cacheDir = config.cacheDir !== '' ? config.cacheDir : join(dshHome(), 'cache', 'model-dashboard');
   const cacheFile = join(cacheDir, 'usage-cache.json');
   /** @type {{version: number, builtAt: number|null, sessions: Record<string, object>}|null} */
   let cache = null;

@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({ id: "@local/dsh-model-cockpit", factory: (require) => {
+window.__ModuleLoader__.load({ id: "@local/dsh-model-dashboard", factory: (require) => {
 var module = { exports: {} }; var exports = module.exports;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -33,7 +33,7 @@ var import_react6 = require("react");
 var import_react5 = require("react");
 
 // src/client/api.js
-var PREFIX = "dsh-model-cockpit";
+var PREFIX = "dsh-model-dashboard";
 var HostError = class extends Error {
   /**
    * @param {string} code - stable Host code, or a transport code such as `network`.
@@ -5193,8 +5193,8 @@ var NOTE_KEYS = {
   "models-unavailable": "providers.note.models-unavailable",
   "no-models": "providers.note.no-models"
 };
-var EXPANDED_KEY = "dsh-model-cockpit.providers.expanded";
-var EDITING_KEY = "dsh-model-cockpit.providers.editing";
+var EXPANDED_KEY = "dsh-model-dashboard.providers.expanded";
+var EDITING_KEY = "dsh-model-dashboard.providers.editing";
 function readStored(key) {
   try {
     if (typeof sessionStorage === "undefined") return null;
@@ -6014,7 +6014,7 @@ var import_jsx_runtime6 = require("react/jsx-runtime");
 var TABS = ["overview", "providers", "usage"];
 var POLL_INTERVAL_MS2 = 2500;
 var MAX_POLLS2 = 120;
-var TAB_STORAGE_KEY = "dsh-model-cockpit.tab";
+var TAB_STORAGE_KEY = "dsh-model-dashboard.tab";
 function readStored2(key) {
   try {
     if (typeof sessionStorage === "undefined") return null;
@@ -6351,12 +6351,12 @@ function DashboardPage(props) {
 }
 
 // src/client/locales.js
-var NS = "model-cockpit";
+var NS = "model-dashboard";
 var zh = {
-  "panel.title": "\u6A21\u578B\u9A7E\u9A76\u8231",
+  "panel.title": "\u6A21\u578B\u4EEA\u8868\u76D8",
   "ui.listSeparator": "\u3001",
   "page.subtitle": "\u6A21\u578B\u914D\u7F6E\u3001\u8D26\u6237\u4F59\u989D\u4E0E Token \u7528\u91CF\u4E00\u89C8",
-  "tabs.label": "\u6A21\u578B\u9A7E\u9A76\u8231\u89C6\u56FE",
+  "tabs.label": "\u6A21\u578B\u4EEA\u8868\u76D8\u89C6\u56FE",
   "tabs.overview": "\u6982\u89C8",
   "tabs.providers": "\u6A21\u578B\u914D\u7F6E",
   "tabs.usage": "\u7528\u91CF\u7EDF\u8BA1",
@@ -6387,8 +6387,8 @@ var zh = {
   "actions.copyCredentialRef": "\u590D\u5236\u51ED\u636E\u5F15\u7528",
   "actions.copyModelId": "\u590D\u5236\u6A21\u578B ID",
   "actions.copied": "\u5DF2\u590D\u5236",
-  "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u9A7E\u9A76\u8231\u2026",
-  "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u9A7E\u9A76\u8231\uFF1A{message}",
+  "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u4EEA\u8868\u76D8\u2026",
+  "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u4EEA\u8868\u76D8\uFF1A{message}",
   "errors.refreshFailed": "\u5237\u65B0\u5931\u8D25\uFF0C\u6B63\u5728\u663E\u793A\u4E0A\u6B21\u7684\u6570\u636E\uFF1A{message}",
   "errors.balances": "\u4F59\u989D\u5237\u65B0\u5931\u8D25\uFF1A{message}",
   "errors.usage": "\u7528\u91CF\u6570\u636E\u52A0\u8F7D\u5931\u8D25\uFF1A{message}",
@@ -6689,10 +6689,10 @@ var zh = {
   "usage.sessionUntitled": "\u672A\u547D\u540D\u4F1A\u8BDD"
 };
 var en = {
-  "panel.title": "Model cockpit",
+  "panel.title": "Model dashboard",
   "ui.listSeparator": ", ",
   "page.subtitle": "Model configuration, account balances, and token usage at a glance",
-  "tabs.label": "Model cockpit sections",
+  "tabs.label": "Model dashboard sections",
   "tabs.overview": "Overview",
   "tabs.providers": "Models",
   "tabs.usage": "Usage",
@@ -6723,8 +6723,8 @@ var en = {
   "actions.copyCredentialRef": "Copy credential reference",
   "actions.copyModelId": "Copy model ID",
   "actions.copied": "Copied",
-  "loading.page": "Loading the model cockpit\u2026",
-  "errors.snapshot": "Could not load the model cockpit: {message}",
+  "loading.page": "Loading the model dashboard\u2026",
+  "errors.snapshot": "Could not load the model dashboard: {message}",
   "errors.refreshFailed": "Refresh failed; showing the previous data: {message}",
   "errors.balances": "Balance refresh failed: {message}",
   "errors.usage": "Could not load usage: {message}",
@@ -7026,7 +7026,7 @@ var en = {
 };
 
 // src/client/index.jsx
-var PANEL_ID = "model-cockpit";
+var PANEL_ID = "model-dashboard";
 var PANEL_ORDER = 20;
 function PanelIcon({ size = 18 } = {}) {
   return (0, import_react6.createElement)(
@@ -7058,7 +7058,7 @@ function PanelIcon({ size = 18 } = {}) {
 }
 var inject = ["slots", "locale"];
 function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), "model-cockpit: dictionaries");
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), "model-dashboard: dictionaries");
   const t = ctx.locale.bind(NS);
   ctx.inject(["slots"], (slotted) => {
     const slots = slotted.slots;

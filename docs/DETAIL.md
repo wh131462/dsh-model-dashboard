@@ -1,1 +1,1 @@
-![The Model cockpit entry in the sidebar rail, with a balance card, a model configuration card, and a daily usage bar chart](preview.svg)
+![The Model dashboard entry in the sidebar rail, with a balance card, a model configuration card, and a daily usage bar chart](preview.svg)

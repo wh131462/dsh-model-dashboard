@@ -7,7 +7,7 @@
  */
 
 /** Channel prefix; the Host registers it at the server root. */
-const PREFIX = 'dsh-model-cockpit';
+const PREFIX = 'dsh-model-dashboard';
 
 /** The wire contract this page understands. */
 export const WIRE_VERSION = 1;

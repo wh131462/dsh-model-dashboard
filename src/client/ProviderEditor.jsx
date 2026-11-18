@@ -1,5 +1,5 @@
 /**
- * Inline provider configuration editing for the Model cockpit.
+ * Inline provider configuration editing for the Model dashboard.
  *
  * `ProviderEditor` is the shell: it reads one provider's editable form from the
  * Host and hands it to `ProviderEditorView`, which owns the draft, the local

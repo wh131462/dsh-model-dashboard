@@ -4,7 +4,7 @@
  */
 
 /** HTTP prefix this bundle's channel lives under on the composition web server. */
-export const PREFIX = '/dsh-model-cockpit';
+export const PREFIX = '/dsh-model-dashboard';
 
 /** Wire contract version, bumped when a shape changes incompatibly. */
 export const WIRE_VERSION = 1;
