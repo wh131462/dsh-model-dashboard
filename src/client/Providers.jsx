@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react';
-import { errorText, fetchProviderForm } from './api.js';
+import { errorText, fetchProviderForm, probeReasoning } from './api.js';
 import { Card, CardSkeleton, Chip, Dot, EmptyState, cx } from './ui.jsx';
 import { formatBalance, formatNumber, formatTokens } from './format.js';
 import { AddProviderForm, ProviderEditor } from './ProviderEditor.jsx';
@@ -252,6 +252,8 @@ function sourceText(t, source) {
 function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
   const [savingModel, setSavingModel] = useState(null);
   const [saveError, setSaveError] = useState(null);
+  // One reasoning probe at a time per card: { modelId, phase, report?, error? }.
+  const [probe, setProbe] = useState(null);
 
   const id = typeof provider?.id === 'string' ? provider.id : '';
   const displayName = typeof provider?.displayName === 'string' && provider.displayName !== '' ? provider.displayName : id || '—';
@@ -293,6 +295,19 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
       setSavingModel(null);
     }
   };
+
+  const runProbe = async (model) => {
+    const modelId = typeof model?.id === 'string' ? model.id : '';
+    if (modelId === '' || id === '' || probe?.phase === 'running') return;
+    setProbe({ modelId, phase: 'running' });
+    try {
+      const report = await probeReasoning({ providerId: id, modelId });
+      setProbe({ modelId, phase: 'done', report });
+    } catch (failure) {
+      setProbe({ modelId, phase: 'error', error: failure });
+    }
+  };
+  const probeFor = (modelId) => (probe !== null && probe.modelId === modelId ? probe : null);
 
   return (
     <Card className="td-provider-card">
@@ -405,6 +420,9 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
                     saving={savingModel !== null && savingModel === model?.id}
                     disabled={!routeActive || (savingModel !== null && savingModel !== model?.id)}
                     onSelect={() => { void saveDefault(model); }}
+                    routeActive={routeActive}
+                    probe={probeFor(model?.id)}
+                    onProbe={() => { void runProbe(model); }}
                   />
                 ))}
               </ul>
@@ -416,11 +434,48 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
   );
 }
 
-/** One model row: name, id, context window, effort chips, and the default action. */
-function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
+/**
+ * Per-level probe verdict text: which outcome, plus the Host code and message
+ * when the failure carries one.
+ * @param {object|null} probe - the row's probe state.
+ * @param {(key: string, params?: Record<string, unknown>) => string} t - translate.
+ * @returns {string|null} the sentence, when a probe settled.
+ */
+function probeOutcomeText(probe, t) {
+  if (probe === null || probe.phase !== 'done') return null;
+  const results = Array.isArray(probe.report?.results) ? probe.report.results : [];
+  const groups = { accepted: [], unsupported: [], failed: [], uncertain: [] };
+  for (const row of results) {
+    const outcome = typeof row?.outcome === 'string' ? row.outcome : 'uncertain';
+    const bucket = outcome === 'accepted' ? 'accepted'
+      : outcome === 'unsupported' ? 'unsupported'
+        : outcome === 'rejected' || outcome === 'error' ? 'failed' : 'uncertain';
+    groups[bucket].push(String(row?.effort ?? '?'));
+  }
+  const parts = [];
+  if (groups.accepted.length > 0) parts.push(t('providers.effortsAccepted', { levels: groups.accepted.join(' · ') }));
+  if (groups.unsupported.length > 0) parts.push(t('providers.effortsUnsupported', { levels: groups.unsupported.join(' · ') }));
+  if (groups.failed.length > 0) parts.push(t('providers.effortsFailed', { levels: groups.failed.join(' · ') }));
+  if (groups.uncertain.length > 0) parts.push(t('providers.effortsUncertain', { levels: groups.uncertain.join(' · ') }));
+  return parts.join(' · ');
+}
+
+/** One model row: name, id, context window, effort chips, level probe, and the default action. */
+function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive, probe, onProbe }) {
   const efforts = Array.isArray(model?.reasoningEfforts) ? model.reasoningEfforts : [];
   const extra = efforts.length - 4;
   const contextWindow = typeof model?.contextWindow === 'number' ? model.contextWindow : null;
+  const probing = probe !== null && probe.phase === 'running';
+  const canProbe = routeActive === true && efforts.length > 0 && !probing;
+  const probeHint = routeActive !== true
+    ? t('providers.readonlyRouteHint')
+    : efforts.length === 0
+      ? t('providers.effortsNoLevels')
+      : t('providers.effortsProbeHint');
+  const results = probe !== null && probe.phase === 'done' && Array.isArray(probe.report?.results)
+    ? probe.report.results
+    : [];
+  const outcomeText = probeOutcomeText(probe, t);
   return (
     <li className="td-model-row">
       <span className="td-model-main">
@@ -436,6 +491,15 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
       </span>
       <button
         type="button"
+        className="td-button td-button-small td-button-secondary td-model-probe"
+        disabled={!canProbe}
+        title={probeHint}
+        onClick={onProbe}
+      >
+        {probing ? t('actions.testingEfforts') : t('actions.testEfforts')}
+      </button>
+      <button
+        type="button"
         className="td-button td-button-small td-button-secondary td-model-action"
         disabled={isDefault || saving || disabled}
         title={disabled && !saving && !isDefault ? t('providers.readonlyRouteHint') : undefined}
@@ -443,6 +507,36 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
       >
         {saving ? t('actions.saving') : isDefault ? t('actions.currentDefault') : t('actions.setDefault')}
       </button>
+      {probe !== null ? (
+        <div className="td-effort-result" role="status">
+          {probe.phase === 'error' ? (
+            <span className="td-caption td-tone-error">{t('providers.effortsProbeError', { message: errorText(probe.error) })}</span>
+          ) : null}
+          {probe.phase === 'running' ? <span className="td-caption">{t('actions.testingEfforts')}</span> : null}
+          {results.length > 0 ? (
+            <span className="td-chips">
+              {results.map((row) => {
+                const outcome = typeof row?.outcome === 'string' ? row.outcome : 'uncertain';
+                const tone = outcome === 'accepted' ? 'success'
+                  : outcome === 'rejected' || outcome === 'error' ? 'error'
+                    : outcome === 'timeout' || outcome === 'uncertain' ? 'warn' : 'neutral';
+                const glyph = outcome === 'accepted' ? '✓' : outcome === 'unsupported' ? '—' : outcome === 'timeout' ? '?' : '✕';
+                const detail = [
+                  typeof row?.code === 'string' ? row.code : null,
+                  typeof row?.message === 'string' ? row.message : null,
+                  typeof row?.latencyMs === 'number' ? `${row.latencyMs} ms` : null,
+                ].filter((part) => part !== null).join(' · ');
+                return (
+                  <Chip key={String(row?.effort ?? '?')} tone={tone} title={detail === '' ? undefined : detail}>
+                    {`${glyph} ${String(row?.effort ?? '?')}`}
+                  </Chip>
+                );
+              })}
+            </span>
+          ) : null}
+          {outcomeText !== null ? <span className="td-caption">{outcomeText}</span> : null}
+        </div>
+      ) : null}
     </li>
   );
 }

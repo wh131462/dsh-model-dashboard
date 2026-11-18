@@ -29,6 +29,32 @@ kind: "package-reference"
 | 其他余额 | 每个供应商若干次 HTTPS `GET` 探测，见下 |
 | Token 用量 | 本 profile 的会话日志，经 `sessionPersistence` 读取 |
 
+## 测试某个模型支持哪些推理强度
+
+要区分两个问题：
+
+1. **Harness 提供哪些档位。** 档位来自适配器：DeepSeek 路由固定为 Off / Low / High / Max；
+   多供应商路由则由每个模型的 `reasoningEfforts` 声明决定（没声明就没有档位，composer 不显示 Effort 行）。
+   面板的模型行会把档位显示成 chips，composer 的 Effort 行是同一份来源。
+2. **上游到底接受哪些值。** 声明了也可能被网关拒绝（或静默忽略）。模型行上的
+   **测试档位** 按钮就是回答这个问题的：Host 先对每个档位做一次免费的适配器能力检查，
+   然后只对适配器认可的档位**各发一次极小的真实请求**（`maxTokens: 24`、prompt `ping`、20 秒超时），
+   回报结算结果。行内显示 `✓ 上游接受`、`— 适配器未提供`、`✕ 请求失败`（悬停看 Host 的 code/message）、`? 未能确定`。
+
+每个档位消耗少量 Token，串行执行。适配器没提供的档位**不会发请求**，所以「未提供」是配置事实而不是网络结论。
+
+想测试尚未声明的值：先在「编辑 → 模型清单 → 推理档位」里声明候选（语法 `low=low, max=ultra`），保存后再点测试。
+如果不想改 profile、只想验证网关原始取值，可以直接打接口（以 OpenAI 兼容中转为例）：
+
+```sh
+curl -s https://gateway.example/v1/chat/completions \
+  -H "authorization: Bearer $YOUR_KEY" -H 'content-type: application/json' \
+  -d '{"model":"gpt-6.1-sol","messages":[{"role":"user","content":"ping"}],"max_tokens":24,"reasoning_effort":"max"}'
+```
+
+2xx 表示该值被接受，4xx 会指出被拒的字段。注意「接受」不等于「生效」：有些网关接受参数却忽略它，
+所以最好再对比不同档位下的 `reasoning_tokens`／思考输出。
+
 ## 在面板内编辑模型配置
 
 「模型配置」页可以就地编辑 profile，走的是与「设置 > 模型」完全相同的两条通道，没有任何私有捷径：

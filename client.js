@@ -127,6 +127,9 @@ function addProvider(payload, options) {
 function removeProvider(payload, options) {
   return call("remove-provider", payload, options);
 }
+function probeReasoning(payload, options) {
+  return call("probe-reasoning", payload, options);
+}
 function setApiKey(payload, options) {
   return call("set-api-key", payload, options);
 }
@@ -1022,11 +1025,21 @@ var CSS = String.raw`
 
 .td-model-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(72px, auto) auto auto;
+  grid-template-columns: minmax(0, 1.5fr) minmax(72px, auto) auto auto auto;
   align-items: center;
   gap: 8px 14px;
   padding: 8px 0;
   border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+/* Per-level reasoning verdicts span the row's columns under the model. */
+.td-effort-result {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
 }
 
 .td-model-row:last-child {
@@ -1512,6 +1525,10 @@ var CSS = String.raw`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+  }
+
+  .td-effort-result {
+    flex-basis: 100%;
   }
 
   .td-model-main {
@@ -3226,6 +3243,7 @@ function sourceText2(t, source) {
 function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
   const [savingModel, setSavingModel] = (0, import_react2.useState)(null);
   const [saveError, setSaveError] = (0, import_react2.useState)(null);
+  const [probe, setProbe] = (0, import_react2.useState)(null);
   const id = typeof provider?.id === "string" ? provider.id : "";
   const displayName = typeof provider?.displayName === "string" && provider.displayName !== "" ? provider.displayName : id || "\u2014";
   const models = Array.isArray(provider?.models) ? provider.models : [];
@@ -3260,6 +3278,18 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
       setSavingModel(null);
     }
   };
+  const runProbe = async (model) => {
+    const modelId = typeof model?.id === "string" ? model.id : "";
+    if (modelId === "" || id === "" || probe?.phase === "running") return;
+    setProbe({ modelId, phase: "running" });
+    try {
+      const report = await probeReasoning({ providerId: id, modelId });
+      setProbe({ modelId, phase: "done", report });
+    } catch (failure) {
+      setProbe({ modelId, phase: "error", error: failure });
+    }
+  };
+  const probeFor = (modelId) => probe !== null && probe.modelId === modelId ? probe : null;
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Card, { className: "td-provider-card", children: [
     /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-title", children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
@@ -3347,6 +3377,11 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
             disabled: !routeActive || savingModel !== null && savingModel !== model?.id,
             onSelect: () => {
               void saveDefault(model);
+            },
+            routeActive,
+            probe: probeFor(model?.id),
+            onProbe: () => {
+              void runProbe(model);
             }
           },
           model?.id ?? String(model?.name)
@@ -3355,10 +3390,31 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
     ] })
   ] });
 }
-function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
+function probeOutcomeText(probe, t) {
+  if (probe === null || probe.phase !== "done") return null;
+  const results = Array.isArray(probe.report?.results) ? probe.report.results : [];
+  const groups = { accepted: [], unsupported: [], failed: [], uncertain: [] };
+  for (const row of results) {
+    const outcome = typeof row?.outcome === "string" ? row.outcome : "uncertain";
+    const bucket = outcome === "accepted" ? "accepted" : outcome === "unsupported" ? "unsupported" : outcome === "rejected" || outcome === "error" ? "failed" : "uncertain";
+    groups[bucket].push(String(row?.effort ?? "?"));
+  }
+  const parts = [];
+  if (groups.accepted.length > 0) parts.push(t("providers.effortsAccepted", { levels: groups.accepted.join(" \xB7 ") }));
+  if (groups.unsupported.length > 0) parts.push(t("providers.effortsUnsupported", { levels: groups.unsupported.join(" \xB7 ") }));
+  if (groups.failed.length > 0) parts.push(t("providers.effortsFailed", { levels: groups.failed.join(" \xB7 ") }));
+  if (groups.uncertain.length > 0) parts.push(t("providers.effortsUncertain", { levels: groups.uncertain.join(" \xB7 ") }));
+  return parts.join(" \xB7 ");
+}
+function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive, probe, onProbe }) {
   const efforts = Array.isArray(model?.reasoningEfforts) ? model.reasoningEfforts : [];
   const extra = efforts.length - 4;
   const contextWindow = typeof model?.contextWindow === "number" ? model.contextWindow : null;
+  const probing = probe !== null && probe.phase === "running";
+  const canProbe = routeActive === true && efforts.length > 0 && !probing;
+  const probeHint = routeActive !== true ? t("providers.readonlyRouteHint") : efforts.length === 0 ? t("providers.effortsNoLevels") : t("providers.effortsProbeHint");
+  const results = probe !== null && probe.phase === "done" && Array.isArray(probe.report?.results) ? probe.report.results : [];
+  const outcomeText = probeOutcomeText(probe, t);
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: "td-model-row", children: [
     /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-model-main", children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", children: model?.name ?? model?.id ?? "\u2014" }),
@@ -3376,13 +3432,40 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect }) {
       "button",
       {
         type: "button",
+        className: "td-button td-button-small td-button-secondary td-model-probe",
+        disabled: !canProbe,
+        title: probeHint,
+        onClick: onProbe,
+        children: probing ? t("actions.testingEfforts") : t("actions.testEfforts")
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      "button",
+      {
+        type: "button",
         className: "td-button td-button-small td-button-secondary td-model-action",
         disabled: isDefault || saving || disabled,
         title: disabled && !saving && !isDefault ? t("providers.readonlyRouteHint") : void 0,
         onClick: onSelect,
         children: saving ? t("actions.saving") : isDefault ? t("actions.currentDefault") : t("actions.setDefault")
       }
-    )
+    ),
+    probe !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-effort-result", role: "status", children: [
+      probe.phase === "error" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-tone-error", children: t("providers.effortsProbeError", { message: errorText(probe.error) }) }) : null,
+      probe.phase === "running" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("actions.testingEfforts") }) : null,
+      results.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-chips", children: results.map((row) => {
+        const outcome = typeof row?.outcome === "string" ? row.outcome : "uncertain";
+        const tone = outcome === "accepted" ? "success" : outcome === "rejected" || outcome === "error" ? "error" : outcome === "timeout" || outcome === "uncertain" ? "warn" : "neutral";
+        const glyph = outcome === "accepted" ? "\u2713" : outcome === "unsupported" ? "\u2014" : outcome === "timeout" ? "?" : "\u2715";
+        const detail = [
+          typeof row?.code === "string" ? row.code : null,
+          typeof row?.message === "string" ? row.message : null,
+          typeof row?.latencyMs === "number" ? `${row.latencyMs} ms` : null
+        ].filter((part) => part !== null).join(" \xB7 ");
+        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone, title: detail === "" ? void 0 : detail, children: `${glyph} ${String(row?.effort ?? "?")}` }, String(row?.effort ?? "?"));
+      }) }) : null,
+      outcomeText !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: outcomeText }) : null
+    ] }) : null
   ] });
 }
 
@@ -3926,6 +4009,8 @@ var zh = {
   "tabs.usage": "\u7528\u91CF\u7EDF\u8BA1",
   "actions.refresh": "\u5237\u65B0",
   "actions.refreshing": "\u5237\u65B0\u4E2D\u2026",
+  "actions.testEfforts": "\u6D4B\u8BD5\u6863\u4F4D",
+  "actions.testingEfforts": "\u6D4B\u8BD5\u4E2D\u2026",
   "actions.retry": "\u91CD\u8BD5",
   "actions.dismiss": "\u5173\u95ED",
   "actions.refreshBalance": "\u5237\u65B0\u4F59\u989D",
@@ -4106,6 +4191,13 @@ var zh = {
   "providers.edit.apiKeyRefDirty": "\u51ED\u636E\u5F15\u7528\u5DF2\u4FEE\u6539\uFF1B\u8BF7\u5148\u4FDD\u5B58\u8868\u5355\uFF0C\u518D\u7BA1\u7406\u5BC6\u94A5\u3002",
   "providers.edit.models": "\u6A21\u578B\u6E05\u5355",
   "providers.edit.effortsFixed": "\u8BE5\u8DEF\u7531\u7684\u63A8\u7406\u6863\u4F4D\u7531\u9002\u914D\u5668\u56FA\u5B9A\uFF08DeepSeek \u63D0\u4F9B Off / Low / High / Max\uFF09\uFF0C\u4E0D\u80FD\u5728\u8FD9\u91CC\u6539",
+  "providers.effortsNoLevels": "\u8BE5\u6A21\u578B\u6CA1\u6709\u5DF2\u58F0\u660E\u7684\u63A8\u7406\u6863\u4F4D\uFF1B\u5148\u5230\u300C\u7F16\u8F91 \u2192 \u6A21\u578B\u6E05\u5355\u300D\u7684\u63A8\u7406\u6863\u4F4D\u91CC\u58F0\u660E",
+  "providers.effortsProbeHint": "\u6309\u6BCF\u4E2A\u6863\u4F4D\u53D1\u9001\u4E00\u6B21\u6781\u5C0F\u771F\u5B9E\u8BF7\u6C42\uFF08\u6D88\u8017\u5C11\u91CF Token\uFF09\u6765\u9A8C\u8BC1\u4E0A\u6E38\u662F\u5426\u63A5\u53D7",
+  "providers.effortsAccepted": "\u4E0A\u6E38\u63A5\u53D7\uFF1A{levels}",
+  "providers.effortsUnsupported": "\u9002\u914D\u5668\u672A\u63D0\u4F9B\uFF1A{levels}",
+  "providers.effortsFailed": "\u8BF7\u6C42\u5931\u8D25\uFF1A{levels}",
+  "providers.effortsUncertain": "\u672A\u80FD\u786E\u5B9A\uFF1A{levels}",
+  "providers.effortsProbeError": "\u6863\u4F4D\u6D4B\u8BD5\u5931\u8D25\uFF1A{message}",
   "providers.edit.modelsInherited": "\u6863\u6848\u672A\u58F0\u660E\u6A21\u578B\uFF0C\u5F53\u524D\u7EE7\u627F\u9002\u914D\u5668\u63D0\u4F9B\u7684\u76EE\u5F55\uFF1B\u4FDD\u5B58\u7A7A\u6E05\u5355\u5373\u4FDD\u6301\u7EE7\u627F\u3002",
   "providers.edit.modelsEmpty": "\u6E05\u5355\u4E3A\u7A7A\uFF1B\u4FDD\u5B58\u540E\u5C06\u7EE7\u627F\u9002\u914D\u5668\u76EE\u5F55\u3002",
   "providers.edit.modelN": "\u6A21\u578B {n}",
@@ -4182,6 +4274,8 @@ var en = {
   "tabs.usage": "Usage",
   "actions.refresh": "Refresh",
   "actions.refreshing": "Refreshing\u2026",
+  "actions.testEfforts": "Test levels",
+  "actions.testingEfforts": "Testing\u2026",
   "actions.retry": "Retry",
   "actions.dismiss": "Dismiss",
   "actions.refreshBalance": "Refresh balance",
@@ -4362,6 +4456,13 @@ var en = {
   "providers.edit.apiKeyRefDirty": "The credential reference changed; save the form before managing the key.",
   "providers.edit.models": "Models",
   "providers.edit.effortsFixed": "This route\u2019s reasoning levels are fixed by its adapter (DeepSeek offers Off / Low / High / Max) and cannot be edited here.",
+  "providers.effortsNoLevels": "No reasoning levels are declared for this model; add them under Edit \u2192 Models \u2192 Reasoning levels first",
+  "providers.effortsProbeHint": "Sends one tiny real request per level (a few tokens) to check whether the endpoint accepts it",
+  "providers.effortsAccepted": "Accepted upstream: {levels}",
+  "providers.effortsUnsupported": "Not offered by the adapter: {levels}",
+  "providers.effortsFailed": "Request failed: {levels}",
+  "providers.effortsUncertain": "Inconclusive: {levels}",
+  "providers.effortsProbeError": "Level probe failed: {message}",
   "providers.edit.modelsInherited": "No models are declared in the profile, so the adapter catalog is used; leaving it empty keeps the inheritance.",
   "providers.edit.modelsEmpty": "The list is empty; saving falls back to the adapter catalog.",
   "providers.edit.modelN": "Model {n}",

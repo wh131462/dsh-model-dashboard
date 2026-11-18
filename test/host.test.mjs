@@ -20,6 +20,7 @@ import { createBalances } from '../src/host/balances.js';
 import { estimateCost, normalizeConfig, priceFor } from '../src/host/config.js';
 import { createDashboard } from '../src/host/dashboard.js';
 import { createProviderEditor } from '../src/host/editing.js';
+import { createReasoningProbe } from '../src/host/probe.js';
 import { readProviders } from '../src/host/discovery.js';
 import { createUsage } from '../src/host/usage.js';
 
@@ -824,6 +825,114 @@ test('credentials are written through the credential seam, never through the pro
   await assert.rejects(
     () => editor.setApiKey({ ref: 'ACME_KEY', value: '   ' }),
     (error) => error.code === 'invalid-key',
+  );
+});
+
+
+/** A fake `llm` service whose effort support and settlements the test controls. */
+function probeLlm({ supported = ['off', 'low', 'high'], settle = () => ({ kind: 'stop' }), hang = false } = {}) {
+  const calls = { resolved: [], streamed: [] };
+  const llm = {
+    async resolveCallConfig(config) {
+      calls.resolved.push(config);
+      if (!supported.includes(config.reasoningEffort)) {
+        throw Object.assign(new Error(`model does not support reasoning effort "${config.reasoningEffort}"`), {
+          code: 'UNSUPPORTED_REASONING_EFFORT',
+        });
+      }
+      return config;
+    },
+    stream(options) {
+      calls.streamed.push({ ...options });
+      return (async function* stream() {
+        if (hang) {
+          await new Promise((_resolve, reject) => {
+            if (options.signal?.aborted) {
+              reject(new Error('aborted'));
+              return;
+            }
+            options.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+          });
+          return;
+        }
+        yield { type: 'usage', usage: { inputTokens: 5, outputTokens: 2, reasoningTokens: 3 } };
+        yield { type: 'finish', reason: settle(options) };
+      })();
+    },
+  };
+  return { llm, calls };
+}
+
+test('reasoning probe separates adapter support from upstream acceptance', async () => {
+  const { llm, calls } = probeLlm({ supported: ['off', 'low'] });
+  const ctx = makeCtx({ llm });
+  const probe = createReasoningProbe(ctx, {
+    getProviders: () => [{
+      id: 'acme',
+      registered: true,
+      models: [{ id: 'm1', reasoningEfforts: ['off', 'low', 'max'] }],
+    }],
+  }, { timeoutMs: 50 });
+  const report = await probe.probeReasoning({ providerId: 'acme', modelId: 'm1' });
+  assert.equal(report.results.length, 3);
+  const byEffort = Object.fromEntries(report.results.map((row) => [row.effort, row]));
+  assert.equal(byEffort.off.outcome, 'accepted');
+  assert.equal(byEffort.off.reasoningTokens, 3);
+  assert.equal(byEffort.off.finishKind, 'stop');
+  assert.equal(byEffort.low.outcome, 'accepted');
+  // The unsupported level never reaches the network.
+  assert.equal(byEffort.max.outcome, 'unsupported');
+  assert.equal(calls.streamed.length, 2);
+  assert.equal(calls.streamed[0].reasoningEffort, 'off');
+  assert.equal(calls.streamed[0].maxTokens, 24);
+  assert.deepEqual(report.summary.accepted, ['off', 'low']);
+  assert.deepEqual(report.summary.unsupported, ['max']);
+  assert.deepEqual(report.summary.failed, []);
+});
+
+test('reasoning probe reports upstream rejections, timeouts, and route problems', async () => {
+  const rejecting = probeLlm({
+    supported: ['off', 'low'],
+    settle: () => ({ kind: 'error', failure: { code: 'RATE_LIMIT', message: '429 Too Many Requests', status: 429 } }),
+  });
+  const rejectProbe = createReasoningProbe(makeCtx({ llm: rejecting.llm }), {
+    getProviders: () => [{ id: 'acme', registered: true, models: [{ id: 'm1', reasoningEfforts: ['off', 'low'] }] }],
+  }, { timeoutMs: 50 });
+  const rejected = await rejectProbe.probeReasoning({ providerId: 'acme', modelId: 'm1' });
+  assert.equal(rejected.results[0].outcome, 'rejected');
+  assert.equal(rejected.results[0].code, 'RATE_LIMIT');
+  assert.equal(rejected.results[0].status, 429);
+  assert.deepEqual(rejected.summary.failed, ['off', 'low']);
+
+  const hanging = probeLlm({ supported: ['off'], hang: true });
+  const hangProbe = createReasoningProbe(makeCtx({ llm: hanging.llm }), {
+    getProviders: () => [{ id: 'acme', registered: true, models: [{ id: 'm1', reasoningEfforts: ['off'] }] }],
+  }, { timeoutMs: 20 });
+  const timedOut = await hangProbe.probeReasoning({ providerId: 'acme', modelId: 'm1' });
+  assert.equal(timedOut.results[0].outcome, 'timeout');
+  assert.equal(timedOut.results[0].code, 'timeout');
+
+  const routeProbe = createReasoningProbe(makeCtx({ llm: rejecting.llm }), {
+    getProviders: () => [
+      { id: 'dormant', registered: false, models: [{ id: 'm1', reasoningEfforts: [] }] },
+      { id: 'no-levels', registered: true, models: [{ id: 'm1', reasoningEfforts: [] }] },
+    ],
+  }, { timeoutMs: 20 });
+  await assert.rejects(
+    () => routeProbe.probeReasoning({ providerId: 'missing', modelId: 'm1' }),
+    (error) => error.code === 'unknown-route',
+  );
+  await assert.rejects(
+    () => routeProbe.probeReasoning({ providerId: 'dormant', modelId: 'm1' }),
+    (error) => error.code === 'route-dormant',
+  );
+  await assert.rejects(
+    () => routeProbe.probeReasoning({ providerId: 'no-levels', modelId: 'm1' }),
+    (error) => error.code === 'no-levels',
+  );
+  await assert.rejects(
+    () => routeProbe.probeReasoning({ providerId: 'acme', modelId: '' }),
+    (error) => error.code === 'invalid-probe',
   );
 });
 

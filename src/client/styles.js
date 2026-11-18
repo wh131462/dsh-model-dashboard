@@ -892,11 +892,21 @@ export const CSS = String.raw`
 
 .td-model-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(72px, auto) auto auto;
+  grid-template-columns: minmax(0, 1.5fr) minmax(72px, auto) auto auto auto;
   align-items: center;
   gap: 8px 14px;
   padding: 8px 0;
   border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+/* Per-level reasoning verdicts span the row's columns under the model. */
+.td-effort-result {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
 }
 
 .td-model-row:last-child {
@@ -1382,6 +1392,10 @@ export const CSS = String.raw`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+  }
+
+  .td-effort-result {
+    flex-basis: 100%;
   }
 
   .td-model-main {

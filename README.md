@@ -40,6 +40,43 @@ reads services the Harness already owns.
 | Other balances | a couple of HTTPS `GET`s per provider, described below |
 | Token usage | this profile's session logs, read through `sessionPersistence` |
 
+## Testing which reasoning levels a model supports
+
+Two questions look the same but are not:
+
+1. **What the Harness will offer.** The reasoning levels are whatever the
+   adapter publishes for that route/model: fixed at Off/Low/High/Max for the
+   DeepSeek routes, and whatever `reasoningEfforts` declares per model on a
+   multi-provider route (a model with no declaration offers none, so the
+   composer hides the Effort row). The panel's model rows show the levels as
+   chips, and the composer's Effort row lists the same ones.
+2. **What the endpoint actually accepts.** A declared level can still be
+   rejected (or silently ignored) by the gateway. The **测试档位 / Test levels**
+   button on a model row answers this: the Host first runs the adapter's free
+   capability check for each level, then sends **one minimal real request per
+   level the adapter offers** (`maxTokens: 24`, prompt `ping`, 20 s deadline) and
+   reports the settlement. The row shows `✓ accepted`, `— not offered`,
+   `✕ rejected` (with the Host code/message on hover), `? inconclusive`.
+
+The probe costs a few tokens per level and runs sequentially. A level that the
+adapter does not offer is never sent, so "not offered" is a configuration fact,
+not a network result.
+
+For values that are not declared yet, declare candidates first (Edit → Models →
+Reasoning levels, syntax `low=low, max=ultra`), save, then probe. If you need to
+test a raw gateway value without touching the profile, call the endpoint
+directly, e.g. for an OpenAI-compatible relay:
+
+```sh
+curl -s https://gateway.example/v1/chat/completions \
+  -H "authorization: Bearer $YOUR_KEY" -H 'content-type: application/json' \
+  -d '{"model":"gpt-6.1-sol","messages":[{"role":"user","content":"ping"}],"max_tokens":24,"reasoning_effort":"max"}'
+```
+
+A 2xx means the value is accepted; a 4xx names the rejected field. Note that
+"accepted" is not "effective": some gateways accept a value and ignore it, so
+also compare `reasoning_tokens`/thinking output between levels.
+
 ## Editing model configuration
 
 The 模型配置 tab edits the profile in place. It uses the same two seams the

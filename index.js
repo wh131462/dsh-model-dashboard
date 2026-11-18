@@ -131,6 +131,7 @@ function createRouteHandler(ctx, dashboard) {
     balances: (body) => dashboard.balances(body),
     rescan: (body) => dashboard.rescan(body),
     "set-default": (body) => dashboard.setDefault(body),
+    "probe-reasoning": (body) => dashboard.probeReasoning(body),
     "provider-form": (body) => dashboard.providerForm(body),
     "save-provider": (body) => dashboard.saveProvider(body),
     "add-provider": (body) => dashboard.addProvider(body),
@@ -1312,6 +1313,168 @@ function messageOf3(error) {
   return String(error);
 }
 
+// src/host/probe.js
+var EFFORT_LEVELS2 = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+var MAX_LEVELS = 8;
+var PROBE_MAX_TOKENS = 24;
+var PROBE_TIMEOUT_MS = 2e4;
+var PROBE_TEXT = "ping";
+function createReasoningProbe(ctx, hooks, options = {}) {
+  const timeoutMs = typeof options.timeoutMs === "number" && options.timeoutMs > 0 ? options.timeoutMs : PROBE_TIMEOUT_MS;
+  async function probeReasoning(body = {}) {
+    const providerId = typeof body?.providerId === "string" ? body.providerId : "";
+    const modelId = typeof body?.modelId === "string" ? body.modelId : "";
+    if (providerId === "" || modelId === "") {
+      throw new HostError("invalid-probe", "providerId and modelId are required.", 400);
+    }
+    const llm = ctx.get("llm");
+    if (llm === void 0 || typeof llm.stream !== "function" || typeof llm.resolveCallConfig !== "function") {
+      throw new HostError("no-llm", "This composition has no model service.", 503);
+    }
+    const providers = hooks.getProviders?.() ?? null;
+    if (providers === null) {
+      throw new HostError("not-ready", "The provider catalog is not loaded yet; refresh and retry.", 503);
+    }
+    const provider = providers.find((entry) => entry?.id === providerId);
+    if (provider === void 0) {
+      throw new HostError("unknown-route", `Unknown provider route "${providerId}".`, 404);
+    }
+    if (provider.registered !== true) {
+      throw new HostError("route-dormant", `Provider route "${providerId}" has no live adapter.`, 409);
+    }
+    const model = (provider.models ?? []).find((entry) => entry?.id === modelId);
+    const advertised = Array.isArray(model?.reasoningEfforts) ? model.reasoningEfforts : [];
+    const requested = Array.isArray(body?.levels) ? body.levels.filter((level) => typeof level === "string" && level !== "") : advertised;
+    const levels = [...new Set(requested)].filter((level) => EFFORT_LEVELS2.includes(level)).slice(0, MAX_LEVELS);
+    if (levels.length === 0) {
+      throw new HostError(
+        "no-levels",
+        "This model advertises no reasoning levels. Declare them on the model first (or pass explicit levels).",
+        409
+      );
+    }
+    const results = [];
+    for (const level of levels) {
+      results.push(await probeOne(llm, providerId, modelId, level, timeoutMs));
+    }
+    return {
+      version: 1,
+      providerId,
+      modelId,
+      advertised,
+      results,
+      summary: {
+        accepted: results.filter((row) => row.outcome === "accepted").map((row) => row.effort),
+        unsupported: results.filter((row) => row.outcome === "unsupported").map((row) => row.effort),
+        failed: results.filter((row) => row.outcome === "rejected" || row.outcome === "error").map((row) => row.effort),
+        uncertain: results.filter((row) => row.outcome === "timeout").map((row) => row.effort)
+      }
+    };
+  }
+  return { probeReasoning };
+}
+async function probeOne(llm, providerId, modelId, level, timeoutMs) {
+  const startedAt = Date.now();
+  const config = { provider: providerId, model: modelId, reasoningEffort: level };
+  try {
+    await llm.resolveCallConfig(config);
+  } catch (error) {
+    const code = errorCode(error);
+    const unsupported = code === "UNSUPPORTED_REASONING_EFFORT" || /does not support reasoning effort/i.test(messageOf(error));
+    return {
+      effort: level,
+      outcome: unsupported ? "unsupported" : "error",
+      code: code ?? (unsupported ? "UNSUPPORTED_REASONING_EFFORT" : "prepare-failed"),
+      message: clip(messageOf(error)),
+      latencyMs: Date.now() - startedAt
+    };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error("probe-timeout")), timeoutMs);
+  let usage = null;
+  let finish = null;
+  try {
+    const chunks = llm.stream({
+      provider: providerId,
+      model: modelId,
+      reasoningEffort: level,
+      maxTokens: PROBE_MAX_TOKENS,
+      messages: [{ role: "user", content: [{ type: "text", text: PROBE_TEXT }] }],
+      signal: controller.signal
+    });
+    for await (const chunk of chunks) {
+      if (chunk?.type === "usage" && chunk.usage !== null && typeof chunk.usage === "object") usage = chunk.usage;
+      if (chunk?.type === "finish") {
+        finish = chunk.reason;
+        break;
+      }
+    }
+  } catch (error) {
+    if (controller.signal.aborted) {
+      return {
+        effort: level,
+        outcome: "timeout",
+        code: "timeout",
+        message: `No settlement within ${timeoutMs} ms.`,
+        latencyMs: Date.now() - startedAt
+      };
+    }
+    return {
+      effort: level,
+      outcome: "rejected",
+      code: errorCode(error) ?? "request-failed",
+      message: clip(messageOf(error)),
+      latencyMs: Date.now() - startedAt
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+  const latencyMs = Date.now() - startedAt;
+  if (finish === null) {
+    return {
+      effort: level,
+      outcome: controller.signal.aborted ? "timeout" : "uncertain",
+      code: controller.signal.aborted ? "timeout" : "no-finish",
+      message: controller.signal.aborted ? `No settlement within ${timeoutMs} ms.` : "The stream ended without a finish reason.",
+      latencyMs
+    };
+  }
+  if (finish.kind === "error" || finish.kind === "aborted") {
+    const failure = finish.failure ?? {};
+    return {
+      effort: level,
+      outcome: finish.kind === "aborted" && controller.signal.aborted ? "timeout" : "rejected",
+      code: typeof failure.code === "string" ? failure.code : finish.kind === "error" ? "request-error" : "aborted",
+      message: clip(typeof failure.message === "string" ? failure.message : `The request ended with ${finish.kind}.`),
+      ...typeof failure.status === "number" ? { status: failure.status } : {},
+      latencyMs
+    };
+  }
+  return {
+    effort: level,
+    outcome: "accepted",
+    finishKind: finish.kind,
+    reasoningTokens: numberOrNull2(usage?.reasoningTokens),
+    outputTokens: numberOrNull2(usage?.outputTokens),
+    acceptedAt: startedAt,
+    latencyMs
+  };
+}
+function errorCode(error) {
+  if (error !== null && typeof error === "object") {
+    const code = error.code;
+    if (typeof code === "string" && code !== "") return code;
+  }
+  return void 0;
+}
+function numberOrNull2(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function clip(text) {
+  const single = String(text).replace(/\s+/g, " ").trim();
+  return single.length <= 240 ? single : `${single.slice(0, 239)}\u2026`;
+}
+
 // src/host/usage.js
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -1753,6 +1916,9 @@ function createDashboard(ctx, config) {
       discovery.at = 0;
     }
   });
+  const reasoningProbe = createReasoningProbe(ctx, {
+    getProviders: () => discovery.value?.providers ?? null
+  });
   async function discover(force = false) {
     if (!force && discovery.value !== null && Date.now() - discovery.at < DISCOVERY_TTL_MS) {
       return discovery.value;
@@ -1853,6 +2019,10 @@ function createDashboard(ctx, config) {
     discovery.at = 0;
     return { ok: true, selection };
   }
+  async function probeReasoningReport(body = {}) {
+    if (discovery.value === null) await discover();
+    return reasoningProbe.probeReasoning(body);
+  }
   async function rescan(body = {}) {
     const started = usage.scan({ full: body?.full === true });
     void started.catch(() => void 0);
@@ -1869,6 +2039,7 @@ function createDashboard(ctx, config) {
     setDefault,
     rescan,
     currentSelection,
+    probeReasoning: probeReasoningReport,
     providerForm: editor.providerForm,
     saveProvider: editor.saveProvider,
     addProvider: editor.addProvider,

@@ -12,6 +12,7 @@ import { createBalances } from './balances.js';
 import { readDefaultSelection, readProviders } from './discovery.js';
 import { createProviderEditor } from './editing.js';
 import { HostError, messageOf } from './errors.js';
+import { createReasoningProbe } from './probe.js';
 import { createUsage } from './usage.js';
 
 /** Model catalogs and key state are reused for this long across page polls. */
@@ -43,6 +44,9 @@ export function createDashboard(ctx, config) {
       discovery.value = null;
       discovery.at = 0;
     },
+  });
+  const reasoningProbe = createReasoningProbe(ctx, {
+    getProviders: () => discovery.value?.providers ?? null,
   });
 
   /**
@@ -187,6 +191,16 @@ export function createDashboard(ctx, config) {
   }
 
   /**
+   * Test which reasoning levels one route actually accepts.
+   * @param {object} [body] - `{providerId, modelId, levels}`.
+   * @returns {Promise<object>} the per-level verdicts.
+   */
+  async function probeReasoningReport(body = {}) {
+    if (discovery.value === null) await discover();
+    return reasoningProbe.probeReasoning(body);
+  }
+
+  /**
    * Start a usage pass (or restart one from zero).
    * @param {object} [body] - `{full}`.
    * @returns {Promise<object>} the progress at request time.
@@ -210,6 +224,7 @@ export function createDashboard(ctx, config) {
     setDefault,
     rescan,
     currentSelection,
+    probeReasoning: probeReasoningReport,
     providerForm: editor.providerForm,
     saveProvider: editor.saveProvider,
     addProvider: editor.addProvider,

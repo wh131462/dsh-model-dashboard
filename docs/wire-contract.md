@@ -392,3 +392,37 @@ Body: `{ "ref": "ACME_KEY", "value": "sk-…" }` or `{ "ref": "ACME_KEY", "clear
 Value: `{ "ok": true, "credential": { "ref": "ACME_KEY", "configured": true, "source": "stored", "masked": "sk-…", "writable": true } }`.
 Error codes: `invalid-credential-ref`, `invalid-key`, `no-credentials`,
 `key-write-failed`.
+
+### `POST probe-reasoning`
+
+Tests which reasoning levels one route actually accepts. For each level it first
+asks the adapter (a free capability check) and then, only for levels the adapter
+offers, dispatches one minimal real request (`maxTokens: 24`, prompt `ping`,
+20 s deadline) and reports the settlement.
+
+Body: `{ "providerId": "yuanxi50", "modelId": "gpt-6.1-sol", "levels": ["low", "max"] }`.
+`levels` is optional; omitted means the levels the model advertises.
+
+```json
+{
+  "value": {
+    "version": 1,
+    "providerId": "yuanxi50",
+    "modelId": "gpt-6.1-sol",
+    "advertised": ["low", "medium", "xhigh", "max"],
+    "results": [
+      { "effort": "low", "outcome": "accepted", "finishKind": "stop", "reasoningTokens": 3, "outputTokens": 2, "latencyMs": 812 },
+      { "effort": "max", "outcome": "unsupported", "code": "UNSUPPORTED_REASONING_EFFORT", "message": "…", "latencyMs": 1 }
+    ],
+    "summary": { "accepted": ["low"], "unsupported": ["max"], "failed": [], "uncertain": [] }
+  }
+}
+```
+
+`outcome` is `accepted` (upstream settled the request: stop, tool-calls, or
+max-tokens), `unsupported` (the adapter never offered the level — no request was
+sent), `rejected` (the request failed upstream, with `code`/`message`/`status`),
+`error` (preparation failed, e.g. a missing credential), `timeout`, or
+`uncertain` (the stream ended without a finish reason).
+Error codes: `invalid-probe`, `unknown-route`, `route-dormant`, `no-levels`
+(the model advertises none and none were passed), `no-llm`, `not-ready`.

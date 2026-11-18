@@ -160,6 +160,14 @@ export function removeProvider(payload, options) {
 }
 
 /**
+ * Test which reasoning levels one route's endpoint actually accepts.
+ * @param {{providerId: string, modelId: string, levels?: string[]}} payload - the probe.
+ */
+export function probeReasoning(payload, options) {
+  return call('probe-reasoning', payload, options);
+}
+
+/**
  * Store or clear one provider credential.
  * @param {{ref: string, value?: string, clear?: boolean}} payload - the write.
  */
