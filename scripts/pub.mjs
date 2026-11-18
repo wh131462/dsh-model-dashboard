@@ -9,10 +9,15 @@
  *   2. pick a version (current if unpublished, otherwise a patch bump; any
  *      stable x.y.z can be typed),
  *   3. build and test, write version into package.json/package-lock.json,
- *   4. `npm publish` to registry.npmjs.com, rolling the bump back on failure,
+ *   4. `npm publish` to registry.npmjs.org, rolling the bump back on failure,
  *   5. commit `feat: vX.Y.Z`.
  *
  * Pushing the commit is left to the user; CI turns it into a GitHub Release.
+ *
+ * The registry host is the canonical `registry.npmjs.org` on purpose. With 2FA
+ * enabled, a publish is challenged with a `doneUrl` that names that host, and
+ * npm polls it verbatim; publishing through the `registry.npmjs.com` alias makes
+ * that poll return 403, so the browser confirmation can never complete.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -24,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { bumpPatch, compareVersions, isValidVersion, npmPackageUrl } from './lib/release.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const REGISTRY = 'https://registry.npmjs.com';
+const REGISTRY = 'https://registry.npmjs.org';
 const REGISTRY_FLAG = `--registry=${REGISTRY}`;
 const PACKAGE_PATH = join(ROOT, 'package.json');
 const LOCK_PATH = join(ROOT, 'package-lock.json');
@@ -171,6 +176,9 @@ async function chooseVersion(name, current) {
     console.log(`  2. 版本号 ${current} → ${version}`);
     console.log(`  3. 发布到 ${REGISTRY}`);
     console.log(`  4. 创建 commit  feat: v${version}（发布成功后）`);
+    console.log(
+      '\n（账号开启 2FA 时，npm 会在发布阶段打印 Authenticate your account 并打开浏览器，按提示完成确认即可。）',
+    );
 
     const confirmed = (await rl.question('\n确认继续？(y/N) ')).trim();
     return /^y(es)?$/i.test(confirmed) ? version : null;
