@@ -168,6 +168,23 @@ pricing:
 
 **插件** > **添加插件** > 本地目录：选择本包目录即可。Bundle 行为 `model-dashboard`；停用后侧边栏入口与页面消失，Host 通道也不再提供。
 
+同时发布到 npm：`@eternalheart/dsh-model-dashboard`。
+
+## 发布
+
+### 本机发布
+
+```sh
+npm login --registry=https://registry.npmjs.com   # 每个 npm 账号一次
+npm run pub
+```
+
+`npm run pub` 会先检查 npmjs 登录状态；未登录时打印上面的登录命令并退出，不会改动仓库。它同时要求工作区干净，避免未提交的内容漏在发布 commit 之外。登录后给出默认版本号：当前版本尚未发布时默认沿用当前版本（首次发布可以是 `1.0.0`），已发布则默认自增补丁版本；也可以直接输入任意稳定的 `x.y.z`，但小于当前版本或已存在的版本会被拒绝。确认后依次构建、测试、把版本写入 `package.json` 与 `package-lock.json`、创建 commit `feat: vX.Y.Z`，再以 public 访问级别发布到 `https://registry.npmjs.com`。推送该 commit 后由 CI 创建 GitHub Release。
+
+### CI 发布
+
+`.github/workflows/release.yml` 在每次推送到 `master`/`main` 时运行，但只有 HEAD commit 标题恰好为 `feat: vX.Y.Z` 才继续。它会校验 `package.json` 中的版本、构建与测试，然后打 tag `vX.Y.Z` 并创建 GitHub Release。npm 发布只在本机 `npm run pub` 完成，CI 不存放 npm 凭据。Release 正文列出上一个 `vX.Y.Z` tag 之后的提交记录，末尾是 npm 地址。
+
 ## 限制
 
 - 面板展示的是当前 composition 拥有的内容。profile 从未声明的供应商，只有在其适配器路由处于活动状态时才会出现。

@@ -249,6 +249,37 @@ plugin config (`CNY` or `USD`).
 bundle row is `model-dashboard`; disabling it removes the sidebar entry and the
 page, and the Host channel is not served.
 
+The package is also published to npm as `@eternalheart/dsh-model-dashboard`.
+
+## Publishing
+
+### From your machine
+
+```sh
+npm login --registry=https://registry.npmjs.com   # once per npm account
+npm run pub
+```
+
+`npm run pub` checks the npmjs session first. When it is missing, the script
+prints the login command above and exits without touching the repository. It
+also requires a clean working tree, so uncommitted work never misses the
+release commit. It then offers a version: the current one while it is still
+unpublished (so the first release can be `1.0.0`), otherwise the next patch.
+Any stable `x.y.z` can be typed instead; older or already-published versions
+are refused. After confirmation it builds and tests, writes the version to
+`package.json` and `package-lock.json`, commits `feat: vX.Y.Z`, and publishes
+to `https://registry.npmjs.com` with public access. Push that commit to let CI
+attach the GitHub Release.
+
+### In CI
+
+`.github/workflows/release.yml` runs on every push to `master`/`main`, and only
+acts when the head commit subject is exactly `feat: vX.Y.Z`. It verifies that
+`package.json` already carries that version, builds and tests, then tags
+`vX.Y.Z` and creates the GitHub Release. npm publishing is local-only
+(`npm run pub`); CI never holds npm credentials. The release body lists the
+commits since the previous `vX.Y.Z` tag and ends with the npm link.
+
 ## Limitations
 
 - The panel shows what the running composition owns. A provider the profile never
