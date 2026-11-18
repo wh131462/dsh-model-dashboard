@@ -1,0 +1,105 @@
+name: Release
+
+# A push whose head commit is exactly `feat: vX.Y.Z` releases that version:
+# tag it and create a GitHub Release whose body lists the commits since the
+# previous vX.Y.Z tag and ends with the npm link. npm publishing itself is done
+# locally with `npm run pub`; CI never holds npm credentials.
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect a release commit
+        id: meta
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          IFS= read -r subject <<< "$COMMIT_MESSAGE"
+          if [[ "$subject" =~ ^feat:\ v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            echo "Release commit detected: $subject"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Not a release commit, nothing to do: $subject"
+          fi
+
+      - name: Check out
+        if: steps.meta.outputs.release == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Node
+        if: steps.meta.outputs.release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.meta.outputs.release == 'true'
+        run: npm ci
+
+      - name: Verify the package version
+        if: steps.meta.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          manifest="$(node -p "require('./package.json').version")"
+          if [[ "$manifest" != "$VERSION" ]]; then
+            echo "::error::package.json is $manifest but the commit announces v$VERSION"
+            exit 1
+          fi
+
+      - name: Build and test
+        if: steps.meta.outputs.release == 'true'
+        run: |
+          npm run build
+          npm test
+
+      - name: Generate release notes
+        if: steps.meta.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: node scripts/changelog.mjs --version "$VERSION" > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Tag and create the GitHub release
+        if: steps.meta.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            if [[ "$(git rev-parse "$tag^{commit}")" != "$GITHUB_SHA" ]]; then
+              echo "::error::tag $tag exists but does not point at $GITHUB_SHA"
+              exit 1
+            fi
+          else
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "$tag"
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$tag" --title "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
