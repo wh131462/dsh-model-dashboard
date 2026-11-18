@@ -7,8 +7,6 @@ kind: "package-reference"
 
 English | [中文](README.zh.md)
 
-![The model-dashboard entry in the sidebar rail, with a balance card, a model configuration card, and a daily usage bar chart](docs/preview.svg)
-
 ## What it does
 
 Adds one entry to the sidebar's panel list, under **Automation tasks**:
