@@ -9,6 +9,7 @@
  */
 
 import { createBalances } from './balances.js';
+import { createCatalogTools } from './catalog.js';
 import { readDefaultSelection, readProviders } from './discovery.js';
 import { createProviderEditor } from './editing.js';
 import { HostError, messageOf } from './errors.js';
@@ -46,6 +47,9 @@ export function createDashboard(ctx, config) {
     },
   });
   const reasoningProbe = createReasoningProbe(ctx, {
+    getProviders: () => discovery.value?.providers ?? null,
+  });
+  const catalogTools = createCatalogTools(ctx, {
     getProviders: () => discovery.value?.providers ?? null,
   });
 
@@ -201,6 +205,26 @@ export function createDashboard(ctx, config) {
   }
 
   /**
+   * List the models a provider endpoint advertises (protocol auto-detected).
+   * @param {object} [body] - `{providerId}` or `{baseURL, api, apiKeyEnv}`.
+   * @returns {Promise<object>} the discovery result.
+   */
+  async function discoverModelsReport(body = {}) {
+    if (typeof body?.providerId === 'string' && discovery.value === null) await discover();
+    return catalogTools.discoverModels(body);
+  }
+
+  /**
+   * Test which reasoning-effort wire values one model's endpoint accepts.
+   * @param {object} [body] - target plus `modelId`.
+   * @returns {Promise<object>} the matrix and suggestion.
+   */
+  async function detectReasoningReport(body = {}) {
+    if (typeof body?.providerId === 'string' && discovery.value === null) await discover();
+    return catalogTools.detectReasoning(body);
+  }
+
+  /**
    * Start a usage pass (or restart one from zero).
    * @param {object} [body] - `{full}`.
    * @returns {Promise<object>} the progress at request time.
@@ -225,6 +249,8 @@ export function createDashboard(ctx, config) {
     rescan,
     currentSelection,
     probeReasoning: probeReasoningReport,
+    discoverModels: discoverModelsReport,
+    detectReasoning: detectReasoningReport,
     providerForm: editor.providerForm,
     saveProvider: editor.saveProvider,
     addProvider: editor.addProvider,

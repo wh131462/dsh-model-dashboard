@@ -160,6 +160,22 @@ export function removeProvider(payload, options) {
 }
 
 /**
+ * List the models a provider endpoint advertises (protocol auto-detected).
+ * @param {{providerId?: string, baseURL?: string, api?: string, apiKeyEnv?: string}} payload - the target.
+ */
+export function discoverModels(payload, options) {
+  return call('discover-models', payload, options);
+}
+
+/**
+ * Detect which raw reasoning-effort values one endpoint accepts.
+ * @param {{providerId?: string, baseURL?: string, api?: string, apiKeyEnv?: string, modelId: string}} payload - the target.
+ */
+export function detectReasoning(payload, options) {
+  return call('detect-reasoning', payload, options);
+}
+
+/**
  * Test which reasoning levels one route's endpoint actually accepts.
  * @param {{providerId: string, modelId: string, levels?: string[]}} payload - the probe.
  */

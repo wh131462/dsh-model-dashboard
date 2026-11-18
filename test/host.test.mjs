@@ -20,6 +20,7 @@ import { createBalances } from '../src/host/balances.js';
 import { estimateCost, normalizeConfig, priceFor } from '../src/host/config.js';
 import { createDashboard } from '../src/host/dashboard.js';
 import { createProviderEditor } from '../src/host/editing.js';
+import { createCatalogTools } from '../src/host/catalog.js';
 import { createReasoningProbe } from '../src/host/probe.js';
 import { readProviders } from '../src/host/discovery.js';
 import { createUsage } from '../src/host/usage.js';
@@ -933,6 +934,132 @@ test('reasoning probe reports upstream rejections, timeouts, and route problems'
   await assert.rejects(
     () => routeProbe.probeReasoning({ providerId: 'acme', modelId: '' }),
     (error) => error.code === 'invalid-probe',
+  );
+});
+
+
+test('a valueless off level round-trips and other levels still need a value', async () => {
+  const { ctx, calls } = editorFixture({
+    descriptors: [{
+      ns: 'llm-pi-ai',
+      revision: 2,
+      value: {
+        providers: {
+          acme: {
+            baseURL: 'https://acme.example/v1',
+            models: [{ id: 'm1', reasoningEfforts: { off: null, low: 'low', max: 'ultra' } }],
+          },
+        },
+      },
+      user: { providers: { acme: { baseURL: 'https://acme.example/v1' } } },
+    }],
+  });
+  const editor = createProviderEditor(ctx, { invalidate() {} });
+  const form = await editor.providerForm({ providerId: 'acme' });
+  assert.deepEqual(form.profile.models[0].reasoningEfforts, { off: null, low: 'low', max: 'ultra' });
+
+  await editor.saveProvider({
+    providerId: 'acme',
+    expectedRevision: 2,
+    fields: { models: [{ id: 'm1', name: 'M1', reasoningEfforts: { off: null, low: 'low', max: 'max' } }] },
+  });
+  const saved = calls.mutate.at(-1).ops.find((op) => op.path.at(-1) === 'models');
+  assert.deepEqual(saved.value[0].reasoningEfforts, { off: null, low: 'low', max: 'max' });
+
+  await assert.rejects(
+    () => editor.saveProvider({
+      providerId: 'acme',
+      expectedRevision: 2,
+      fields: { models: [{ id: 'm1', reasoningEfforts: { high: null } }] },
+    }),
+    (error) => error.code === 'invalid-model',
+  );
+});
+
+test('model discovery detects the protocol by asking the adapter', async () => {
+  const calls = [];
+  const llm = {
+    async discoverModels(ns, request) {
+      calls.push({ ns, request });
+      if (request.api !== 'anthropic-messages') throw new Error('protocol mismatch');
+      return [{ id: 'claude-x', name: 'Claude X', contextWindow: 200000, inputModalities: ['text', 'image'] }];
+    },
+  };
+  const ctx = makeCtx({
+    llm,
+    configEditor: { entries: () => [{ options: { id: 'llm-pi-ai', name: '@deepseek-ai/dsh-llm-pi-ai' } }] },
+    credentials: { async resolve(ref) { return ref === 'ACME_KEY' ? { value: 'secret', source: 'store' } : undefined; }, async readRecord() { return undefined; } },
+  });
+  const tools = createCatalogTools(ctx, { getProviders: () => [] });
+  const found = await tools.discoverModels({ baseURL: 'https://acme.example/v1', apiKeyEnv: 'ACME_KEY' });
+  assert.equal(found.protocol, 'anthropic-messages');
+  assert.equal(found.models.length, 1);
+  assert.equal(found.models[0].contextWindow, 200000);
+  assert.equal(calls[0].ns, 'llm-pi-ai');
+  assert.equal(calls[0].request.apiKey, 'secret');
+  assert.equal(calls[0].request.baseURL, 'https://acme.example/v1');
+  assert.equal(calls.length, 2, 'openai-completions is tried first, then anthropic-messages');
+});
+
+test('reasoning detection probes the raw endpoint and suggests a level map', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    assert.ok(String(url).endsWith('/chat/completions'));
+    if (body.reasoning_effort === 'minimal') {
+      return new Response(JSON.stringify({ error: { message: "Unsupported value: 'minimal'." } }), { status: 400 });
+    }
+    return new Response(JSON.stringify({ usage: { completion_tokens: 4, completion_tokens_details: { reasoning_tokens: 2 } } }), { status: 200 });
+  };
+  const ctx = makeCtx({
+    configEditor: { entries: () => [{ options: { id: 'llm-pi-ai', name: '@deepseek-ai/dsh-llm-pi-ai' } }] },
+    credentials: { async resolve() { return { value: 'secret', source: 'store' }; }, async readRecord() { return undefined; } },
+  });
+  const tools = createCatalogTools(ctx, { getProviders: () => [] });
+  const detected = await tools.detectReasoning({
+    baseURL: 'https://acme.example/v1',
+    api: 'openai-completions',
+    apiKeyEnv: 'ACME_KEY',
+    modelId: 'gpt-x',
+  });
+  const byValue = Object.fromEntries(detected.results.map((row) => [row.value, row]));
+  assert.equal(byValue['(omitted)'].accepted, true);
+  assert.equal(byValue.minimal.accepted, false);
+  assert.equal(byValue.max.accepted, true);
+  assert.equal(byValue.max.reasoningTokens, 2);
+  assert.deepEqual(detected.suggestion, {
+    off: '', minimal: null, low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max',
+  });
+});
+
+test('reasoning detection refuses protocols it cannot speak and endpoints without a key', async () => {
+  const ctx = makeCtx({
+    llm: { async discoverModels() { return []; } },
+    configEditor: { entries: () => [{ options: { id: 'llm-pi-ai', name: '@deepseek-ai/dsh-llm-pi-ai' } }] },
+    credentials: {
+      async resolve(ref) {
+        return ref === 'ACME_KEY' ? { value: 'secret', source: 'store' } : undefined;
+      },
+      async readRecord() { return undefined; },
+    },
+  });
+  const tools = createCatalogTools(ctx, { getProviders: () => [] });
+  await assert.rejects(
+    () => tools.detectReasoning({ baseURL: 'https://acme.example/v1', api: 'anthropic-messages', apiKeyEnv: 'ACME_KEY', modelId: 'm' }),
+    (error) => error.code === 'unsupported-protocol',
+  );
+  await assert.rejects(
+    () => tools.detectReasoning({ baseURL: 'https://acme.example/v1', api: 'openai-completions', apiKeyEnv: 'MISSING_KEY', modelId: 'm' }),
+    (error) => error.code === 'no-key',
+  );
+  await assert.rejects(
+    () => tools.detectReasoning({ baseURL: 'ftp://acme.example', apiKeyEnv: 'A', modelId: 'm' }),
+    (error) => error.code === 'invalid-base-url',
+  );
+  await assert.rejects(
+    () => tools.discoverModels({ baseURL: 'https://acme.example/v1', apiKeyEnv: 'MISSING' }),
+    (error) => error.code === 'no-key',
   );
 });
 

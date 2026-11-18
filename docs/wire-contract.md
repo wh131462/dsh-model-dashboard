@@ -426,3 +426,52 @@ sent), `rejected` (the request failed upstream, with `code`/`message`/`status`),
 `uncertain` (the stream ended without a finish reason).
 Error codes: `invalid-probe`, `unknown-route`, `route-dormant`, `no-levels`
 (the model advertises none and none were passed), `no-llm`, `not-ready`.
+
+### `POST discover-models`
+
+Lists the models one endpoint advertises, for the configuration editor's import
+flow. The request names either an existing `providerId` (its saved profile is
+used) or a draft `{baseURL, api?, apiKeyEnv}`. The Host goes through the
+adapter's own discovery seam (`llm.discoverModels`), trying `openai-completions`,
+then `anthropic-messages`, then `google-generative-ai` when `api` is omitted.
+
+```json
+{ "value": { "version": 1, "protocol": "openai-completions",
+  "models": [{ "id": "gpt-6.1-sol", "name": "gpt-6.1-sol", "contextWindow": 1000000,
+               "maxTokens": null, "inputModalities": ["text"] }] } }
+```
+
+Errors: `invalid-probe`-style validation stays per-endpoint: `no-endpoint`,
+`invalid-base-url`, `no-key` (no credential resolved), `discovery-failed`
+(every candidate protocol failed; the message carries the last reason),
+`unavailable` (multi-provider adapter not mounted), `no-llm`.
+
+### `POST detect-reasoning`
+
+Finds out which raw `reasoning_effort` values an OpenAI-compatible endpoint
+accepts **before** anything is declared, by calling `chat/completions` once per
+candidate value (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `none`, and
+one request with the field omitted; `max_tokens: 24`, 20 s each, two in flight).
+
+Body: `{ "providerId": "atrouter", "modelId": "deepseek/deepseek-v4.1-flash" }`
+or a draft `{ "baseURL": "…", "apiKeyEnv": "…", "modelId": "…" }`.
+
+```json
+{ "value": {
+  "version": 1, "modelId": "deepseek/deepseek-v4.1-flash", "protocol": "openai-completions",
+  "results": [
+    { "value": "(omitted)", "status": 200, "accepted": true, "reasoningTokens": 16, "outputTokens": 16, "latencyMs": 1420 },
+    { "value": "minimal", "status": 200, "accepted": true, "reasoningTokens": 16, "outputTokens": 16, "latencyMs": 1350 },
+    { "value": "none", "status": 200, "accepted": true, "reasoningTokens": 0, "outputTokens": 15, "latencyMs": 1100 }
+  ],
+  "suggestion": { "off": "none", "minimal": "minimal", "low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "max": "max" }
+} }
+```
+
+`value: "(omitted)"` is the request without the field. `suggestion` is the
+`reasoningEfforts` map a profile could declare: a level holds its own name when
+accepted, `off` holds `""` when the omitted request is accepted (`off` with no
+value = "supported, send nothing"), or `null` when the level should stay
+undeclared. Errors: `invalid-probe`, `no-endpoint`, `invalid-base-url`,
+`no-key`, `unsupported-protocol` (only `openai-completions` is probed raw),
+`no-llm`.

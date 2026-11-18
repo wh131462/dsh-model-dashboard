@@ -132,6 +132,8 @@ function createRouteHandler(ctx, dashboard) {
     rescan: (body) => dashboard.rescan(body),
     "set-default": (body) => dashboard.setDefault(body),
     "probe-reasoning": (body) => dashboard.probeReasoning(body),
+    "discover-models": (body) => dashboard.discoverModels(body),
+    "detect-reasoning": (body) => dashboard.detectReasoning(body),
     "provider-form": (body) => dashboard.providerForm(body),
     "save-provider": (body) => dashboard.saveProvider(body),
     "add-provider": (body) => dashboard.addProvider(body),
@@ -908,8 +910,228 @@ function messageOf2(error) {
   return String(error);
 }
 
-// src/host/editing.js
+// src/host/catalog.js
 var PI_AI_PACKAGE = "@deepseek-ai/dsh-llm-pi-ai";
+var PROTOCOL_CANDIDATES = ["openai-completions", "anthropic-messages", "google-generative-ai"];
+var DETECT_VALUES = [null, "none", "minimal", "low", "medium", "high", "xhigh", "max"];
+var HARNESS_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+var DISCOVERY_TIMEOUT_MS = 12e3;
+var DETECT_TIMEOUT_MS = 2e4;
+var DETECT_MAX_TOKENS = 24;
+var DETECT_CONCURRENCY = 2;
+function createCatalogTools(ctx, hooks) {
+  async function discoverModels(body = {}) {
+    const llm = ctx.get("llm");
+    if (llm === void 0 || typeof llm.discoverModels !== "function") {
+      throw new HostError("no-llm", "This composition has no model service.", 503);
+    }
+    const ns = piAiNamespace(ctx);
+    if (ns === void 0) {
+      throw new HostError("unavailable", "The multi-provider adapter is not mounted in this profile.", 503);
+    }
+    const target = await resolveEndpoint(ctx, hooks, body);
+    const candidates = target.api === null ? [...PROTOCOL_CANDIDATES] : [target.api];
+    let lastError = null;
+    for (const api of candidates) {
+      try {
+        const discovered = await withDeadline(
+          llm.discoverModels(ns, {
+            ...target.providerId === null ? {} : { provider: target.providerId },
+            baseURL: target.baseURL,
+            api,
+            apiKey: target.apiKey
+          }),
+          DISCOVERY_TIMEOUT_MS
+        );
+        if (discovered === void 0) {
+          lastError = `No answer within ${DISCOVERY_TIMEOUT_MS} ms.`;
+          continue;
+        }
+        if (Array.isArray(discovered) && discovered.length > 0) {
+          return {
+            version: 1,
+            protocol: api,
+            models: discovered.map((model) => ({
+              id: String(model?.id ?? ""),
+              name: typeof model?.name === "string" ? model.name : void 0,
+              contextWindow: numberOrNull2(model?.contextWindow),
+              maxTokens: numberOrNull2(model?.maxTokens),
+              inputModalities: Array.isArray(model?.inputModalities) ? model.inputModalities.filter(isModality2) : []
+            })).filter((model) => model.id !== "")
+          };
+        }
+        lastError = "The endpoint returned no models for this protocol.";
+      } catch (error) {
+        lastError = messageOf(error);
+      }
+    }
+    throw new HostError("discovery-failed", clip(lastError ?? "Discovery failed."), 502);
+  }
+  async function detectReasoning(body = {}) {
+    const modelId = typeof body?.modelId === "string" ? body.modelId : "";
+    if (modelId === "") throw new HostError("invalid-probe", "modelId is required.", 400);
+    const target = await resolveEndpoint(ctx, hooks, body);
+    if (target.api !== null && target.api !== "openai-completions") {
+      throw new HostError(
+        "unsupported-protocol",
+        `Reasoning detection currently speaks the openai-completions protocol; this route uses "${target.api}".`,
+        409
+      );
+    }
+    const base = target.baseURL.replace(/\/+$/, "");
+    const rows = await mapLimit(DETECT_VALUES, DETECT_CONCURRENCY, async (value) => {
+      const row = await postCompletion(base, target.apiKey, modelId, value);
+      return { ...row, value: value ?? "(omitted)" };
+    });
+    return {
+      version: 1,
+      modelId,
+      protocol: target.api ?? "openai-completions",
+      results: rows,
+      suggestion: suggest(rows)
+    };
+  }
+  return { discoverModels, detectReasoning };
+}
+function piAiNamespace(ctx) {
+  const editor = ctx.get("configEditor");
+  if (editor === void 0 || typeof editor.entries !== "function") return void 0;
+  const row = editor.entries().find((entry) => entry?.options?.name === PI_AI_PACKAGE);
+  const id = row?.options?.id;
+  return typeof id === "string" && id !== "" ? id : void 0;
+}
+async function resolveEndpoint(ctx, hooks, body) {
+  const providerId = typeof body?.providerId === "string" && body.providerId !== "" ? body.providerId : null;
+  const provider = providerId === null ? void 0 : (hooks.getProviders() ?? []).find((entry) => entry?.id === providerId);
+  const baseURL = typeof body?.baseURL === "string" && body.baseURL.trim() !== "" ? body.baseURL.trim() : provider?.baseURL ?? null;
+  const api = typeof body?.api === "string" && body.api !== "" ? body.api : provider?.protocol ?? null;
+  const apiKeyEnv = typeof body?.apiKeyEnv === "string" && body.apiKeyEnv !== "" ? body.apiKeyEnv : provider?.apiKeyEnv ?? null;
+  if (baseURL === null) throw new HostError("no-endpoint", "A base URL is required.", 400);
+  validateBaseURL(baseURL);
+  const apiKey = await resolveApiKey2(ctx, apiKeyEnv, providerId);
+  if (apiKey === void 0) {
+    throw new HostError("no-key", "No credential is configured for this route; set one first.", 409);
+  }
+  return { providerId, baseURL, api, apiKey };
+}
+async function resolveApiKey2(ctx, apiKeyEnv, providerId) {
+  const credentials = ctx.get("credentials");
+  if (credentials === void 0) return void 0;
+  if (apiKeyEnv !== null) {
+    try {
+      const hit = await credentials.resolve(apiKeyEnv);
+      if (typeof hit?.value === "string" && hit.value !== "") return hit.value;
+    } catch {
+    }
+  }
+  if (providerId !== null) {
+    try {
+      const record = await credentials.readRecord(`llm-pi-ai/${providerId}`);
+      if (record?.kind === "api-key" && typeof record.key === "string" && record.key !== "") return record.key;
+    } catch {
+    }
+  }
+  return void 0;
+}
+async function postCompletion(base, apiKey, modelId, value) {
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error("timeout")), DETECT_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: DETECT_MAX_TOKENS,
+        ...value === null ? {} : { reasoning_effort: value }
+      }),
+      signal: controller.signal
+    });
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = void 0;
+    }
+    const usage = data?.usage ?? {};
+    const detail = data?.error?.message ?? data?.message ?? text;
+    return {
+      status: response.status,
+      accepted: response.ok,
+      message: response.ok ? void 0 : clip(String(detail)),
+      reasoningTokens: numberOrNull2(usage.completion_tokens_details?.reasoning_tokens ?? usage.reasoning_tokens),
+      outputTokens: numberOrNull2(usage.completion_tokens ?? usage.output_tokens),
+      latencyMs: Date.now() - started
+    };
+  } catch (error) {
+    return {
+      status: 0,
+      accepted: false,
+      message: controller.signal.aborted ? `No answer within ${DETECT_TIMEOUT_MS} ms.` : clip(messageOf(error)),
+      latencyMs: Date.now() - started
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function suggest(rows) {
+  const accepted = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    accepted.set(String(row.value), row.accepted === true);
+  }
+  const suggestion = {};
+  suggestion.off = accepted.get("(omitted)") === true ? "" : null;
+  for (const level of HARNESS_LEVELS) {
+    if (level === "off") continue;
+    suggestion[level] = accepted.get(level) === true ? level : null;
+  }
+  return suggestion;
+}
+async function mapLimit(items, concurrency, task) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, async () => {
+    for (; ; ) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      results[index] = await task(items[index]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+function validateBaseURL(baseURL) {
+  let parsed;
+  try {
+    parsed = new URL(baseURL);
+  } catch {
+    throw new HostError("invalid-base-url", "The base URL must be an absolute http(s) URL.", 400);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new HostError("invalid-base-url", "The base URL must use http or https.", 400);
+  }
+}
+function isModality2(value) {
+  return value === "text" || value === "image";
+}
+function numberOrNull2(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function clip(text) {
+  const single = String(text).replace(/\s+/g, " ").trim();
+  return single.length <= 200 ? single : `${single.slice(0, 199)}\u2026`;
+}
+
+// src/host/editing.js
+var PI_AI_PACKAGE2 = "@deepseek-ai/dsh-llm-pi-ai";
 var DEEPSEEK_API_KEY_PACKAGE = "@deepseek-ai/dsh-llm-deepseek-api-key";
 var DEEPSEEK_ACCOUNT_PACKAGE = "@deepseek-ai/dsh-llm-deepseek-account";
 var DEEPSEEK_PROVIDER = "deepseek-official";
@@ -936,7 +1158,7 @@ function createProviderEditor(ctx, hooks) {
     const byNs = new Map(descriptors.map((descriptor) => [String(descriptor.ns), descriptor]));
     const rows = editor.entries();
     const entryFor = (name2) => rows.find((row) => row?.options?.name === name2);
-    const piEntry = entryFor(PI_AI_PACKAGE);
+    const piEntry = entryFor(PI_AI_PACKAGE2);
     const dsEntry = entryFor(DEEPSEEK_API_KEY_PACKAGE);
     const accountEntry = entryFor(DEEPSEEK_ACCOUNT_PACKAGE);
     const piDescriptor = piEntry === void 0 ? void 0 : byNs.get(String(piEntry.options.id));
@@ -1025,7 +1247,7 @@ function createProviderEditor(ctx, hooks) {
       throw new HostError("no-settings", "This composition has no writable settings service.", 503);
     }
     const rows = editor.entries();
-    const piEntry = rows.find((row) => row?.options?.name === PI_AI_PACKAGE);
+    const piEntry = rows.find((row) => row?.options?.name === PI_AI_PACKAGE2);
     if (piEntry === void 0) {
       throw new HostError("unavailable", "The multi-provider adapter is not mounted in this profile.", 503);
     }
@@ -1103,8 +1325,8 @@ function normalizeProfile(target) {
 }
 function normalizeModel(model, kind) {
   const source = model !== null && typeof model === "object" && !Array.isArray(model) ? model : {};
-  const efforts = source.reasoningEfforts !== null && typeof source.reasoningEfforts === "object" && !Array.isArray(source.reasoningEfforts) ? Object.fromEntries(Object.entries(source.reasoningEfforts).filter(([, value]) => typeof value === "string")) : {};
-  const modalities = Array.isArray(kind === "deepseek-api-key" ? source.inputModalities : source.input) ? (kind === "deepseek-api-key" ? source.inputModalities : source.input).filter(isModality2) : [];
+  const efforts = source.reasoningEfforts !== null && typeof source.reasoningEfforts === "object" && !Array.isArray(source.reasoningEfforts) ? Object.fromEntries(Object.entries(source.reasoningEfforts).filter(([level, value]) => typeof value === "string" || level === "off" && (value === null || value === void 0))) : {};
+  const modalities = Array.isArray(kind === "deepseek-api-key" ? source.inputModalities : source.input) ? (kind === "deepseek-api-key" ? source.inputModalities : source.input).filter(isModality3) : [];
   return {
     id: typeof source.id === "string" ? source.id : "",
     name: stringOrNull(source.name),
@@ -1204,7 +1426,7 @@ function sanitizeModels(models, kind, previous) {
     if (source.maxTokens !== void 0 && source.maxTokens !== null && maxTokens === null) {
       throw new HostError("invalid-model", `Model "${id}" max tokens must be a positive integer.`, 400);
     }
-    const modalities = Array.isArray(source.inputModalities) ? source.inputModalities.filter(isModality2) : Array.isArray(source.input) ? source.input.filter(isModality2) : [];
+    const modalities = Array.isArray(source.inputModalities) ? source.inputModalities.filter(isModality3) : Array.isArray(source.input) ? source.input.filter(isModality3) : [];
     const reasoningEfforts = sanitizeEfforts(source.reasoningEfforts);
     if (kind === "deepseek-api-key") {
       const entry2 = { id, ...extra };
@@ -1231,6 +1453,13 @@ function sanitizeEfforts(value) {
   const efforts = {};
   for (const [level, wire] of Object.entries(value)) {
     if (!EFFORT_LEVELS.includes(level)) throw new HostError("invalid-model", `Unknown reasoning level "${level}".`, 400);
+    if (wire === null || wire === void 0 || wire === "") {
+      if (level !== "off") {
+        throw new HostError("invalid-model", `Reasoning level "${level}" needs a wire value.`, 400);
+      }
+      efforts.off = null;
+      continue;
+    }
     if (typeof wire !== "string" || wire.trim() === "" || wire.length > 40) {
       throw new HostError("invalid-model", `Reasoning level "${level}" needs a wire value.`, 400);
     }
@@ -1305,7 +1534,7 @@ function stringOrNull(value) {
 function positiveIntOrNull(value) {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
-function isModality2(value) {
+function isModality3(value) {
   return value === "text" || value === "image";
 }
 function messageOf3(error) {
@@ -1385,7 +1614,7 @@ async function probeOne(llm, providerId, modelId, level, timeoutMs) {
       effort: level,
       outcome: unsupported ? "unsupported" : "error",
       code: code ?? (unsupported ? "UNSUPPORTED_REASONING_EFFORT" : "prepare-failed"),
-      message: clip(messageOf(error)),
+      message: clip2(messageOf(error)),
       latencyMs: Date.now() - startedAt
     };
   }
@@ -1423,7 +1652,7 @@ async function probeOne(llm, providerId, modelId, level, timeoutMs) {
       effort: level,
       outcome: "rejected",
       code: errorCode(error) ?? "request-failed",
-      message: clip(messageOf(error)),
+      message: clip2(messageOf(error)),
       latencyMs: Date.now() - startedAt
     };
   } finally {
@@ -1445,7 +1674,7 @@ async function probeOne(llm, providerId, modelId, level, timeoutMs) {
       effort: level,
       outcome: finish.kind === "aborted" && controller.signal.aborted ? "timeout" : "rejected",
       code: typeof failure.code === "string" ? failure.code : finish.kind === "error" ? "request-error" : "aborted",
-      message: clip(typeof failure.message === "string" ? failure.message : `The request ended with ${finish.kind}.`),
+      message: clip2(typeof failure.message === "string" ? failure.message : `The request ended with ${finish.kind}.`),
       ...typeof failure.status === "number" ? { status: failure.status } : {},
       latencyMs
     };
@@ -1454,8 +1683,8 @@ async function probeOne(llm, providerId, modelId, level, timeoutMs) {
     effort: level,
     outcome: "accepted",
     finishKind: finish.kind,
-    reasoningTokens: numberOrNull2(usage?.reasoningTokens),
-    outputTokens: numberOrNull2(usage?.outputTokens),
+    reasoningTokens: numberOrNull3(usage?.reasoningTokens),
+    outputTokens: numberOrNull3(usage?.outputTokens),
     acceptedAt: startedAt,
     latencyMs
   };
@@ -1467,10 +1696,10 @@ function errorCode(error) {
   }
   return void 0;
 }
-function numberOrNull2(value) {
+function numberOrNull3(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
-function clip(text) {
+function clip2(text) {
   const single = String(text).replace(/\s+/g, " ").trim();
   return single.length <= 240 ? single : `${single.slice(0, 239)}\u2026`;
 }
@@ -1919,6 +2148,9 @@ function createDashboard(ctx, config) {
   const reasoningProbe = createReasoningProbe(ctx, {
     getProviders: () => discovery.value?.providers ?? null
   });
+  const catalogTools = createCatalogTools(ctx, {
+    getProviders: () => discovery.value?.providers ?? null
+  });
   async function discover(force = false) {
     if (!force && discovery.value !== null && Date.now() - discovery.at < DISCOVERY_TTL_MS) {
       return discovery.value;
@@ -2023,6 +2255,14 @@ function createDashboard(ctx, config) {
     if (discovery.value === null) await discover();
     return reasoningProbe.probeReasoning(body);
   }
+  async function discoverModelsReport(body = {}) {
+    if (typeof body?.providerId === "string" && discovery.value === null) await discover();
+    return catalogTools.discoverModels(body);
+  }
+  async function detectReasoningReport(body = {}) {
+    if (typeof body?.providerId === "string" && discovery.value === null) await discover();
+    return catalogTools.detectReasoning(body);
+  }
   async function rescan(body = {}) {
     const started = usage.scan({ full: body?.full === true });
     void started.catch(() => void 0);
@@ -2040,6 +2280,8 @@ function createDashboard(ctx, config) {
     rescan,
     currentSelection,
     probeReasoning: probeReasoningReport,
+    discoverModels: discoverModelsReport,
+    detectReasoning: detectReasoningReport,
     providerForm: editor.providerForm,
     saveProvider: editor.saveProvider,
     addProvider: editor.addProvider,

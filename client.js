@@ -127,6 +127,12 @@ function addProvider(payload, options) {
 function removeProvider(payload, options) {
   return call("remove-provider", payload, options);
 }
+function discoverModels(payload, options) {
+  return call("discover-models", payload, options);
+}
+function detectReasoning(payload, options) {
+  return call("detect-reasoning", payload, options);
+}
 function probeReasoning(payload, options) {
   return call("probe-reasoning", payload, options);
 }
@@ -1088,6 +1094,7 @@ var CSS = String.raw`
 /* ── Provider editor ─────────────────────────────────────────────────────── */
 
 .td-editor {
+  max-width: 720px;
   margin-top: 12px;
 }
 
@@ -1258,6 +1265,216 @@ var CSS = String.raw`
   color: var(--dsw-alias-label-secondary, #5b6470);
   font-size: 13px;
   line-height: 20px;
+}
+
+/* ── Reasoning chips, wire overrides, and detection ──────────────────────── */
+
+.td-effort-block {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-effort-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.td-effort-chip {
+  appearance: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-radius: 13px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.td-effort-chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 45%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 10%, transparent);
+  color: var(--dsw-alias-brand-primary, #247bbf);
+}
+
+@media (hover: hover) {
+  .td-effort-chip:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+  }
+}
+
+.td-effort-wire {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.td-effort-wires {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.td-effort-wire-field {
+  display: flex;
+  flex: 0 1 150px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-effort-detect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Gateway model import ────────────────────────────────────────────────── */
+
+.td-import {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+}
+
+.td-import-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.td-import-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-import-search {
+  flex: 1 1 160px;
+  width: auto;
+  min-width: 0;
+}
+
+.td-import-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 264px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-import-row:last-child {
+  border-bottom: 0;
+}
+
+.td-import-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-import-id {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-import-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-import-context {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.td-import-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.td-import-foot .td-caption {
+  margin-right: auto;
+}
+
+/* ── Add-provider gateway connection ─────────────────────────────────────── */
+
+.td-add-form {
+  max-width: 720px;
+}
+
+.td-add-connect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-add-model-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-add-model-row:last-child {
+  border-bottom: 0;
+}
+
+.td-add-model-remove {
+  margin-left: auto;
+}
+
+.td-editor-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.td-editor-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .td-editor-foot {
@@ -2032,6 +2249,24 @@ var import_react = require("react");
 var import_jsx_runtime3 = require("react/jsx-runtime");
 var PROTOCOLS = ["openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai"];
 var EFFORT_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+var EFFORT_LABEL_KEYS = {
+  off: "providers.effortLevel.off",
+  minimal: "providers.effortLevel.minimal",
+  low: "providers.effortLevel.low",
+  medium: "providers.effortLevel.medium",
+  high: "providers.effortLevel.high",
+  xhigh: "providers.effortLevel.xhigh",
+  max: "providers.effortLevel.max"
+};
+var EFFORT_DEFAULT_WIRE = {
+  off: "",
+  minimal: "minimal",
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: "xhigh",
+  max: "max"
+};
 var PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 var CREDENTIAL_REF_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 var MAX_MODELS = 200;
@@ -2064,7 +2299,11 @@ var ERROR_KEYS = {
   "key-write-failed": "errors.edit.keyWriteFailed",
   "invalid-provider-id": "errors.add.invalidProviderId",
   "provider-exists": "errors.add.providerExists",
-  unavailable: "errors.add.unavailable"
+  unavailable: "errors.add.unavailable",
+  "discovery-failed": "errors.discover.failed",
+  "no-endpoint": "errors.discover.noEndpoint",
+  "no-key": "errors.discover.noKey",
+  "unsupported-protocol": "errors.detect.unsupportedProtocol"
 };
 var rowSequence = 0;
 function nextRowKey() {
@@ -2092,9 +2331,10 @@ function failureMessage(failure) {
   return errorText(failure);
 }
 function failureText(failure, t, fallbackKey) {
+  const message = failureMessage(failure);
   const key = ERROR_KEYS[codeOf(failure)];
-  if (key !== void 0) return t(key);
-  return t(fallbackKey, { message: failureMessage(failure) });
+  if (key !== void 0) return t(key, { message });
+  return t(fallbackKey, { message });
 }
 function sourceText(t, source) {
   const key = SOURCE_KEYS[source];
@@ -2116,30 +2356,81 @@ function positiveIntText(value) {
   if (!Number.isSafeInteger(number) || number <= 0) return { ok: false, value: null };
   return { ok: true, value: number };
 }
-function serializeEfforts(efforts) {
-  const parts = [];
+function numberText(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? String(Math.trunc(value)) : "";
+}
+function effortLabel(t, level) {
+  const key = EFFORT_LABEL_KEYS[level];
+  return key === void 0 ? level : t(key);
+}
+function effortLevelsOf(efforts) {
+  if (efforts === null || typeof efforts !== "object") return [];
+  return EFFORT_LEVELS.filter((level) => Object.hasOwn(efforts, level));
+}
+function effortsFromWire(efforts) {
+  const draft = {};
+  if (efforts === null || typeof efforts !== "object" || Array.isArray(efforts)) return draft;
   for (const level of EFFORT_LEVELS) {
     if (!Object.hasOwn(efforts, level)) continue;
     const wire = efforts[level];
-    if (typeof wire !== "string" || wire === "") continue;
-    parts.push(wire === level ? level : `${level}=${wire}`);
+    if (level === "off") {
+      draft.off = typeof wire === "string" ? wire : "";
+    } else if (typeof wire === "string" && wire !== "") {
+      draft[level] = wire;
+    }
   }
-  return parts.join(", ");
+  return draft;
 }
-function parseEfforts(text) {
-  const trimmed = typeof text === "string" ? text.trim() : "";
-  if (trimmed === "") return { ok: true, value: {} };
-  const tokens = trimmed.replace(/\s*=\s*/g, "=").split(/[,，\s]+/).filter((token) => token !== "");
-  const value = {};
-  for (const token of tokens) {
-    const separator = token.indexOf("=");
-    const level = separator === -1 ? token : token.slice(0, separator);
-    const wire = separator === -1 ? token : token.slice(separator + 1);
-    if (!EFFORT_LEVELS.includes(level)) return { ok: false, value: {} };
-    if (wire === "" || wire.length > EFFORT_WIRE_MAX) return { ok: false, value: {} };
-    value[level] = wire;
+function wireEffortsFromDraft(efforts) {
+  const wire = {};
+  if (efforts === null || typeof efforts !== "object") return wire;
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(efforts, level)) continue;
+    const text = typeof efforts[level] === "string" ? efforts[level].trim() : "";
+    if (level === "off") wire.off = text === "" ? null : text;
+    else wire[level] = text;
   }
-  return { ok: true, value };
+  return wire;
+}
+function effortsFromSuggestion(suggestion) {
+  const draft = {};
+  if (suggestion === null || typeof suggestion !== "object" || Array.isArray(suggestion)) return draft;
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(suggestion, level)) continue;
+    const wire = suggestion[level];
+    if (level === "off") {
+      if (wire === "") draft.off = "";
+      else if (typeof wire === "string" && wire !== "") draft.off = wire;
+    } else if (typeof wire === "string" && wire !== "") {
+      draft[level] = wire;
+    }
+  }
+  return draft;
+}
+function toggleEfforts(efforts, level) {
+  const next = { ...efforts !== null && typeof efforts === "object" ? efforts : {} };
+  if (Object.hasOwn(next, level)) delete next[level];
+  else next[level] = EFFORT_DEFAULT_WIRE[level] ?? "";
+  return next;
+}
+function setEffortWire(efforts, level, wire) {
+  return { ...efforts !== null && typeof efforts === "object" ? efforts : {}, [level]: wire };
+}
+function validateEffortsDraft(efforts) {
+  const levels = effortLevelsOf(efforts);
+  if (levels.length === 0) return null;
+  if (!levels.some((level) => level !== "off")) return "providers.edit.modelEffortNeedsLevel";
+  for (const level of levels) {
+    const text = typeof efforts[level] === "string" ? efforts[level].trim() : "";
+    if (level !== "off" && text === "") return "providers.edit.modelEffortInvalid";
+    if (text.length > EFFORT_WIRE_MAX) return "providers.edit.modelEffortInvalid";
+  }
+  return null;
+}
+function effortWireText(t, level, wire) {
+  const text = typeof wire === "string" ? wire.trim() : "";
+  if (text !== "") return text;
+  return level === "off" ? t("providers.edit.wireSendNothing") : t("providers.edit.wireMissing");
 }
 function modelDraft(model) {
   const source = model !== null && typeof model === "object" ? model : {};
@@ -2149,11 +2440,11 @@ function modelDraft(model) {
     key: nextRowKey(),
     id: stringValue(source.id),
     name: stringValue(source.name),
-    contextWindow: typeof source.contextWindow === "number" && Number.isFinite(source.contextWindow) ? String(source.contextWindow) : "",
-    maxTokens: typeof source.maxTokens === "number" && Number.isFinite(source.maxTokens) ? String(source.maxTokens) : "",
+    contextWindow: numberText(source.contextWindow),
+    maxTokens: numberText(source.maxTokens),
     text: modalities.includes("text"),
     image: modalities.includes("image"),
-    efforts: serializeEfforts(efforts)
+    efforts: effortsFromWire(efforts)
   };
 }
 function draftFromForm(form) {
@@ -2167,11 +2458,49 @@ function draftFromForm(form) {
     models: models.map(modelDraft)
   };
 }
+function canonicalEfforts(efforts) {
+  return effortLevelsOf(efforts).map((level) => [
+    level,
+    typeof efforts[level] === "string" ? efforts[level].trim() : ""
+  ]);
+}
+function draftSignature(draft) {
+  const value = draft !== null && typeof draft === "object" ? draft : {};
+  const models = Array.isArray(value.models) ? value.models : [];
+  return JSON.stringify({
+    displayName: stringValue(value.displayName).trim(),
+    api: stringValue(value.api),
+    baseURL: stringValue(value.baseURL).trim(),
+    apiKeyEnv: stringValue(value.apiKeyEnv).trim(),
+    models: models.map((row) => ({
+      id: stringValue(row.id).trim(),
+      name: stringValue(row.name),
+      contextWindow: stringValue(row.contextWindow).trim(),
+      maxTokens: stringValue(row.maxTokens).trim(),
+      text: row.text === true,
+      image: row.image === true,
+      efforts: canonicalEfforts(row.efforts)
+    }))
+  });
+}
 function modalitiesOf(row) {
   const list = [];
   if (row.text === true) list.push("text");
   if (row.image === true) list.push("image");
   return list;
+}
+function modelWire(row) {
+  const entry = { id: stringValue(row.id).trim() };
+  const name = trimmedOrNull(row.name);
+  if (name !== null) entry.name = name;
+  const contextWindow = positiveIntText(row.contextWindow).value;
+  if (contextWindow !== null) entry.contextWindow = contextWindow;
+  const maxTokens = positiveIntText(row.maxTokens).value;
+  if (maxTokens !== null) entry.maxTokens = maxTokens;
+  entry.inputModalities = modalitiesOf(row);
+  const efforts = wireEffortsFromDraft(row.efforts);
+  if (Object.keys(efforts).length > 0) entry.reasoningEfforts = efforts;
+  return entry;
 }
 function fieldsFromDraft(draft, capabilities) {
   const fields = {};
@@ -2180,16 +2509,11 @@ function fieldsFromDraft(draft, capabilities) {
   if (capabilities.baseURL === true) fields.baseURL = trimmedOrNull(draft.baseURL);
   if (capabilities.apiKeyEnv === true) fields.apiKeyEnv = trimmedOrNull(draft.apiKeyEnv);
   if (capabilities.models === true) {
-    fields.models = draft.models.slice(0, MAX_MODELS).map((row) => ({
-      id: row.id.trim(),
-      name: trimmedOrNull(row.name),
-      contextWindow: positiveIntText(row.contextWindow).value,
-      maxTokens: positiveIntText(row.maxTokens).value,
-      inputModalities: modalitiesOf(row),
-      // Only routes whose adapter reads the map get it; DeepSeek routes publish
-      // a fixed level set, and sending a map there would be dropped silently.
-      ...capabilities.modelReasoning === true ? { reasoningEfforts: parseEfforts(row.efforts).value } : {}
-    }));
+    fields.models = draft.models.slice(0, MAX_MODELS).map((row) => {
+      const wire = modelWire(row);
+      if (capabilities.modelReasoning !== true) delete wire.reasoningEfforts;
+      return wire;
+    });
   }
   return fields;
 }
@@ -2225,8 +2549,9 @@ function validateDraft(draft, capabilities, writable) {
         if (row.name.trim().length > MODEL_NAME_MAX) rowErrors.name = "providers.edit.modelNameInvalid";
         if (!positiveIntText(row.contextWindow).ok) rowErrors.contextWindow = "providers.edit.modelPositiveInt";
         if (!positiveIntText(row.maxTokens).ok) rowErrors.maxTokens = "providers.edit.modelPositiveInt";
-        if (capabilities.modelReasoning === true && !parseEfforts(row.efforts).ok) {
-          rowErrors.efforts = "providers.edit.modelEffortInvalid";
+        if (capabilities.modelReasoning === true) {
+          const effortError = validateEffortsDraft(row.efforts);
+          if (effortError !== null) rowErrors.efforts = effortError;
         }
         if (Object.keys(rowErrors).length > 0) modelErrors[row.key] = rowErrors;
       }
@@ -2239,7 +2564,7 @@ function validateDraft(draft, capabilities, writable) {
   };
 }
 function blankAddDraft() {
-  return { id: "", displayName: "", api: "", baseURL: "", apiKeyEnv: "" };
+  return { id: "", displayName: "", api: "", baseURL: "", apiKeyEnv: "", apiKey: "", models: [] };
 }
 function validateAddDraft(draft) {
   const errors = {};
@@ -2254,10 +2579,102 @@ function validateAddDraft(draft) {
   else if (!isHttpUrl(baseURL)) errors.baseURL = "providers.add.baseURLInvalid";
   const apiKeyEnv = draft.apiKeyEnv.trim();
   if (apiKeyEnv !== "" && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) errors.apiKeyEnv = "providers.add.apiKeyEnvInvalid";
+  if (draft.apiKey.trim() !== "" && apiKeyEnv === "") errors.apiKeyEnv = "providers.add.refRequiredForKey";
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+function validateConnectionDraft(draft) {
+  const errors = {};
+  const baseURL = draft.baseURL.trim();
+  if (baseURL === "") errors.baseURL = "providers.add.baseURLRequired";
+  else if (!isHttpUrl(baseURL)) errors.baseURL = "providers.add.baseURLInvalid";
+  const apiKeyEnv = draft.apiKeyEnv.trim();
+  if (apiKeyEnv !== "" && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) errors.apiKeyEnv = "providers.add.apiKeyEnvInvalid";
+  if (draft.apiKey.trim() !== "" && apiKeyEnv === "") errors.apiKeyEnv = "providers.add.refRequiredForKey";
   return { valid: Object.keys(errors).length === 0, errors };
 }
 function revisionOf(form) {
   return typeof form?.revision === "number" && Number.isFinite(form.revision) ? form.revision : void 0;
+}
+function normalizeDiscoveredModels(models) {
+  if (!Array.isArray(models)) return [];
+  const found = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const model of models) {
+    const id = typeof model?.id === "string" ? model.id.trim() : "";
+    if (id === "" || seen.has(id)) continue;
+    seen.add(id);
+    found.push({
+      id,
+      name: typeof model?.name === "string" ? model.name : "",
+      contextWindow: typeof model?.contextWindow === "number" && Number.isFinite(model.contextWindow) ? model.contextWindow : null,
+      maxTokens: typeof model?.maxTokens === "number" && Number.isFinite(model.maxTokens) ? model.maxTokens : null,
+      inputModalities: Array.isArray(model?.inputModalities) ? model.inputModalities.filter((modality) => modality === "text" || modality === "image") : []
+    });
+  }
+  return found;
+}
+function modelRowFromDiscovery(model) {
+  const modalities = Array.isArray(model.inputModalities) ? model.inputModalities : [];
+  return {
+    key: nextRowKey(),
+    id: model.id,
+    name: stringValue(model.name),
+    contextWindow: numberText(model.contextWindow),
+    maxTokens: numberText(model.maxTokens),
+    text: modalities.length === 0 || modalities.includes("text"),
+    image: modalities.includes("image"),
+    efforts: {}
+  };
+}
+function mergeImportedModels(rows, discovered) {
+  const next = Array.isArray(rows) ? rows.slice() : [];
+  const indexById = /* @__PURE__ */ new Map();
+  next.forEach((row, index) => {
+    const id = stringValue(row.id).trim();
+    if (id !== "") indexById.set(id, index);
+  });
+  for (const model of Array.isArray(discovered) ? discovered : []) {
+    const id = stringValue(model?.id).trim();
+    if (id === "") continue;
+    const name = trimmedOrNull(model.name);
+    const contextWindow = numberText(model.contextWindow);
+    const existing = indexById.get(id);
+    if (existing !== void 0) {
+      const row = next[existing];
+      next[existing] = {
+        ...row,
+        id,
+        ...name === null ? {} : { name },
+        ...contextWindow === "" ? {} : { contextWindow }
+      };
+      continue;
+    }
+    if (next.length >= MAX_MODELS) continue;
+    indexById.set(id, next.length);
+    next.push(modelRowFromDiscovery({ ...model, id }));
+  }
+  return next;
+}
+function endpointRequest(draft, profile, providerId) {
+  const loadedBase = stringValue(profile.baseURL).trim();
+  const loadedApi = stringValue(profile.api);
+  const loadedRef = stringValue(profile.apiKeyEnv).trim();
+  const baseURL = stringValue(draft.baseURL).trim();
+  const api = stringValue(draft.api);
+  const apiKeyEnv = stringValue(draft.apiKeyEnv).trim();
+  const dirty = baseURL !== loadedBase || api !== loadedApi || apiKeyEnv !== loadedRef;
+  if (!dirty) {
+    return {
+      request: providerId === "" ? {} : { providerId },
+      detected: loadedApi === "",
+      draft: false
+    };
+  }
+  const request = {};
+  if (baseURL !== "") request.baseURL = baseURL;
+  if (api !== "" && PROTOCOLS.includes(api)) request.api = api;
+  if (apiKeyEnv !== "") request.apiKeyEnv = apiKeyEnv;
+  return { request, detected: request.api === void 0, draft: true };
 }
 function Field({ id, label, hint, error, required = false, children }) {
   const description = [
@@ -2282,7 +2699,189 @@ function Field({ id, label, hint, error, required = false, children }) {
     error !== void 0 && error !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${id}-error`, role: "alert", children: error }) : null
   ] });
 }
-function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput, reasoningEditable }) {
+function ImportModelRow({ t, idPrefix, index, model, existing, checked, onToggle }) {
+  const fieldId = `${idPrefix}-import-model-${index}`;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("li", { className: "td-import-row", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      "input",
+      {
+        id: fieldId,
+        className: "td-checkbox",
+        type: "checkbox",
+        checked,
+        onChange: (event) => onToggle(model.id, event.target.checked)
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-import-label", htmlFor: fieldId, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-import-id td-mono", children: model.id }),
+      model.name !== "" && model.name !== model.id ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-import-name", children: model.name }) : null
+    ] }),
+    existing ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Chip, { children: t("providers.import.existing") }) : null,
+    model.contextWindow !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-import-context", children: t("providers.contextWindow", { value: formatTokens(model.contextWindow) }) }) : null
+  ] });
+}
+function ModelImportPicker(props) {
+  const { t, idPrefix, models, protocol, detected, draftEndpoint, existingIds, onImport, onCancel } = props;
+  const [query, setQuery] = (0, import_react.useState)("");
+  const [selected, setSelected] = (0, import_react.useState)(() => {
+    const known = new Set(Array.isArray(existingIds) ? existingIds : []);
+    return new Set(models.filter((model) => known.has(model.id)).map((model) => model.id));
+  });
+  const needle = query.trim().toLowerCase();
+  const visible = needle === "" ? models : models.filter((model) => model.id.toLowerCase().includes(needle) || model.name.toLowerCase().includes(needle));
+  const visibleIds = visible.map((model) => model.id);
+  const imported = models.filter((model) => selected.has(model.id));
+  const existingSet = new Set(Array.isArray(existingIds) ? existingIds : []);
+  const toggle = (id, checked) => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+  const selectAll = () => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      for (const id of visibleIds) next.add(id);
+      return next;
+    });
+  };
+  const invert = () => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      for (const id of visibleIds) {
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-import", role: "group", "aria-label": t("providers.import.title"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-import-head", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-card-subtitle", children: t("providers.import.found", { count: models.length }) }),
+      detected && protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-tone-ok", children: t("providers.import.protocolDetected", { protocol }) }) : null,
+      draftEndpoint ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.import.draftEndpoint") }) : null
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-import-tools", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "td-input td-import-search",
+          value: query,
+          autoComplete: "off",
+          spellCheck: false,
+          placeholder: t("providers.import.search"),
+          "aria-label": t("providers.import.search"),
+          onChange: (event) => setQuery(event.target.value)
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          disabled: visibleIds.length === 0,
+          onClick: selectAll,
+          children: t("providers.import.selectAll")
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          disabled: visibleIds.length === 0,
+          onClick: invert,
+          children: t("providers.import.invert")
+        }
+      )
+    ] }),
+    visible.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: t("providers.import.noMatch") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-import-list", children: visible.map((model, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      ImportModelRow,
+      {
+        t,
+        idPrefix,
+        index,
+        model,
+        existing: existingSet.has(model.id),
+        checked: selected.has(model.id),
+        onToggle: toggle
+      },
+      model.id
+    )) }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-import-foot", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.import.selectedCount", { count: imported.length }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: onCancel, children: t("actions.cancel") }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-primary",
+          disabled: imported.length === 0,
+          onClick: () => onImport(imported),
+          children: t("providers.import.importSelected")
+        }
+      )
+    ] })
+  ] });
+}
+function ReasoningProbeResult({ t, probe, onApplySuggestion }) {
+  if (probe === null || probe === void 0) return null;
+  if (probe.phase === "error") {
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-tone-error", role: "status", children: failureText(probe.error, t, "errors.detect.generic") });
+  }
+  if (probe.phase !== "done") return null;
+  const results = Array.isArray(probe.report?.results) ? probe.report.results : [];
+  const suggestion = probe.report?.suggestion !== null && typeof probe.report?.suggestion === "object" ? probe.report.suggestion : null;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-chips", children: results.map((row, index) => {
+      const accepted = row?.accepted === true;
+      const value = row?.value === "(omitted)" ? t("providers.edit.detectOmitted") : String(row?.value ?? "?");
+      const detail = [
+        typeof row?.message === "string" && row.message !== "" ? row.message : null,
+        typeof row?.reasoningTokens === "number" ? t("providers.edit.detectReasoningTokens", { count: row.reasoningTokens }) : null,
+        typeof row?.latencyMs === "number" ? t("providers.edit.detectLatency", { ms: row.latencyMs }) : null
+      ].filter((part) => part !== null).join(" \xB7 ");
+      return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Chip,
+        {
+          tone: accepted ? "success" : "error",
+          title: detail === "" ? void 0 : detail,
+          children: `${accepted ? "\u2713" : "\u2715"} ${value}`
+        },
+        `${String(row?.value ?? "?")}-${index}`
+      );
+    }) }),
+    results.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.detectNoResults") }) : null,
+    suggestion !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "td-button td-button-small td-button-secondary",
+        onClick: () => onApplySuggestion(suggestion),
+        children: t("providers.edit.applySuggestion")
+      }
+    ) : null
+  ] });
+}
+function ModelEditorRow(props) {
+  const {
+    t,
+    row,
+    index,
+    idPrefix,
+    errors,
+    onUpdate,
+    onRemove,
+    registerIdInput,
+    reasoningEditable,
+    saved,
+    probe,
+    onProbe,
+    onApplySuggestion,
+    providerBusy
+  } = props;
   const idField = `${idPrefix}-model-${index}-id`;
   const nameField = `${idPrefix}-model-${index}-name`;
   const contextField = `${idPrefix}-model-${index}-context`;
@@ -2290,6 +2889,12 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
   const effortsField = `${idPrefix}-model-${index}-efforts`;
   const textField = `${idPrefix}-model-${index}-text`;
   const imageField = `${idPrefix}-model-${index}-image`;
+  const [customWireOpen, setCustomWireOpen] = (0, import_react.useState)(false);
+  const selectedLevels = reasoningEditable === true ? effortLevelsOf(row.efforts) : [];
+  const probeRunning = probe !== null && probe !== void 0 && probe.phase === "running";
+  const canProbe = reasoningEditable === true && saved === true && providerBusy !== true && !probeRunning;
+  const probeTitle = saved !== true ? t("providers.edit.detectNeedsSaved") : t("providers.edit.detectHint");
+  const effortError = errors.efforts === void 0 ? void 0 : t(errors.efforts);
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model-head", children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.modelN", { n: index + 1 }) }),
@@ -2347,26 +2952,6 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
           onChange: (event) => onUpdate(row.key, "maxTokens", event.target.value)
         }
       ) }),
-      reasoningEditable === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        Field,
-        {
-          id: effortsField,
-          label: t("providers.edit.efforts"),
-          hint: t("providers.edit.effortsHint"),
-          error: errors.efforts === void 0 ? void 0 : t(errors.efforts),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "input",
-            {
-              className: "td-input td-mono",
-              value: row.efforts,
-              autoComplete: "off",
-              spellCheck: false,
-              placeholder: t("providers.edit.effortsPlaceholder"),
-              onChange: (event) => onUpdate(row.key, "efforts", event.target.value)
-            }
-          )
-        }
-      ) : null,
       /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field", children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.modalities") }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-checks", children: [
@@ -2393,7 +2978,72 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "td-check-label", htmlFor: imageField, children: t("providers.edit.modalityImage") })
         ] })
-      ] })
+      ] }),
+      reasoningEditable === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-effort-block", id: effortsField, "aria-describedby": effortError === void 0 ? void 0 : `${effortsField}-error`, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.efforts") }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-chips", role: "group", "aria-label": t("providers.edit.efforts"), children: EFFORT_LEVELS.map((level) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-effort-chip",
+            "aria-pressed": Object.hasOwn(row.efforts, level),
+            onClick: () => onUpdate(row.key, "efforts", toggleEfforts(row.efforts, level)),
+            children: effortLabel(t, level)
+          },
+          level
+        )) }),
+        selectedLevels.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-effort-wire", children: t("providers.edit.wireNone") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-mono td-effort-wire", children: t("providers.edit.wireMap", {
+          map: selectedLevels.map((level) => `${level} \u2192 ${effortWireText(t, level, row.efforts[level])}`).join(" \xB7 ")
+        }) }),
+        selectedLevels.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-ghost",
+              "aria-expanded": customWireOpen,
+              onClick: () => setCustomWireOpen((open) => !open),
+              children: t("providers.edit.customWire")
+            }
+          ) }),
+          customWireOpen ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-wires", children: selectedLevels.map((level) => {
+            const wireField = `${effortsField}-${level}`;
+            return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-effort-wire-field", htmlFor: wireField, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.wireForLevel", { level: effortLabel(t, level) }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "input",
+                {
+                  id: wireField,
+                  className: "td-input td-mono",
+                  value: typeof row.efforts[level] === "string" ? row.efforts[level] : "",
+                  autoComplete: "off",
+                  spellCheck: false,
+                  placeholder: level === "off" ? t("providers.edit.wireBlankForOff") : level,
+                  onChange: (event) => onUpdate(row.key, "efforts", setEffortWire(row.efforts, level, event.target.value))
+                }
+              )
+            ] }, level);
+          }) }) : null
+        ] }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-effort-detect", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-secondary",
+              disabled: !canProbe,
+              title: probeTitle,
+              onClick: () => onProbe(row),
+              children: [
+                probeRunning ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.detecting") }) : null,
+                probeRunning ? t("providers.edit.detecting") : t("providers.edit.detect")
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ReasoningProbeResult, { t, probe, onApplySuggestion: (suggestion) => onApplySuggestion(row.key, suggestion) })
+        ] }),
+        effortError !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${effortsField}-error`, role: "alert", children: effortError }) : null
+      ] }) : null
     ] })
   ] });
 }
@@ -2401,17 +3051,36 @@ function ProviderEditorView(props) {
   const t = translateOf(props.t);
   const { form, loading, loadError, providerId, providerName } = props;
   const { onClose, onSaved, onRetryLoad, onRefreshForm } = props;
-  const [draft, setDraft] = (0, import_react.useState)(() => draftFromForm(form));
+  const refreshCredential = typeof props.onRefreshCredential === "function" ? props.onRefreshCredential : onRefreshForm;
+  const savedTick = typeof props.savedTick === "number" && Number.isFinite(props.savedTick) ? props.savedTick : 0;
+  const [draft, setDraft] = (0, import_react.useState)(() => props.initialDraft !== null && typeof props.initialDraft === "object" ? props.initialDraft : draftFromForm(form));
   const [busy, setBusy] = (0, import_react.useState)(null);
   const [formError, setFormError] = (0, import_react.useState)(null);
   const [keyInput, setKeyInput] = (0, import_react.useState)("");
   const [keyError, setKeyError] = (0, import_react.useState)(null);
   const [clearConfirm, setClearConfirm] = (0, import_react.useState)(false);
   const [deleteConfirm, setDeleteConfirm] = (0, import_react.useState)(false);
+  const [discardPrompt, setDiscardPrompt] = (0, import_react.useState)(false);
   const [focusRowKey, setFocusRowKey] = (0, import_react.useState)(null);
+  const [importPicker, setImportPicker] = (0, import_react.useState)(null);
+  const [importBusy, setImportBusy] = (0, import_react.useState)(false);
+  const [importError, setImportError] = (0, import_react.useState)(null);
+  const [importEmpty, setImportEmpty] = (0, import_react.useState)(false);
+  const [probe, setProbe] = (0, import_react.useState)(null);
   const idInputs = (0, import_react.useRef)(/* @__PURE__ */ new Map());
   const confirmDeleteRef = (0, import_react.useRef)(null);
   const aliveRef = (0, import_react.useRef)(true);
+  const importSequence = (0, import_react.useRef)(0);
+  const baseline = (0, import_react.useMemo)(() => draftSignature(draftFromForm(form)), [form]);
+  const savedModelIds = (0, import_react.useMemo)(() => {
+    const ids = /* @__PURE__ */ new Set();
+    const models = form !== null && typeof form === "object" && form.profile !== null && typeof form.profile === "object" && Array.isArray(form.profile.models) ? form.profile.models : [];
+    for (const model of models) {
+      const id = typeof model?.id === "string" ? model.id.trim() : "";
+      if (id !== "") ids.add(id);
+    }
+    return ids;
+  }, [form]);
   (0, import_react.useEffect)(() => {
     aliveRef.current = true;
     return () => {
@@ -2458,7 +3127,9 @@ function ProviderEditorView(props) {
   const canDelete = ready && writable && form.canDelete === true;
   const modelsDeclared = profile.modelsDeclared === true;
   const validation = validateDraft(draft, capabilities, writable);
+  const dirty = ready && draftSignature(draft) !== baseline;
   const canSave = writable && busy === null && validation.valid;
+  const showSaved = writable && dirty === false && savedTick > 0;
   const providerLabel = typeof providerName === "string" && providerName !== "" ? providerName : typeof providerId === "string" ? providerId : "";
   const idPrefix = `td-edit-${String(providerId ?? "provider").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const credentialRef = typeof credential.ref === "string" && credential.ref !== "" ? credential.ref : null;
@@ -2467,6 +3138,72 @@ function ProviderEditorView(props) {
   const credentialMasked = typeof credential.masked === "string" && credential.masked !== "" ? credential.masked : null;
   const credentialSource = typeof credential.source === "string" && credential.source !== "" ? credential.source : null;
   const revision = ready ? revisionOf(form) : void 0;
+  const importTarget = ready ? endpointRequest(draft, profile, typeof providerId === "string" ? providerId : "") : null;
+  const requestClose = () => {
+    if (dirty) {
+      setDiscardPrompt(true);
+      return;
+    }
+    onClose?.();
+  };
+  const importModels = async () => {
+    if (importBusy || busy !== null || importTarget === null) return;
+    importSequence.current += 1;
+    const sequence = importSequence.current;
+    setImportError(null);
+    setImportEmpty(false);
+    setImportPicker(null);
+    setImportBusy(true);
+    try {
+      const result = await discoverModels(importTarget.request);
+      if (!aliveRef.current || sequence !== importSequence.current) return;
+      const models = normalizeDiscoveredModels(result?.models);
+      setImportBusy(false);
+      if (models.length === 0) {
+        setImportEmpty(true);
+        return;
+      }
+      setImportPicker({
+        version: sequence,
+        models,
+        protocol: stringValue(result?.protocol),
+        detected: importTarget.detected
+      });
+    } catch (failure) {
+      if (!aliveRef.current || sequence !== importSequence.current) return;
+      setImportBusy(false);
+      setImportError(failure);
+    }
+  };
+  const applyImport = (models) => {
+    setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
+    setImportPicker(null);
+  };
+  const detectRow = async (row) => {
+    const modelId = row.id.trim();
+    if (modelId === "" || busy !== null || !savedModelIds.has(modelId)) return;
+    if (probe !== null && probe.phase === "running") return;
+    setProbe({ key: row.key, modelId, phase: "running" });
+    const target = endpointRequest(draft, profile, typeof providerId === "string" ? providerId : "");
+    try {
+      const report = await detectReasoning({ ...target.request, modelId });
+      if (!aliveRef.current) return;
+      setProbe({ key: row.key, modelId, phase: "done", report });
+    } catch (failure) {
+      if (!aliveRef.current) return;
+      setProbe({ key: row.key, modelId, phase: "error", error: failure });
+    }
+  };
+  const applySuggestion = (rowKey, suggestion) => {
+    setDraft((previous) => ({
+      ...previous,
+      models: previous.models.map((row) => row.key === rowKey ? { ...row, efforts: effortsFromSuggestion(suggestion) } : row)
+    }));
+  };
+  const probeFor = (row) => {
+    if (probe === null || probe.key !== row.key) return null;
+    return probe.modelId === row.id.trim() ? probe : null;
+  };
   if (loading === true) {
     const message = providerLabel === "" ? t("providers.edit.loadingGeneric") : t("providers.edit.loading", { provider: providerLabel });
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor", "aria-busy": "true", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { className: "td-editor-loading", children: [
@@ -2484,7 +3221,7 @@ function ProviderEditorView(props) {
           children: failureText(loadError, t, "errors.edit.loadFailed")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-right", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onClose?.(), children: t("actions.cancel") }) }) })
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-right", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: requestClose, children: t("actions.cancel") }) }) })
     ] });
   }
   const submit = async (event) => {
@@ -2509,7 +3246,8 @@ function ProviderEditorView(props) {
     }
     if (!aliveRef.current) return;
     setBusy(null);
-    onSaved?.({ providerId });
+    setDiscardPrompt(false);
+    onSaved?.({ providerId, saved: "profile" });
     void onRefreshForm?.();
   };
   const saveKey = async () => {
@@ -2534,8 +3272,8 @@ function ProviderEditorView(props) {
     setBusy(null);
     setKeyInput("");
     setClearConfirm(false);
-    onSaved?.({ providerId });
-    void onRefreshForm?.();
+    onSaved?.({ providerId, saved: "key" });
+    void refreshCredential?.();
   };
   const clearKey = async () => {
     if (credentialRef === null || busy !== null) return;
@@ -2554,8 +3292,8 @@ function ProviderEditorView(props) {
     setBusy(null);
     setKeyInput("");
     setClearConfirm(false);
-    onSaved?.({ providerId });
-    void onRefreshForm?.();
+    onSaved?.({ providerId, saved: "key" });
+    void refreshCredential?.();
   };
   const confirmRemove = async () => {
     if (!canDelete || busy !== null) return;
@@ -2587,6 +3325,7 @@ function ProviderEditorView(props) {
   const conflict = codeOf(formError) === "conflict";
   const apiOptions = PROTOCOLS.includes(draft.api) ? PROTOCOLS : ["", ...PROTOCOLS];
   const footerVisible = writable;
+  const canImport = writable && capabilities.models === true;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor", children: [
     formError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       Notice,
@@ -2761,19 +3500,54 @@ function ProviderEditorView(props) {
             " \xB7 ",
             formatNumber(draft.models.length)
           ] }),
-          writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "button",
-            {
-              type: "button",
-              className: "td-button td-button-small td-button-secondary",
-              disabled: draft.models.length >= MAX_MODELS,
-              onClick: addModel,
-              children: t("providers.edit.addModel")
-            }
-          ) : null
+          writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-head-actions", children: [
+            canImport ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                disabled: importBusy || busy !== null,
+                onClick: () => {
+                  void importModels();
+                },
+                children: [
+                  importBusy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.import.loading") }) : null,
+                  t("providers.edit.importModels")
+                ]
+              }
+            ) : null,
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                disabled: draft.models.length >= MAX_MODELS,
+                onClick: addModel,
+                children: t("providers.edit.addModel")
+              }
+            )
+          ] }) : null
         ] }),
+        importBusy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.import.loading") }) : null,
+        importError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", role: "alert", children: failureText(importError, t, "errors.discover.generic") }) : null,
+        importEmpty ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.import.empty") }) : null,
         capabilities.modelReasoning !== true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.effortsFixed") }) : null,
         modelsDeclared === false ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.modelsInherited") }) : null,
+        importPicker !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          ModelImportPicker,
+          {
+            t,
+            idPrefix,
+            models: importPicker.models,
+            protocol: importPicker.protocol,
+            detected: importPicker.detected,
+            draftEndpoint: importTarget !== null && importTarget.draft === true,
+            existingIds: draft.models.map((row) => row.id.trim()).filter((id) => id !== ""),
+            onImport: applyImport,
+            onCancel: () => setImportPicker(null)
+          },
+          importPicker.version
+        ) : null,
         draft.models.length === 0 && modelsDeclared === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: t("providers.edit.modelsEmpty") }) : null,
         draft.models.length > 0 ? writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-models", children: draft.models.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           ModelEditorRow,
@@ -2786,7 +3560,14 @@ function ProviderEditorView(props) {
             onUpdate: updateModel,
             onRemove: removeModel,
             registerIdInput,
-            reasoningEditable: capabilities.modelReasoning === true
+            reasoningEditable: capabilities.modelReasoning === true,
+            saved: savedModelIds.has(row.id.trim()),
+            probe: probeFor(row),
+            onProbe: (target) => {
+              void detectRow(target);
+            },
+            onApplySuggestion: applySuggestion,
+            providerBusy: busy !== null || probe !== null && probe.phase === "running"
           },
           row.key
         )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: draft.models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { className: "td-model-row", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-model-main", children: [
@@ -2794,6 +3575,36 @@ function ProviderEditorView(props) {
           row.id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-id td-mono", children: row.id }) : null
         ] }) }, row.key)) }) : null
       ] }) : null,
+      discardPrompt ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Notice,
+        {
+          tone: "warn",
+          action: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-danger",
+                onClick: () => {
+                  setDiscardPrompt(false);
+                  onClose?.();
+                },
+                children: t("providers.edit.discard")
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                onClick: () => setDiscardPrompt(false),
+                children: t("providers.edit.keepEditing")
+              }
+            )
+          ] }),
+          children: t("providers.edit.discardTitle")
+        }
+      ) : null,
       footerVisible ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot", children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot-left", children: showDelete ? deleteConfirm ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
@@ -2833,6 +3644,11 @@ function ProviderEditorView(props) {
           }
         ) : null }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot-right", children: [
+          dirty ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-caption td-editor-dirty", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Dot, { tone: "warn" }),
+            t("providers.edit.unsaved")
+          ] }) : null,
+          showSaved ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-tone-ok", role: "status", children: t("providers.edit.saved") }) : null,
           !validation.valid ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.invalidFields") }) : null,
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "button",
@@ -2840,7 +3656,7 @@ function ProviderEditorView(props) {
               type: "button",
               className: "td-button td-button-small td-button-secondary",
               disabled: busy !== null,
-              onClick: () => onClose?.(),
+              onClick: requestClose,
               children: t("actions.cancel")
             }
           ),
@@ -2862,7 +3678,7 @@ function ProviderEditorView(props) {
         {
           type: "button",
           className: "td-button td-button-small td-button-secondary",
-          onClick: () => onClose?.(),
+          onClick: requestClose,
           children: t("actions.cancel")
         }
       ) }) })
@@ -2876,6 +3692,7 @@ function ProviderEditor(props) {
   const [generation, setGeneration] = (0, import_react.useState)(0);
   const [loading, setLoading] = (0, import_react.useState)(true);
   const [loadError, setLoadError] = (0, import_react.useState)(null);
+  const [savedTick, setSavedTick] = (0, import_react.useState)(0);
   const aliveRef = (0, import_react.useRef)(true);
   (0, import_react.useEffect)(() => {
     aliveRef.current = true;
@@ -2902,9 +3719,24 @@ function ProviderEditor(props) {
       setLoading(false);
     }
   }, [providerId]);
+  const refreshCredential = (0, import_react.useCallback)(async () => {
+    try {
+      const next = await fetchProviderForm(providerId);
+      if (!aliveRef.current) return;
+      setForm(next);
+      setLoadError(null);
+    } catch {
+    }
+  }, [providerId]);
   (0, import_react.useEffect)(() => {
     void readForm();
   }, [readForm]);
+  const afterSaved = (info) => {
+    if (info !== null && typeof info === "object" && info.saved === "profile") {
+      setSavedTick((previous) => previous + 1);
+    }
+    props.onSaved?.(info);
+  };
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
     ProviderEditorView,
     {
@@ -2914,67 +3746,42 @@ function ProviderEditor(props) {
       providerId,
       providerName: props.providerName,
       t,
+      savedTick,
       onClose: props.onClose,
-      onSaved: props.onSaved,
+      onSaved: afterSaved,
       onRetryLoad: () => {
         void readForm();
       },
-      onRefreshForm: () => readForm({ quiet: true })
+      onRefreshForm: () => readForm({ quiet: true }),
+      onRefreshCredential: refreshCredential
     },
     generation
   );
 }
-function AddProviderForm(props) {
-  const t = translateOf(props.t);
-  const { expectedRevision, onClose, onCreated } = props;
-  const [draft, setDraft] = (0, import_react.useState)(blankAddDraft);
-  const [busy, setBusy] = (0, import_react.useState)(false);
-  const [error, setError] = (0, import_react.useState)(null);
-  const aliveRef = (0, import_react.useRef)(true);
-  (0, import_react.useEffect)(() => {
-    aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-    };
-  }, []);
-  const validation = validateAddDraft(draft);
-  const canCreate = !busy && validation.valid;
-  const update = (field) => (event) => {
-    const value = event.target.value;
-    setDraft((previous) => ({ ...previous, [field]: value }));
-  };
-  const submit = async (event) => {
-    event.preventDefault();
-    if (!canCreate) return;
-    const id = draft.id.trim();
-    const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
-    const displayName = draft.displayName.trim();
-    if (displayName !== "") provider.displayName = displayName;
-    const apiKeyEnv = draft.apiKeyEnv.trim();
-    if (apiKeyEnv !== "") provider.apiKeyEnv = apiKeyEnv;
-    setBusy(true);
-    setError(null);
-    let created;
-    try {
-      const value = await addProvider({
-        ...typeof expectedRevision === "number" && Number.isFinite(expectedRevision) ? { expectedRevision } : {},
-        provider
-      });
-      created = value !== null && typeof value === "object" && typeof value.providerId === "string" && value.providerId !== "" ? value.providerId : id;
-    } catch (failure) {
-      if (aliveRef.current) {
-        setError(failure);
-        setBusy(false);
-      }
-      return;
-    }
-    if (!aliveRef.current) return;
-    setBusy(false);
-    setError(null);
-    onCreated?.(created);
-  };
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-provider-card", title: t("providers.add.title"), subtitle: t("providers.add.subtitle"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form", onSubmit: submit, noValidate: true, children: [
-    error !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "error", children: failureText(error, t, "errors.add.generic") }) : null,
+function AddProviderView(props) {
+  const {
+    t,
+    draft,
+    errors,
+    canCreate,
+    busy,
+    error,
+    picker,
+    importEmpty,
+    detectedProtocol,
+    onUpdate,
+    onClose,
+    onCreate,
+    onConnect,
+    onImport,
+    onCancelImport,
+    onRemoveModel
+  } = props;
+  const connecting = busy === "connect";
+  const models = Array.isArray(draft.models) ? draft.models : [];
+  const fieldError = (key) => errors[key] === void 0 ? void 0 : t(errors[key]);
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-provider-card", title: t("providers.add.title"), subtitle: t("providers.add.subtitle"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form td-add-form", onSubmit: onCreate, noValidate: true, children: [
+    error !== null && error !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "error", children: failureText(error, t, "errors.add.generic") }) : null,
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-grid", children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         Field,
@@ -2983,7 +3790,7 @@ function AddProviderForm(props) {
           label: t("providers.add.id"),
           hint: t("providers.add.idHint"),
           required: true,
-          error: validation.errors.id === void 0 ? void 0 : t(validation.errors.id),
+          error: fieldError("id"),
           children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "input",
             {
@@ -2992,7 +3799,7 @@ function AddProviderForm(props) {
               autoComplete: "off",
               spellCheck: false,
               placeholder: t("providers.add.idPlaceholder"),
-              onChange: update("id")
+              onChange: onUpdate("id")
             }
           )
         }
@@ -3002,8 +3809,8 @@ function AddProviderForm(props) {
         {
           id: "td-add-display-name",
           label: t("providers.add.displayName"),
-          error: validation.errors.displayName === void 0 ? void 0 : t(validation.errors.displayName),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: update("displayName") })
+          error: fieldError("displayName"),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: onUpdate("displayName") })
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3011,9 +3818,10 @@ function AddProviderForm(props) {
         {
           id: "td-add-protocol",
           label: t("providers.add.protocol"),
+          hint: t("providers.add.protocolHint"),
           required: true,
-          error: validation.errors.api === void 0 ? void 0 : t(validation.errors.api),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "td-select", value: draft.api, onChange: update("api"), children: [
+          error: fieldError("api"),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "td-select", value: draft.api, onChange: onUpdate("api"), children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: "", children: t("providers.add.protocolPlaceholder") }),
             PROTOCOLS.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol }, protocol))
           ] })
@@ -3025,7 +3833,7 @@ function AddProviderForm(props) {
           id: "td-add-base-url",
           label: t("providers.add.baseURL"),
           required: true,
-          error: validation.errors.baseURL === void 0 ? void 0 : t(validation.errors.baseURL),
+          error: fieldError("baseURL"),
           children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "input",
             {
@@ -3034,7 +3842,7 @@ function AddProviderForm(props) {
               autoComplete: "off",
               spellCheck: false,
               placeholder: t("providers.add.baseURLPlaceholder"),
-              onChange: update("baseURL")
+              onChange: onUpdate("baseURL")
             }
           )
         }
@@ -3045,7 +3853,7 @@ function AddProviderForm(props) {
           id: "td-add-api-key-env",
           label: t("providers.add.apiKeyEnv"),
           hint: t("providers.add.apiKeyEnvHint"),
-          error: validation.errors.apiKeyEnv === void 0 ? void 0 : t(validation.errors.apiKeyEnv),
+          error: fieldError("apiKeyEnv"),
           children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "input",
             {
@@ -3054,29 +3862,245 @@ function AddProviderForm(props) {
               autoComplete: "off",
               spellCheck: false,
               placeholder: t("providers.add.apiKeyEnvPlaceholder"),
-              onChange: update("apiKeyEnv")
+              onChange: onUpdate("apiKeyEnv")
+            }
+          )
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
+        {
+          id: "td-add-api-key",
+          label: t("providers.add.apiKey"),
+          hint: t("providers.add.apiKeyHint"),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input",
+              type: "password",
+              value: draft.apiKey,
+              autoComplete: "new-password",
+              placeholder: t("providers.add.apiKeyPlaceholder"),
+              onChange: onUpdate("apiKey")
             }
           )
         }
       )
     ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-add-connect", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary",
+          disabled: busy !== null,
+          onClick: onConnect,
+          children: [
+            connecting ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.add.connecting") }) : null,
+            connecting ? t("providers.add.connecting") : t("providers.add.connect")
+          ]
+        }
+      ),
+      detectedProtocol !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-tone-ok", children: t("providers.import.protocolDetected", { protocol: detectedProtocol }) }) : null,
+      models.length === 0 && picker === null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.add.modelsHint") }) : null,
+      importEmpty ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-tone-warn", children: t("providers.import.empty") }) : null
+    ] }),
+    picker !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      ModelImportPicker,
+      {
+        t,
+        idPrefix: "td-add",
+        models: picker.models,
+        protocol: picker.protocol,
+        detected: picker.detected,
+        draftEndpoint: false,
+        existingIds: models.map((row) => row.id.trim()).filter((id) => id !== ""),
+        onImport,
+        onCancel: onCancelImport
+      },
+      picker.version
+    ) : null,
+    models.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": "td-add-models", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-section-head", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-card-subtitle", id: "td-add-models", children: [
+        t("providers.add.models"),
+        " \xB7 ",
+        formatNumber(models.length)
+      ] }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.add.modelsCount", { count: models.length }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("li", { className: "td-add-model-row", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-import-label", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-import-id td-mono", children: row.id }),
+          row.name !== "" && row.name !== row.id ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-import-name", children: row.name }) : null
+        ] }),
+        row.contextWindow !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.contextWindow", { value: formatTokens(Number(row.contextWindow)) }) }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-danger td-add-model-remove",
+            "aria-label": t("providers.add.removeModelAria", { id: row.id }),
+            onClick: () => onRemoveModel(row.id),
+            children: t("providers.add.removeModel")
+          }
+        )
+      ] }, row.key)) })
+    ] }) : null,
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-foot", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-foot-right", children: [
+      Object.keys(errors).length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.invalidFields") }) : null,
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         "button",
         {
           type: "button",
           className: "td-button td-button-small td-button-secondary",
-          disabled: busy,
-          onClick: () => onClose?.(),
+          disabled: busy !== null,
+          onClick: onClose,
           children: t("actions.cancel")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "submit", className: "td-button td-button-small td-button-primary", disabled: !canCreate, children: [
-        busy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.add.creating") }) : null,
-        busy ? t("providers.add.creating") : t("providers.add.create")
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("button", { type: "submit", className: "td-button td-button-small td-button-primary", disabled: canCreate !== true, children: [
+        busy === "create" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.add.creating") }) : null,
+        busy === "create" ? t("providers.add.creating") : t("providers.add.create")
       ] })
     ] }) })
   ] }) });
+}
+function AddProviderForm(props) {
+  const t = translateOf(props.t);
+  const { expectedRevision, onClose, onCreated } = props;
+  const [draft, setDraft] = (0, import_react.useState)(blankAddDraft);
+  const [busy, setBusy] = (0, import_react.useState)(null);
+  const [error, setError] = (0, import_react.useState)(null);
+  const [attempted, setAttempted] = (0, import_react.useState)(false);
+  const [connectAttempted, setConnectAttempted] = (0, import_react.useState)(false);
+  const [picker, setPicker] = (0, import_react.useState)(null);
+  const [importEmpty, setImportEmpty] = (0, import_react.useState)(false);
+  const [detectedProtocol, setDetectedProtocol] = (0, import_react.useState)(null);
+  const aliveRef = (0, import_react.useRef)(true);
+  const connectSequence = (0, import_react.useRef)(0);
+  (0, import_react.useEffect)(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+  const validation = validateAddDraft(draft);
+  const visibleErrors = {};
+  if (attempted) {
+    for (const [field, key] of Object.entries(validation.errors)) visibleErrors[field] = key;
+  } else if (connectAttempted) {
+    const connection = validateConnectionDraft(draft);
+    for (const [field, key] of Object.entries(connection.errors)) visibleErrors[field] = key;
+  }
+  const update = (field) => (event) => {
+    const value = event.target.value;
+    setDraft((previous) => ({ ...previous, [field]: value }));
+  };
+  const connect = async () => {
+    if (busy !== null) return;
+    setConnectAttempted(true);
+    setError(null);
+    const connection = validateConnectionDraft(draft);
+    if (!connection.valid) return;
+    connectSequence.current += 1;
+    const sequence = connectSequence.current;
+    setBusy("connect");
+    setPicker(null);
+    setImportEmpty(false);
+    try {
+      const key = draft.apiKey.trim();
+      const ref = draft.apiKeyEnv.trim();
+      if (key !== "" && ref !== "") await setApiKey({ ref, value: key });
+      const result = await discoverModels({
+        baseURL: draft.baseURL.trim(),
+        ...draft.api !== "" && PROTOCOLS.includes(draft.api) ? { api: draft.api } : {},
+        ...ref === "" ? {} : { apiKeyEnv: ref }
+      });
+      if (!aliveRef.current || sequence !== connectSequence.current) return;
+      const protocol = stringValue(result?.protocol);
+      const models = normalizeDiscoveredModels(result?.models);
+      const detected = draft.api === "";
+      setBusy(null);
+      if (detected && PROTOCOLS.includes(protocol)) {
+        setDraft((previous) => ({ ...previous, api: protocol }));
+        setDetectedProtocol(protocol);
+      }
+      if (models.length === 0) {
+        setImportEmpty(true);
+        return;
+      }
+      setPicker({ version: sequence, models, protocol, detected });
+    } catch (failure) {
+      if (!aliveRef.current || sequence !== connectSequence.current) return;
+      setBusy(null);
+      setError(failure);
+    }
+  };
+  const importModels = (models) => {
+    setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
+    setPicker(null);
+  };
+  const removeModel = (id) => {
+    setDraft((previous) => ({ ...previous, models: previous.models.filter((row) => row.id !== id) }));
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    if (busy !== null) return;
+    setAttempted(true);
+    const latest = validateAddDraft(draft);
+    if (!latest.valid) return;
+    const id = draft.id.trim();
+    const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
+    const displayName = draft.displayName.trim();
+    if (displayName !== "") provider.displayName = displayName;
+    const apiKeyEnv = draft.apiKeyEnv.trim();
+    if (apiKeyEnv !== "") provider.apiKeyEnv = apiKeyEnv;
+    if (draft.models.length > 0) provider.models = draft.models.slice(0, MAX_MODELS).map(modelWire);
+    setBusy("create");
+    setError(null);
+    let created;
+    try {
+      const key = draft.apiKey.trim();
+      if (key !== "" && apiKeyEnv !== "") await setApiKey({ ref: apiKeyEnv, value: key });
+      const value = await addProvider({
+        ...typeof expectedRevision === "number" && Number.isFinite(expectedRevision) ? { expectedRevision } : {},
+        provider
+      });
+      created = value !== null && typeof value === "object" && typeof value.providerId === "string" && value.providerId !== "" ? value.providerId : id;
+    } catch (failure) {
+      if (aliveRef.current) {
+        setError(failure);
+        setBusy(null);
+      }
+      return;
+    }
+    if (!aliveRef.current) return;
+    setBusy(null);
+    setError(null);
+    onCreated?.(created);
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    AddProviderView,
+    {
+      t,
+      draft,
+      errors: visibleErrors,
+      canCreate: validation.valid && busy === null,
+      busy,
+      error,
+      picker,
+      importEmpty,
+      detectedProtocol,
+      onUpdate: update,
+      onClose,
+      onCreate: submit,
+      onConnect: () => {
+        void connect();
+      },
+      onImport: importModels,
+      onCancelImport: () => setPicker(null),
+      onRemoveModel: removeModel
+    }
+  );
 }
 
 // src/client/Providers.jsx
@@ -4060,6 +5084,12 @@ var zh = {
   "errors.add.invalidProviderId": "\u4F9B\u5E94\u5546 ID \u65E0\u6548\uFF1A\u9700\u4EE5\u5C0F\u5199\u5B57\u6BCD\u6216\u6570\u5B57\u5F00\u5934\uFF0C\u53EA\u80FD\u5305\u542B\u5C0F\u5199\u5B57\u6BCD\u3001\u6570\u5B57\u4E0E\u8FDE\u5B57\u7B26\u3002",
   "errors.add.providerExists": "\u8BE5\u4F9B\u5E94\u5546 ID \u5DF2\u5B58\u5728\u3002",
   "errors.add.unavailable": "\u5F53\u524D\u7EC4\u5408\u672A\u6302\u8F7D\u591A\u4F9B\u5E94\u5546\u9002\u914D\u5668\uFF0C\u65E0\u6CD5\u65B0\u589E\u4F9B\u5E94\u5546\u3002",
+  "errors.discover.generic": "\u8BFB\u53D6\u6A21\u578B\u5931\u8D25\uFF1A{message}",
+  "errors.discover.failed": "\u7F51\u5173\u6CA1\u6709\u8FD4\u56DE\u6A21\u578B\uFF1A{message}",
+  "errors.discover.noKey": "\u8BE5\u8DEF\u7531\u6CA1\u6709\u53EF\u7528\u5BC6\u94A5\uFF0C\u8BF7\u5148\u5728\u7F16\u8F91\u5668\u4E2D\u914D\u7F6E API Key\u3002",
+  "errors.discover.noEndpoint": "\u7F3A\u5C11\u63A5\u5165\u5730\u5740\uFF0C\u65E0\u6CD5\u8BFB\u53D6\u6A21\u578B\u3002",
+  "errors.detect.generic": "\u63A2\u6D4B\u5931\u8D25\uFF1A{message}",
+  "errors.detect.unsupportedProtocol": "\u53EA\u6709 openai-completions \u534F\u8BAE\u652F\u6301\u539F\u59CB\u503C\u63A2\u6D4B\u3002",
   "scan.progress": "\u6B63\u5728\u626B\u63CF\u4F1A\u8BDD\u7528\u91CF {scanned} / {total}",
   "scan.preparing": "\u6B63\u5728\u51C6\u5907\u7528\u91CF\u626B\u63CF\u2026",
   "scan.hint": "\u9996\u6B21\u626B\u63CF\u53EF\u80FD\u9700\u8981\u51E0\u5206\u949F\uFF0C\u5B8C\u6210\u540E\u4F1A\u81EA\u52A8\u66F4\u65B0\u3002",
@@ -4137,10 +5167,30 @@ var zh = {
   "providers.note.models-unavailable": "\u6A21\u578B\u5217\u8868\u4E0D\u53EF\u7528",
   "providers.note.no-models": "\u65E0\u6A21\u578B",
   "providers.readonlyRouteHint": "\u8BE5\u8DEF\u7531\u6CA1\u6709\u6D3B\u52A8\u7684\u9002\u914D\u5668\uFF0C\u65E0\u6CD5\u8BBE\u4E3A\u9ED8\u8BA4",
+  "providers.effortLevel.off": "Off",
+  "providers.effortLevel.minimal": "Minimal",
+  "providers.effortLevel.low": "Low",
+  "providers.effortLevel.medium": "Medium",
+  "providers.effortLevel.high": "High",
+  "providers.effortLevel.xhigh": "XHigh",
+  "providers.effortLevel.max": "Max",
+  "providers.import.title": "\u7F51\u5173\u6A21\u578B",
+  "providers.import.found": "\u4ECE\u7F51\u5173\u8BFB\u53D6\u5230 {count} \u4E2A\u6A21\u578B",
+  "providers.import.protocolDetected": "\u5DF2\u8BC6\u522B\u534F\u8BAE {protocol}",
+  "providers.import.draftEndpoint": "\u4F7F\u7528\u5C1A\u672A\u4FDD\u5B58\u7684\u63A5\u5165\u5730\u5740\u4E0E\u51ED\u636E\u8BFB\u53D6",
+  "providers.import.search": "\u641C\u7D22\u6A21\u578B ID \u6216\u540D\u79F0",
+  "providers.import.selectAll": "\u5168\u9009",
+  "providers.import.invert": "\u53CD\u9009",
+  "providers.import.importSelected": "\u5BFC\u5165\u6240\u9009",
+  "providers.import.existing": "\u5DF2\u5B58\u5728",
+  "providers.import.noMatch": "\u6CA1\u6709\u5339\u914D\u7684\u6A21\u578B",
+  "providers.import.selectedCount": "\u5DF2\u9009 {count} \u4E2A",
+  "providers.import.loading": "\u6B63\u5728\u4ECE\u7F51\u5173\u8BFB\u53D6\u6A21\u578B\u2026",
+  "providers.import.empty": "\u7F51\u5173\u6CA1\u6709\u8FD4\u56DE\u4EFB\u4F55\u6A21\u578B\u3002",
   "providers.add.action": "\u65B0\u589E\u4F9B\u5E94\u5546",
   "providers.add.preparing": "\u51C6\u5907\u4E2D\u2026",
   "providers.add.title": "\u65B0\u589E\u4F9B\u5E94\u5546",
-  "providers.add.subtitle": "\u534F\u8BAE\u4E0E\u63A5\u5165\u5730\u5740\u5FC5\u586B\uFF1B\u521B\u5EFA\u540E\u53EF\u5728\u9762\u677F\u4E2D\u7EE7\u7EED\u914D\u7F6E\u6A21\u578B\u4E0E\u5BC6\u94A5\u3002",
+  "providers.add.subtitle": "\u5FC5\u586B\uFF1A\u4F9B\u5E94\u5546 ID \u4E0E\u63A5\u5165\u5730\u5740\uFF1B\u534F\u8BAE\u53EF\u7531\u300C\u8FDE\u63A5\u5E76\u8BFB\u53D6\u6A21\u578B\u300D\u81EA\u52A8\u8BC6\u522B\u3002",
   "providers.add.id": "\u4F9B\u5E94\u5546 ID",
   "providers.add.idHint": "\u5C0F\u5199\u5B57\u6BCD\u3001\u6570\u5B57\u4E0E\u8FDE\u5B57\u7B26\uFF0C\u4F8B\u5982 acme\u3002",
   "providers.add.idPlaceholder": "acme",
@@ -4149,8 +5199,9 @@ var zh = {
   "providers.add.displayName": "\u663E\u793A\u540D\u79F0",
   "providers.add.displayNameInvalid": "\u663E\u793A\u540D\u79F0\u8FC7\u957F\u3002",
   "providers.add.protocol": "\u534F\u8BAE",
-  "providers.add.protocolPlaceholder": "\u9009\u62E9\u534F\u8BAE",
-  "providers.add.protocolRequired": "\u8BF7\u9009\u62E9\u534F\u8BAE\u3002",
+  "providers.add.protocolPlaceholder": "\u81EA\u52A8\u8BC6\u522B\u6216\u624B\u52A8\u9009\u62E9",
+  "providers.add.protocolRequired": "\u8BF7\u9009\u62E9\u534F\u8BAE\uFF0C\u6216\u5148\u8FDE\u63A5\u5E76\u8BFB\u53D6\u6A21\u578B\u81EA\u52A8\u8BC6\u522B\u3002",
+  "providers.add.protocolHint": "\u53EF\u5148\u7559\u7A7A\uFF0C\u70B9\u300C\u8FDE\u63A5\u5E76\u8BFB\u53D6\u6A21\u578B\u300D\u81EA\u52A8\u8BC6\u522B\u3002",
   "providers.add.baseURL": "\u63A5\u5165\u5730\u5740",
   "providers.add.baseURLRequired": "\u8BF7\u586B\u5199\u63A5\u5165\u5730\u5740\u3002",
   "providers.add.baseURLInvalid": "\u8BF7\u8F93\u5165\u4EE5 http:// \u6216 https:// \u5F00\u5934\u7684\u5B8C\u6574\u5730\u5740\u3002",
@@ -4159,8 +5210,19 @@ var zh = {
   "providers.add.apiKeyEnvHint": "\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\uFF0C\u4F8B\u5982 ACME_KEY\uFF1B\u53EF\u7A0D\u540E\u518D\u586B\u3002",
   "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.add.apiKeyEnvInvalid": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
+  "providers.add.apiKey": "API Key",
+  "providers.add.apiKeyHint": "\u53EF\u9009\uFF1B\u586B\u5199\u540E\u4F1A\u5148\u5199\u5165\u51ED\u636E\u5E93\uFF0C\u518D\u7528\u4E8E\u8BFB\u53D6\u6A21\u578B\u3002",
+  "providers.add.apiKeyPlaceholder": "sk-\u2026",
+  "providers.add.refRequiredForKey": "\u586B\u5199\u51ED\u636E\u5F15\u7528\u540E\u624D\u80FD\u4FDD\u5B58 API Key\u3002",
   "providers.add.create": "\u521B\u5EFA",
   "providers.add.creating": "\u521B\u5EFA\u4E2D\u2026",
+  "providers.add.connect": "\u8FDE\u63A5\u5E76\u8BFB\u53D6\u6A21\u578B",
+  "providers.add.connecting": "\u8FDE\u63A5\u4E2D\u2026",
+  "providers.add.models": "\u5DF2\u9009\u6A21\u578B",
+  "providers.add.modelsHint": "\u8BFB\u53D6\u7F51\u5173\u540E\u9009\u62E9\u8981\u5BFC\u5165\u7684\u6A21\u578B\uFF0C\u521B\u5EFA\u65F6\u4E00\u5E76\u5199\u5165\u3002",
+  "providers.add.modelsCount": "{count} \u4E2A\u6A21\u578B\u5C06\u968F\u4F9B\u5E94\u5546\u521B\u5EFA",
+  "providers.add.removeModel": "\u79FB\u9664",
+  "providers.add.removeModelAria": "\u79FB\u9664\u6A21\u578B {id}",
   "providers.edit.loading": "\u6B63\u5728\u8BFB\u53D6 {provider} \u7684\u914D\u7F6E\u2026",
   "providers.edit.loadingGeneric": "\u6B63\u5728\u8BFB\u53D6\u4F9B\u5E94\u5546\u914D\u7F6E\u2026",
   "providers.edit.reload": "\u91CD\u65B0\u8BFB\u53D6",
@@ -4200,6 +5262,7 @@ var zh = {
   "providers.effortsProbeError": "\u6863\u4F4D\u6D4B\u8BD5\u5931\u8D25\uFF1A{message}",
   "providers.edit.modelsInherited": "\u6863\u6848\u672A\u58F0\u660E\u6A21\u578B\uFF0C\u5F53\u524D\u7EE7\u627F\u9002\u914D\u5668\u63D0\u4F9B\u7684\u76EE\u5F55\uFF1B\u4FDD\u5B58\u7A7A\u6E05\u5355\u5373\u4FDD\u6301\u7EE7\u627F\u3002",
   "providers.edit.modelsEmpty": "\u6E05\u5355\u4E3A\u7A7A\uFF1B\u4FDD\u5B58\u540E\u5C06\u7EE7\u627F\u9002\u914D\u5668\u76EE\u5F55\u3002",
+  "providers.edit.importModels": "\u4ECE\u7F51\u5173\u8BFB\u53D6\u6A21\u578B",
   "providers.edit.modelN": "\u6A21\u578B {n}",
   "providers.edit.modelId": "\u6A21\u578B ID",
   "providers.edit.modelName": "\u540D\u79F0",
@@ -4209,8 +5272,6 @@ var zh = {
   "providers.edit.modalityText": "\u6587\u672C",
   "providers.edit.modalityImage": "\u56FE\u7247",
   "providers.edit.efforts": "\u63A8\u7406\u6863\u4F4D",
-  "providers.edit.effortsHint": "\u5F62\u5982 low=low, max=max\uFF1B\u53EA\u5199\u6863\u4F4D\u540D\u8868\u793A\u540C\u540D\u6620\u5C04\uFF0C\u4F8B\u5982 high, max\u3002",
-  "providers.edit.effortsPlaceholder": "low=low, max=max",
   "providers.edit.addModel": "\u6DFB\u52A0\u6A21\u578B",
   "providers.edit.removeModel": "\u5220\u9664",
   "providers.edit.removeModelAria": "\u5220\u9664\u6A21\u578B {id}",
@@ -4219,10 +5280,32 @@ var zh = {
   "providers.edit.modelIdDuplicate": "\u6A21\u578B ID \u91CD\u590D\u3002",
   "providers.edit.modelNameInvalid": "\u6A21\u578B\u540D\u79F0\u8FC7\u957F\u3002",
   "providers.edit.modelPositiveInt": "\u9700\u4E3A\u6B63\u6574\u6570\u3002",
-  "providers.edit.modelEffortInvalid": "\u63A8\u7406\u6863\u4F4D\u683C\u5F0F\u65E0\u6548\uFF1B\u53EF\u7528\u6863\u4F4D\u4E3A off\u3001minimal\u3001low\u3001medium\u3001high\u3001xhigh\u3001max\u3002",
+  "providers.edit.modelEffortInvalid": "\u6BCF\u4E2A\u9009\u4E2D\u7684\u6863\u4F4D\u90FD\u9700\u8981\u975E\u7A7A\u7684\u7EBF\u4E0A\u62FC\u5199\uFF1B\u53EA\u6709 Off \u53EF\u4EE5\u7559\u7A7A\u3002",
+  "providers.edit.modelEffortNeedsLevel": "\u81F3\u5C11\u9009\u62E9\u4E00\u4E2A Off \u4EE5\u5916\u7684\u63A8\u7406\u6863\u4F4D\uFF0C\u6216\u8005\u5168\u90E8\u4E0D\u9009\u3002",
+  "providers.edit.wireMap": "\u7EBF\u4E0A\u62FC\u5199\uFF1A{map}",
+  "providers.edit.wireNone": "\u672A\u58F0\u660E\u63A8\u7406\u6863\u4F4D",
+  "providers.edit.wireSendNothing": "\u4E0D\u53D1\u9001",
+  "providers.edit.wireMissing": "\u672A\u586B\u5199",
+  "providers.edit.wireForLevel": "{level} \u7684\u7EBF\u4E0A\u503C",
+  "providers.edit.wireBlankForOff": "\u7559\u7A7A = \u4E0D\u53D1\u9001",
+  "providers.edit.customWire": "\u81EA\u5B9A\u4E49\u7EBF\u4E0A\u62FC\u5199",
+  "providers.edit.detect": "\u63A2\u6D4B",
+  "providers.edit.detecting": "\u63A2\u6D4B\u4E2D\u2026",
+  "providers.edit.detectHint": "\u53D1\u9001\u5C11\u91CF\u6781\u5C0F\u771F\u5B9E\u8BF7\u6C42\uFF0C\u786E\u8BA4\u7F51\u5173\u63A5\u53D7\u7684\u539F\u59CB\u503C\uFF08\u4F1A\u6D88\u8017\u5C11\u91CF Token\uFF09",
+  "providers.edit.detectNeedsSaved": "\u6A21\u578B\u5C1A\u672A\u4FDD\u5B58\uFF1B\u4FDD\u5B58\u540E\u624D\u80FD\u63A2\u6D4B\u3002",
+  "providers.edit.detectOmitted": "\u7701\u7565\u53C2\u6570",
+  "providers.edit.detectReasoningTokens": "\u63A8\u7406 {count} Token",
+  "providers.edit.detectLatency": "{ms} ms",
+  "providers.edit.detectNoResults": "\u63A2\u6D4B\u6CA1\u6709\u8FD4\u56DE\u7ED3\u679C\u3002",
+  "providers.edit.applySuggestion": "\u5E94\u7528\u5EFA\u8BAE",
   "providers.edit.delete": "\u5220\u9664\u4F9B\u5E94\u5546",
   "providers.edit.deleteConfirm": "\u786E\u8BA4\u5220\u9664",
   "providers.edit.invalidFields": "\u8BF7\u5148\u4FEE\u6B63\u6807\u51FA\u7684\u5B57\u6BB5\u3002",
+  "providers.edit.unsaved": "\u672A\u4FDD\u5B58",
+  "providers.edit.saved": "\u5DF2\u4FDD\u5B58",
+  "providers.edit.discardTitle": "\u653E\u5F03\u672A\u4FDD\u5B58\u7684\u4FEE\u6539\uFF1F",
+  "providers.edit.discard": "\u653E\u5F03",
+  "providers.edit.keepEditing": "\u7EE7\u7EED\u7F16\u8F91",
   "providers.edit.accountReadonly": "\u8BE5\u4F9B\u5E94\u5546\u7531\u8D26\u6237\u767B\u5F55\u7BA1\u7406\uFF0C\u6B64\u5904\u53EA\u8BFB\u5C55\u793A\u3002",
   "providers.edit.notSet": "\u672A\u8BBE\u7F6E",
   "usage.range.label": "\u65F6\u95F4\u8303\u56F4",
@@ -4325,6 +5408,12 @@ var en = {
   "errors.add.invalidProviderId": "Invalid provider ID: start with a lowercase letter or digit and use only lowercase letters, digits, and hyphens.",
   "errors.add.providerExists": "A provider with that ID already exists.",
   "errors.add.unavailable": "The multi-provider adapter is not mounted, so a provider cannot be added.",
+  "errors.discover.generic": "Could not read models: {message}",
+  "errors.discover.failed": "The gateway returned no models: {message}",
+  "errors.discover.noKey": "No credential is available for this route; configure an API key in the editor first.",
+  "errors.discover.noEndpoint": "The endpoint is missing, so models cannot be read.",
+  "errors.detect.generic": "Detection failed: {message}",
+  "errors.detect.unsupportedProtocol": "Raw reasoning values can only be detected on the openai-completions protocol.",
   "scan.progress": "Scanning session usage {scanned} / {total}",
   "scan.preparing": "Preparing the usage scan\u2026",
   "scan.hint": "The first scan may take a few minutes; this page updates automatically.",
@@ -4402,10 +5491,30 @@ var en = {
   "providers.note.models-unavailable": "Model list unavailable",
   "providers.note.no-models": "No models",
   "providers.readonlyRouteHint": "This route has no live adapter, so it cannot become the default",
+  "providers.effortLevel.off": "Off",
+  "providers.effortLevel.minimal": "Minimal",
+  "providers.effortLevel.low": "Low",
+  "providers.effortLevel.medium": "Medium",
+  "providers.effortLevel.high": "High",
+  "providers.effortLevel.xhigh": "XHigh",
+  "providers.effortLevel.max": "Max",
+  "providers.import.title": "Gateway models",
+  "providers.import.found": "Found {count} models on the gateway",
+  "providers.import.protocolDetected": "Detected protocol {protocol}",
+  "providers.import.draftEndpoint": "Reading with the unsaved endpoint and credential",
+  "providers.import.search": "Search model ID or name",
+  "providers.import.selectAll": "Select all",
+  "providers.import.invert": "Invert",
+  "providers.import.importSelected": "Import selected",
+  "providers.import.existing": "Already added",
+  "providers.import.noMatch": "No matching models",
+  "providers.import.selectedCount": "{count} selected",
+  "providers.import.loading": "Loading models from the gateway\u2026",
+  "providers.import.empty": "The gateway returned no models.",
   "providers.add.action": "Add provider",
   "providers.add.preparing": "Preparing\u2026",
   "providers.add.title": "Add provider",
-  "providers.add.subtitle": "Protocol and endpoint are required; configure models and keys in the panel after creating it.",
+  "providers.add.subtitle": "Provider ID and endpoint are required; Connect and load models detects the protocol for you.",
   "providers.add.id": "Provider ID",
   "providers.add.idHint": "Lowercase letters, digits, and hyphens, e.g. acme.",
   "providers.add.idPlaceholder": "acme",
@@ -4414,8 +5523,9 @@ var en = {
   "providers.add.displayName": "Display name",
   "providers.add.displayNameInvalid": "The display name is too long.",
   "providers.add.protocol": "Protocol",
-  "providers.add.protocolPlaceholder": "Choose a protocol",
-  "providers.add.protocolRequired": "Choose a protocol.",
+  "providers.add.protocolPlaceholder": "Detect automatically or choose",
+  "providers.add.protocolRequired": "Choose a protocol, or connect and load models to detect it.",
+  "providers.add.protocolHint": "You can leave it blank and let Connect and load models fill it in.",
   "providers.add.baseURL": "Endpoint",
   "providers.add.baseURLRequired": "An endpoint is required.",
   "providers.add.baseURLInvalid": "Enter a full URL starting with http:// or https://.",
@@ -4424,8 +5534,19 @@ var en = {
   "providers.add.apiKeyEnvHint": "An environment-style name, e.g. ACME_KEY; you can add it later.",
   "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.add.apiKeyEnvInvalid": "A credential reference must be an environment-style name.",
+  "providers.add.apiKey": "API Key",
+  "providers.add.apiKeyHint": "Optional; when typed it is stored in the credential store first and then used to read models.",
+  "providers.add.apiKeyPlaceholder": "sk-\u2026",
+  "providers.add.refRequiredForKey": "Set a credential reference before storing an API key.",
   "providers.add.create": "Create",
   "providers.add.creating": "Creating\u2026",
+  "providers.add.connect": "Connect and load models",
+  "providers.add.connecting": "Connecting\u2026",
+  "providers.add.models": "Selected models",
+  "providers.add.modelsHint": "Read the gateway and pick the models to write with the provider.",
+  "providers.add.modelsCount": "{count} models will be created with the provider",
+  "providers.add.removeModel": "Remove",
+  "providers.add.removeModelAria": "Remove model {id}",
   "providers.edit.loading": "Loading the {provider} configuration\u2026",
   "providers.edit.loadingGeneric": "Loading the provider configuration\u2026",
   "providers.edit.reload": "Reload",
@@ -4465,6 +5586,7 @@ var en = {
   "providers.effortsProbeError": "Level probe failed: {message}",
   "providers.edit.modelsInherited": "No models are declared in the profile, so the adapter catalog is used; leaving it empty keeps the inheritance.",
   "providers.edit.modelsEmpty": "The list is empty; saving falls back to the adapter catalog.",
+  "providers.edit.importModels": "Load models from gateway",
   "providers.edit.modelN": "Model {n}",
   "providers.edit.modelId": "Model ID",
   "providers.edit.modelName": "Name",
@@ -4474,8 +5596,6 @@ var en = {
   "providers.edit.modalityText": "Text",
   "providers.edit.modalityImage": "Image",
   "providers.edit.efforts": "Reasoning levels",
-  "providers.edit.effortsHint": "Use low=low, max=max; a bare level maps to itself, e.g. high, max.",
-  "providers.edit.effortsPlaceholder": "low=low, max=max",
   "providers.edit.addModel": "Add model",
   "providers.edit.removeModel": "Remove",
   "providers.edit.removeModelAria": "Remove model {id}",
@@ -4484,10 +5604,32 @@ var en = {
   "providers.edit.modelIdDuplicate": "Duplicate model ID.",
   "providers.edit.modelNameInvalid": "The model name is too long.",
   "providers.edit.modelPositiveInt": "Must be a positive integer.",
-  "providers.edit.modelEffortInvalid": "Invalid reasoning levels; allowed: off, minimal, low, medium, high, xhigh, max.",
+  "providers.edit.modelEffortInvalid": "Every selected level needs a wire spelling; only Off may stay blank.",
+  "providers.edit.modelEffortNeedsLevel": "Select at least one level besides Off, or select none.",
+  "providers.edit.wireMap": "Wire spelling: {map}",
+  "providers.edit.wireNone": "No reasoning levels declared",
+  "providers.edit.wireSendNothing": "send nothing",
+  "providers.edit.wireMissing": "not set",
+  "providers.edit.wireForLevel": "Wire value for {level}",
+  "providers.edit.wireBlankForOff": "blank = send nothing",
+  "providers.edit.customWire": "Custom wire spelling",
+  "providers.edit.detect": "Detect",
+  "providers.edit.detecting": "Detecting\u2026",
+  "providers.edit.detectHint": "Sends a few tiny real requests to learn which raw values the gateway accepts (costs a few tokens)",
+  "providers.edit.detectNeedsSaved": "This model is not saved yet; save it before detecting.",
+  "providers.edit.detectOmitted": "field omitted",
+  "providers.edit.detectReasoningTokens": "reasoning {count} tokens",
+  "providers.edit.detectLatency": "{ms} ms",
+  "providers.edit.detectNoResults": "Detection returned no results.",
+  "providers.edit.applySuggestion": "Apply suggestion",
   "providers.edit.delete": "Delete provider",
   "providers.edit.deleteConfirm": "Confirm delete",
   "providers.edit.invalidFields": "Fix the highlighted fields first.",
+  "providers.edit.unsaved": "Unsaved",
+  "providers.edit.saved": "Saved",
+  "providers.edit.discardTitle": "Discard unsaved changes?",
+  "providers.edit.discard": "Discard",
+  "providers.edit.keepEditing": "Keep editing",
   "providers.edit.accountReadonly": "This provider is managed by the account sign-in and shown read-only here.",
   "providers.edit.notSet": "Not set",
   "usage.range.label": "Time range",

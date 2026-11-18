@@ -303,7 +303,9 @@ function normalizeModel(model, kind) {
   const source = model !== null && typeof model === 'object' && !Array.isArray(model) ? model : {};
   const efforts = source.reasoningEfforts !== null && typeof source.reasoningEfforts === 'object'
     && !Array.isArray(source.reasoningEfforts)
-    ? Object.fromEntries(Object.entries(source.reasoningEfforts).filter(([, value]) => typeof value === 'string'))
+    ? Object.fromEntries(Object.entries(source.reasoningEfforts).filter(([level, value]) => (
+      typeof value === 'string' || (level === 'off' && (value === null || value === undefined))
+    )))
     : {};
   const modalities = Array.isArray(kind === 'deepseek-api-key' ? source.inputModalities : source.input)
     ? (kind === 'deepseek-api-key' ? source.inputModalities : source.input).filter(isModality)
@@ -472,6 +474,14 @@ function sanitizeEfforts(value) {
   const efforts = {};
   for (const [level, wire] of Object.entries(value)) {
     if (!EFFORT_LEVELS.includes(level)) throw new HostError('invalid-model', `Unknown reasoning level "${level}".`, 400);
+    if (wire === null || wire === undefined || wire === '') {
+      // Only `off` may be valueless: it means "supported, send nothing".
+      if (level !== 'off') {
+        throw new HostError('invalid-model', `Reasoning level "${level}" needs a wire value.`, 400);
+      }
+      efforts.off = null;
+      continue;
+    }
     if (typeof wire !== 'string' || wire.trim() === '' || wire.length > 40) {
       throw new HostError('invalid-model', `Reasoning level "${level}" needs a wire value.`, 400);
     }

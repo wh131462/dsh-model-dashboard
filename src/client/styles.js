@@ -955,6 +955,7 @@ export const CSS = String.raw`
 /* ── Provider editor ─────────────────────────────────────────────────────── */
 
 .td-editor {
+  max-width: 720px;
   margin-top: 12px;
 }
 
@@ -1125,6 +1126,216 @@ export const CSS = String.raw`
   color: var(--dsw-alias-label-secondary, #5b6470);
   font-size: 13px;
   line-height: 20px;
+}
+
+/* ── Reasoning chips, wire overrides, and detection ──────────────────────── */
+
+.td-effort-block {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-effort-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.td-effort-chip {
+  appearance: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-radius: 13px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.td-effort-chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 45%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 10%, transparent);
+  color: var(--dsw-alias-brand-primary, #247bbf);
+}
+
+@media (hover: hover) {
+  .td-effort-chip:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+  }
+}
+
+.td-effort-wire {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.td-effort-wires {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.td-effort-wire-field {
+  display: flex;
+  flex: 0 1 150px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-effort-detect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Gateway model import ────────────────────────────────────────────────── */
+
+.td-import {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+}
+
+.td-import-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.td-import-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-import-search {
+  flex: 1 1 160px;
+  width: auto;
+  min-width: 0;
+}
+
+.td-import-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 264px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-import-row:last-child {
+  border-bottom: 0;
+}
+
+.td-import-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.td-import-id {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-import-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-import-context {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.td-import-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.td-import-foot .td-caption {
+  margin-right: auto;
+}
+
+/* ── Add-provider gateway connection ─────────────────────────────────────── */
+
+.td-add-form {
+  max-width: 720px;
+}
+
+.td-add-connect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-add-model-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+}
+
+.td-add-model-row:last-child {
+  border-bottom: 0;
+}
+
+.td-add-model-remove {
+  margin-left: auto;
+}
+
+.td-editor-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.td-editor-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .td-editor-foot {

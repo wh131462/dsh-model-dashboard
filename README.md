@@ -62,6 +62,23 @@ The probe costs a few tokens per level and runs sequentially. A level that the
 adapter does not offer is never sent, so "not offered" is a configuration fact,
 not a network result.
 
+**Detection before declaration.** The editor's **探测** works the other way
+around: it tests raw wire values against an OpenAI-compatible endpoint (no
+profile declaration needed) and proposes a level map. **应用建议** fills the
+chips. Two findings from testing the gateways of this profile show why the
+distinction matters:
+
+| Endpoint | Accepted values | Mapping written |
+|---|---|---|
+| atrouter DeepSeek models | omitted, `none`, `minimal`…`max`; `none` reports 0 reasoning tokens | `off: none` + all six levels |
+| atrouter GLM models | every value accepted, but `none` does not stop thinking | six levels, no `off` |
+| yuanxi (one-api/new-api) models | omitted, `low`…`max`; `none` and `minimal` are 400s | `off:` (send nothing) + `low`…`max` |
+
+So `off` is not one thing: on an OpenAI-style relay it is usually the field
+*omitted* (`off:` with no value), on a gateway that turns thinking off by value
+it is `off: none`. Never declare a level the endpoint rejects — the composer
+would offer a choice that fails at request time.
+
 For values that are not declared yet, declare candidates first (Edit → Models →
 Reasoning levels, syntax `low=low, max=ultra`), save, then probe. If you need to
 test a raw gateway value without touching the profile, call the endpoint
@@ -90,6 +107,29 @@ shipped **Settings > Models** page uses, and no private shortcut:
 - `credentials.set/unset(ref, value)` owns the secret. An API key is never
   written into the profile patch, never returned to the page, and only ever
   shown as the credential store's masked preview.
+
+### Convenience flows
+
+- **From the gateway** — in the model list, **从网关读取模型** asks the endpoint for
+  its catalog (the protocol is detected when the profile does not name it), then
+  an inline picker lets you search, select, and import models in bulk. Already
+  declared ids are pre-checked and keep their reasoning levels; importing them
+  refreshes name/context window only.
+- **Reasoning levels as chips** — each model row offers the seven levels as
+  toggles instead of a syntax. A caption shows the wire spelling per selected
+  level (`off → send nothing` by default), and 自定义线上拼写 exposes one input
+  per level when a gateway names a level differently.
+- **One-click detection** — **探测** calls the raw endpoint for every candidate
+  value (`off`-omitted, `none`, `minimal`…`max`) and shows the accepted/rejected
+  matrix with reasoning-token counts; **应用建议** writes the detected mapping
+  into the row. Detection needs no declaration first, so it also works for a
+  brand-new route.
+- **Add provider wizard** — a draft route can **连接并读取模型** before it exists:
+  the API key is stored into the credential store first (when typed), the
+  protocol is filled from detection, and the selected models ship with the
+  create request.
+- Unsaved edits are guarded (取消 asks 放弃未保存的修改？), and the footer marks
+  未保存 / 已保存.
 
 What you can edit depends on the route (`capabilities` in the form):
 

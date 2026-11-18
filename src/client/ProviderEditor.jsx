@@ -4,24 +4,62 @@
  * `ProviderEditor` is the shell: it reads one provider's editable form from the
  * Host and hands it to `ProviderEditorView`, which owns the draft, the local
  * validation that mirrors the Host's rules, and every write (save, delete,
- * credential). The Host stays the authority: a failed write is shown by its
- * stable code, and a `conflict` offers a reload instead of overwriting.
+ * credential, gateway introspection). The Host stays the authority: a failed
+ * write is shown by its stable code, and a `conflict` offers a reload instead of
+ * overwriting.
  *
- * `AddProviderForm` declares a new pi-ai route. When the page has read a pi-ai
- * form already, the parent passes that revision so the Host can refuse a
- * concurrent change instead of overwriting it.
+ * Two conveniences drive the draft:
+ *
+ * - **Import from the gateway.** `discoverModels` reads the endpoint's own model
+ *   list; an inline picker merges the chosen entries into the draft (nothing is
+ *   saved), so a route can be filled without typing ids and capacities.
+ * - **Reasoning levels as chips.** A model's `reasoningEfforts` map is edited as
+ *   seven toggles plus optional wire-spelling overrides, and `detectReasoning`
+ *   can test which raw `reasoning_effort` values the endpoint accepts before a
+ *   level is declared.
+ *
+ * `AddProviderForm` declares a new pi-ai route and offers the same import as
+ * **连接并读取模型**: an optional key is stored first, the protocol is detected
+ * and filled in, and the chosen models are written with the create request.
  */
 
-import { cloneElement, isValidElement, useCallback, useEffect, useRef, useState } from 'react';
-import { addProvider, errorText, fetchProviderForm, removeProvider, saveProvider, setApiKey } from './api.js';
-import { Card, Dot, Notice, Spinner } from './ui.jsx';
-import { formatNumber } from './format.js';
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  addProvider, detectReasoning, discoverModels, errorText, fetchProviderForm, removeProvider, saveProvider, setApiKey,
+} from './api.js';
+import { Card, Chip, Dot, Notice, Spinner } from './ui.jsx';
+import { formatNumber, formatTokens } from './format.js';
 
 /** Wire protocols the pi-ai adapter accepts. */
 const PROTOCOLS = ['openai-completions', 'openai-responses', 'anthropic-messages', 'google-generative-ai'];
 
 /** Reasoning levels the adapters accept as `reasoningEfforts` keys. */
 const EFFORT_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+/** Localized label of one reasoning level, rendered as a chip. */
+const EFFORT_LABEL_KEYS = {
+  off: 'providers.effortLevel.off',
+  minimal: 'providers.effortLevel.minimal',
+  low: 'providers.effortLevel.low',
+  medium: 'providers.effortLevel.medium',
+  high: 'providers.effortLevel.high',
+  xhigh: 'providers.effortLevel.xhigh',
+  max: 'providers.effortLevel.max',
+};
+
+/**
+ * The wire spelling a freshly toggled level starts with: every level maps to
+ * itself except `off`, whose identity spelling is "send nothing".
+ */
+const EFFORT_DEFAULT_WIRE = {
+  off: '',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  max: 'max',
+};
 
 /** Provider keys are dictionary keys of the profile; keep them tame. */
 const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -51,7 +89,7 @@ const SOURCE_KEYS = {
   grant: 'providers.source.grant',
 };
 
-/** Localized copy for the Host's stable write error codes. */
+/** Localized copy for the Host's stable write and introspection error codes. */
 const ERROR_KEYS = {
   'unknown-provider': 'errors.edit.unknownProvider',
   'no-settings': 'errors.edit.noSettings',
@@ -71,6 +109,10 @@ const ERROR_KEYS = {
   'invalid-provider-id': 'errors.add.invalidProviderId',
   'provider-exists': 'errors.add.providerExists',
   unavailable: 'errors.add.unavailable',
+  'discovery-failed': 'errors.discover.failed',
+  'no-endpoint': 'errors.discover.noEndpoint',
+  'no-key': 'errors.discover.noKey',
+  'unsupported-protocol': 'errors.detect.unsupportedProtocol',
 };
 
 /** Monotonic key so an editable model row keeps its identity while it is edited. */
@@ -122,16 +164,18 @@ function failureMessage(failure) {
 
 /**
  * Localized text for a Host failure: a known code becomes copy the user can act
- * on, and an unknown one keeps the Host message behind a generic prefix.
+ * on (with the Host message available as `{message}`), and an unknown one keeps
+ * the Host message behind a generic prefix.
  * @param {unknown} failure - the rejection.
  * @param {(key: string, params?: Record<string, unknown>) => string} t - translate.
  * @param {string} fallbackKey - copy used for an unrecognized code.
  * @returns {string} display text.
  */
 function failureText(failure, t, fallbackKey) {
+  const message = failureMessage(failure);
   const key = ERROR_KEYS[codeOf(failure)];
-  if (key !== undefined) return t(key);
-  return t(fallbackKey, { message: failureMessage(failure) });
+  if (key !== undefined) return t(key, { message });
+  return t(fallbackKey, { message });
 }
 
 /** Localized label for one credential source. */
@@ -165,40 +209,158 @@ function positiveIntText(value) {
 }
 
 /**
- * Serialize a profile `reasoningEfforts` map for the text field.
- * @param {Record<string, string>} efforts - selector level → wire value.
- * @returns {string} `low=low, max=max`, with identity mappings written bare.
+ * Render a positive-integer wire value as draft text, or an empty string.
+ * @param {unknown} value - a wire number.
+ * @returns {string} the draft text.
  */
-function serializeEfforts(efforts) {
-  const parts = [];
-  for (const level of EFFORT_LEVELS) {
-    if (!Object.hasOwn(efforts, level)) continue;
-    const wire = efforts[level];
-    if (typeof wire !== 'string' || wire === '') continue;
-    parts.push(wire === level ? level : `${level}=${wire}`);
-  }
-  return parts.join(', ');
+function numberText(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? String(Math.trunc(value)) : '';
 }
 
 /**
- * Parse the reasoning-levels text field.
- * @param {unknown} text - user text (`low=low, max=max`, or bare levels).
- * @returns {{ok: boolean, value: Record<string, string>}} the map, or the error flag.
+ * Localized label of one reasoning level.
+ * @param {(key: string, params?: Record<string, unknown>) => string} t - translate.
+ * @param {string} level - one of `EFFORT_LEVELS`.
+ * @returns {string} display text.
  */
-function parseEfforts(text) {
-  const trimmed = typeof text === 'string' ? text.trim() : '';
-  if (trimmed === '') return { ok: true, value: {} };
-  const tokens = trimmed.replace(/\s*=\s*/g, '=').split(/[,，\s]+/).filter((token) => token !== '');
-  const value = {};
-  for (const token of tokens) {
-    const separator = token.indexOf('=');
-    const level = separator === -1 ? token : token.slice(0, separator);
-    const wire = separator === -1 ? token : token.slice(separator + 1);
-    if (!EFFORT_LEVELS.includes(level)) return { ok: false, value: {} };
-    if (wire === '' || wire.length > EFFORT_WIRE_MAX) return { ok: false, value: {} };
-    value[level] = wire;
+function effortLabel(t, level) {
+  const key = EFFORT_LABEL_KEYS[level];
+  return key === undefined ? level : t(key);
+}
+
+/**
+ * The selected levels of a draft effort map, in canonical order.
+ * @param {unknown} efforts - selector level → wire value.
+ * @returns {string[]} selected levels.
+ */
+function effortLevelsOf(efforts) {
+  if (efforts === null || typeof efforts !== 'object') return [];
+  return EFFORT_LEVELS.filter((level) => Object.hasOwn(efforts, level));
+}
+
+/**
+ * Turn a profile `reasoningEfforts` map into editable chips state.
+ *
+ * A `null` entry is only legal for `off` and means "supported, send nothing", so
+ * it becomes the empty string; every other declared level keeps its spelling.
+ * @param {unknown} efforts - the profile map.
+ * @returns {Record<string, string>} selector level → editable wire text.
+ */
+export function effortsFromWire(efforts) {
+  const draft = {};
+  if (efforts === null || typeof efforts !== 'object' || Array.isArray(efforts)) return draft;
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(efforts, level)) continue;
+    const wire = efforts[level];
+    if (level === 'off') {
+      draft.off = typeof wire === 'string' ? wire : '';
+    } else if (typeof wire === 'string' && wire !== '') {
+      draft[level] = wire;
+    }
   }
-  return { ok: true, value };
+  return draft;
+}
+
+/**
+ * Serialize the chips state into the `reasoningEfforts` wire map.
+ *
+ * Exactly `{ [level]: wire|null }`: a blank `off` spelling is sent as `null`
+ * (supported, send nothing); every other level carries its non-empty spelling.
+ * @param {unknown} efforts - selector level → editable wire text.
+ * @returns {Record<string, string|null>} the map to send.
+ */
+export function wireEffortsFromDraft(efforts) {
+  const wire = {};
+  if (efforts === null || typeof efforts !== 'object') return wire;
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(efforts, level)) continue;
+    const text = typeof efforts[level] === 'string' ? efforts[level].trim() : '';
+    if (level === 'off') wire.off = text === '' ? null : text;
+    else wire[level] = text;
+  }
+  return wire;
+}
+
+/**
+ * Turn a `detect-reasoning` suggestion into chips state.
+ *
+ * The Host's suggestion holds a level's own name when accepted, `''` for a
+ * valueless `off`, and `null` for a level that should stay undeclared.
+ * @param {unknown} suggestion - the suggestion map.
+ * @returns {Record<string, string>} selector level → editable wire text.
+ */
+export function effortsFromSuggestion(suggestion) {
+  const draft = {};
+  if (suggestion === null || typeof suggestion !== 'object' || Array.isArray(suggestion)) return draft;
+  for (const level of EFFORT_LEVELS) {
+    if (!Object.hasOwn(suggestion, level)) continue;
+    const wire = suggestion[level];
+    if (level === 'off') {
+      if (wire === '') draft.off = '';
+      else if (typeof wire === 'string' && wire !== '') draft.off = wire;
+    } else if (typeof wire === 'string' && wire !== '') {
+      draft[level] = wire;
+    }
+  }
+  return draft;
+}
+
+/**
+ * Toggle one reasoning level in the chips state.
+ * @param {Record<string, string>} efforts - current chips state.
+ * @param {string} level - the toggled level.
+ * @returns {Record<string, string>} the next state.
+ */
+function toggleEfforts(efforts, level) {
+  const next = { ...(efforts !== null && typeof efforts === 'object' ? efforts : {}) };
+  if (Object.hasOwn(next, level)) delete next[level];
+  else next[level] = EFFORT_DEFAULT_WIRE[level] ?? '';
+  return next;
+}
+
+/**
+ * Set one level's editable wire spelling.
+ * @param {Record<string, string>} efforts - current chips state.
+ * @param {string} level - the level.
+ * @param {string} wire - the new spelling text.
+ * @returns {Record<string, string>} the next state.
+ */
+function setEffortWire(efforts, level, wire) {
+  return { ...(efforts !== null && typeof efforts === 'object' ? efforts : {}), [level]: wire };
+}
+
+/**
+ * Mirror the Host's reasoning-level rules on the chips state.
+ *
+ * Selecting nothing is legal (the profile then declares no reasoning levels).
+ * Once a level is selected, at least one non-`off` level is required, every
+ * non-`off` level needs a non-empty spelling, and only `off` may stay blank.
+ * @param {unknown} efforts - selector level → editable wire text.
+ * @returns {string|null} a validation key, or `null` when valid.
+ */
+export function validateEffortsDraft(efforts) {
+  const levels = effortLevelsOf(efforts);
+  if (levels.length === 0) return null;
+  if (!levels.some((level) => level !== 'off')) return 'providers.edit.modelEffortNeedsLevel';
+  for (const level of levels) {
+    const text = typeof efforts[level] === 'string' ? efforts[level].trim() : '';
+    if (level !== 'off' && text === '') return 'providers.edit.modelEffortInvalid';
+    if (text.length > EFFORT_WIRE_MAX) return 'providers.edit.modelEffortInvalid';
+  }
+  return null;
+}
+
+/**
+ * The wire-spelling caption text of one selected level.
+ * @param {(key: string, params?: Record<string, unknown>) => string} t - translate.
+ * @param {string} level - the level id.
+ * @param {unknown} wire - its editable spelling.
+ * @returns {string} display text.
+ */
+function effortWireText(t, level, wire) {
+  const text = typeof wire === 'string' ? wire.trim() : '';
+  if (text !== '') return text;
+  return level === 'off' ? t('providers.edit.wireSendNothing') : t('providers.edit.wireMissing');
 }
 
 /**
@@ -217,15 +379,11 @@ function modelDraft(model) {
     key: nextRowKey(),
     id: stringValue(source.id),
     name: stringValue(source.name),
-    contextWindow: typeof source.contextWindow === 'number' && Number.isFinite(source.contextWindow)
-      ? String(source.contextWindow)
-      : '',
-    maxTokens: typeof source.maxTokens === 'number' && Number.isFinite(source.maxTokens)
-      ? String(source.maxTokens)
-      : '',
+    contextWindow: numberText(source.contextWindow),
+    maxTokens: numberText(source.maxTokens),
     text: modalities.includes('text'),
     image: modalities.includes('image'),
-    efforts: serializeEfforts(efforts),
+    efforts: effortsFromWire(efforts),
   };
 }
 
@@ -249,12 +407,70 @@ function draftFromForm(form) {
   };
 }
 
+/**
+ * The canonical form of one row's effort chips, used for dirty comparison.
+ * @param {unknown} efforts - the chips state.
+ * @returns {Array<[string, string]>} ordered level/spelling pairs.
+ */
+function canonicalEfforts(efforts) {
+  return effortLevelsOf(efforts).map((level) => [
+    level,
+    typeof efforts[level] === 'string' ? efforts[level].trim() : '',
+  ]);
+}
+
+/**
+ * A comparable signature of a draft: two drafts that would save the same profile
+ * share it, so the unsaved marker and guard follow the values, not the keystrokes.
+ * @param {object} draft - the editable draft.
+ * @returns {string} the signature.
+ */
+export function draftSignature(draft) {
+  const value = draft !== null && typeof draft === 'object' ? draft : {};
+  const models = Array.isArray(value.models) ? value.models : [];
+  return JSON.stringify({
+    displayName: stringValue(value.displayName).trim(),
+    api: stringValue(value.api),
+    baseURL: stringValue(value.baseURL).trim(),
+    apiKeyEnv: stringValue(value.apiKeyEnv).trim(),
+    models: models.map((row) => ({
+      id: stringValue(row.id).trim(),
+      name: stringValue(row.name),
+      contextWindow: stringValue(row.contextWindow).trim(),
+      maxTokens: stringValue(row.maxTokens).trim(),
+      text: row.text === true,
+      image: row.image === true,
+      efforts: canonicalEfforts(row.efforts),
+    })),
+  });
+}
+
 /** The draft's selected modalities. */
 function modalitiesOf(row) {
   const list = [];
   if (row.text === true) list.push('text');
   if (row.image === true) list.push('image');
   return list;
+}
+
+/**
+ * One model row in the wire shape `save-provider` and `add-provider` accept.
+ * `extra` is never sent: the Host re-applies unmodeled profile fields by id.
+ * @param {object} row - the draft row.
+ * @returns {object} the wire model entry.
+ */
+export function modelWire(row) {
+  const entry = { id: stringValue(row.id).trim() };
+  const name = trimmedOrNull(row.name);
+  if (name !== null) entry.name = name;
+  const contextWindow = positiveIntText(row.contextWindow).value;
+  if (contextWindow !== null) entry.contextWindow = contextWindow;
+  const maxTokens = positiveIntText(row.maxTokens).value;
+  if (maxTokens !== null) entry.maxTokens = maxTokens;
+  entry.inputModalities = modalitiesOf(row);
+  const efforts = wireEffortsFromDraft(row.efforts);
+  if (Object.keys(efforts).length > 0) entry.reasoningEfforts = efforts;
+  return entry;
 }
 
 /**
@@ -271,18 +487,13 @@ function fieldsFromDraft(draft, capabilities) {
   if (capabilities.baseURL === true) fields.baseURL = trimmedOrNull(draft.baseURL);
   if (capabilities.apiKeyEnv === true) fields.apiKeyEnv = trimmedOrNull(draft.apiKeyEnv);
   if (capabilities.models === true) {
-    fields.models = draft.models.slice(0, MAX_MODELS).map((row) => ({
-      id: row.id.trim(),
-      name: trimmedOrNull(row.name),
-      contextWindow: positiveIntText(row.contextWindow).value,
-      maxTokens: positiveIntText(row.maxTokens).value,
-      inputModalities: modalitiesOf(row),
-      // Only routes whose adapter reads the map get it; DeepSeek routes publish
-      // a fixed level set, and sending a map there would be dropped silently.
-      ...capabilities.modelReasoning === true
-        ? { reasoningEfforts: parseEfforts(row.efforts).value }
-        : {},
-    }));
+    fields.models = draft.models.slice(0, MAX_MODELS).map((row) => {
+      const wire = modelWire(row);
+      // Only the multi-provider adapter reads per-model reasoningEfforts; the
+      // DeepSeek adapters publish a fixed level set instead.
+      if (capabilities.modelReasoning !== true) delete wire.reasoningEfforts;
+      return wire;
+    });
   }
   return fields;
 }
@@ -326,8 +537,9 @@ function validateDraft(draft, capabilities, writable) {
         if (row.name.trim().length > MODEL_NAME_MAX) rowErrors.name = 'providers.edit.modelNameInvalid';
         if (!positiveIntText(row.contextWindow).ok) rowErrors.contextWindow = 'providers.edit.modelPositiveInt';
         if (!positiveIntText(row.maxTokens).ok) rowErrors.maxTokens = 'providers.edit.modelPositiveInt';
-        if (capabilities.modelReasoning === true && !parseEfforts(row.efforts).ok) {
-          rowErrors.efforts = 'providers.edit.modelEffortInvalid';
+        if (capabilities.modelReasoning === true) {
+          const effortError = validateEffortsDraft(row.efforts);
+          if (effortError !== null) rowErrors.efforts = effortError;
         }
         if (Object.keys(rowErrors).length > 0) modelErrors[row.key] = rowErrors;
       }
@@ -342,7 +554,7 @@ function validateDraft(draft, capabilities, writable) {
 
 /** A fresh add-provider draft. */
 function blankAddDraft() {
-  return { id: '', displayName: '', api: '', baseURL: '', apiKeyEnv: '' };
+  return { id: '', displayName: '', api: '', baseURL: '', apiKeyEnv: '', apiKey: '', models: [] };
 }
 
 /**
@@ -363,12 +575,152 @@ function validateAddDraft(draft) {
   else if (!isHttpUrl(baseURL)) errors.baseURL = 'providers.add.baseURLInvalid';
   const apiKeyEnv = draft.apiKeyEnv.trim();
   if (apiKeyEnv !== '' && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) errors.apiKeyEnv = 'providers.add.apiKeyEnvInvalid';
+  if (draft.apiKey.trim() !== '' && apiKeyEnv === '') errors.apiKeyEnv = 'providers.add.refRequiredForKey';
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+
+/**
+ * Validate just the fields the gateway connection needs, so reading models does
+ * not require the provider id or a protocol that discovery is about to detect.
+ * @param {object} draft - the add form draft.
+ * @returns {{valid: boolean, errors: object}} the findings.
+ */
+function validateConnectionDraft(draft) {
+  const errors = {};
+  const baseURL = draft.baseURL.trim();
+  if (baseURL === '') errors.baseURL = 'providers.add.baseURLRequired';
+  else if (!isHttpUrl(baseURL)) errors.baseURL = 'providers.add.baseURLInvalid';
+  const apiKeyEnv = draft.apiKeyEnv.trim();
+  if (apiKeyEnv !== '' && !CREDENTIAL_REF_PATTERN.test(apiKeyEnv)) errors.apiKeyEnv = 'providers.add.apiKeyEnvInvalid';
+  if (draft.apiKey.trim() !== '' && apiKeyEnv === '') errors.apiKeyEnv = 'providers.add.refRequiredForKey';
   return { valid: Object.keys(errors).length === 0, errors };
 }
 
 /** The form revision to send as `expectedRevision`, or `undefined` to omit it. */
 function revisionOf(form) {
   return typeof form?.revision === 'number' && Number.isFinite(form.revision) ? form.revision : undefined;
+}
+
+/**
+ * Normalize `discover-models` entries into pickable import candidates.
+ * @param {unknown} models - the Host's model list.
+ * @returns {Array<{id: string, name: string, contextWindow: number|null, maxTokens: number|null, inputModalities: string[]}>} candidates.
+ */
+function normalizeDiscoveredModels(models) {
+  if (!Array.isArray(models)) return [];
+  const found = [];
+  const seen = new Set();
+  for (const model of models) {
+    const id = typeof model?.id === 'string' ? model.id.trim() : '';
+    if (id === '' || seen.has(id)) continue;
+    seen.add(id);
+    found.push({
+      id,
+      name: typeof model?.name === 'string' ? model.name : '',
+      contextWindow: typeof model?.contextWindow === 'number' && Number.isFinite(model.contextWindow)
+        ? model.contextWindow
+        : null,
+      maxTokens: typeof model?.maxTokens === 'number' && Number.isFinite(model.maxTokens)
+        ? model.maxTokens
+        : null,
+      inputModalities: Array.isArray(model?.inputModalities)
+        ? model.inputModalities.filter((modality) => modality === 'text' || modality === 'image')
+        : [],
+    });
+  }
+  return found;
+}
+
+/**
+ * Build a fresh draft row from one discovered gateway model.
+ * @param {object} model - a normalized discovery candidate.
+ * @returns {object} the draft row.
+ */
+function modelRowFromDiscovery(model) {
+  const modalities = Array.isArray(model.inputModalities) ? model.inputModalities : [];
+  return {
+    key: nextRowKey(),
+    id: model.id,
+    name: stringValue(model.name),
+    contextWindow: numberText(model.contextWindow),
+    maxTokens: numberText(model.maxTokens),
+    text: modalities.length === 0 || modalities.includes('text'),
+    image: modalities.includes('image'),
+    efforts: {},
+  };
+}
+
+/**
+ * Merge gateway models into the model draft.
+ *
+ * A model already in the draft updates its name and context window but keeps its
+ * current reasoning levels, modalities, and capacity; a new one is appended in
+ * gateway order and gets the gateway's modalities (text by default).
+ * @param {object[]} rows - current draft rows.
+ * @param {object[]} discovered - normalized gateway candidates to import.
+ * @returns {object[]} the merged rows.
+ */
+export function mergeImportedModels(rows, discovered) {
+  const next = Array.isArray(rows) ? rows.slice() : [];
+  const indexById = new Map();
+  next.forEach((row, index) => {
+    const id = stringValue(row.id).trim();
+    if (id !== '') indexById.set(id, index);
+  });
+  for (const model of Array.isArray(discovered) ? discovered : []) {
+    const id = stringValue(model?.id).trim();
+    if (id === '') continue;
+    const name = trimmedOrNull(model.name);
+    const contextWindow = numberText(model.contextWindow);
+    const existing = indexById.get(id);
+    if (existing !== undefined) {
+      const row = next[existing];
+      next[existing] = {
+        ...row,
+        id,
+        ...name === null ? {} : { name },
+        ...contextWindow === '' ? {} : { contextWindow },
+      };
+      continue;
+    }
+    if (next.length >= MAX_MODELS) continue;
+    indexById.set(id, next.length);
+    next.push(modelRowFromDiscovery({ ...model, id }));
+  }
+  return next;
+}
+
+/**
+ * What one gateway call should name: the saved route when the endpoint fields
+ * are untouched, or the draft endpoint when base URL, protocol, or credential
+ * reference have unsaved edits.
+ * @param {object} draft - the editable draft.
+ * @param {object} profile - the loaded profile.
+ * @param {string} providerId - the route id.
+ * @returns {{request: object, detected: boolean, draft: boolean}} request body,
+ *   whether the protocol will have to be detected by the Host, and whether the
+ *   unsaved draft endpoint is being used.
+ */
+function endpointRequest(draft, profile, providerId) {
+  const loadedBase = stringValue(profile.baseURL).trim();
+  const loadedApi = stringValue(profile.api);
+  const loadedRef = stringValue(profile.apiKeyEnv).trim();
+  const baseURL = stringValue(draft.baseURL).trim();
+  const api = stringValue(draft.api);
+  const apiKeyEnv = stringValue(draft.apiKeyEnv).trim();
+  const dirty = baseURL !== loadedBase || api !== loadedApi || apiKeyEnv !== loadedRef;
+  if (!dirty) {
+    return {
+      request: providerId === '' ? {} : { providerId },
+      detected: loadedApi === '',
+      draft: false,
+    };
+  }
+  const request = {};
+  if (baseURL !== '') request.baseURL = baseURL;
+  if (api !== '' && PROTOCOLS.includes(api)) request.api = api;
+  if (apiKeyEnv !== '') request.apiKeyEnv = apiKeyEnv;
+  return { request, detected: request.api === undefined, draft: true };
 }
 
 /** One labelled form control; the child gets the `id` and the described-by wiring. */
@@ -398,8 +750,225 @@ function Field({ id, label, hint, error, required = false, children }) {
   );
 }
 
-/** One editable model row. */
-function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput, reasoningEditable }) {
+/**
+ * One gateway model row in the inline import picker.
+ * @param {{ t: Function, idPrefix: string, index: number, model: object, existing: boolean, checked: boolean, onToggle: Function }} props - row state.
+ * @returns the row element.
+ */
+function ImportModelRow({ t, idPrefix, index, model, existing, checked, onToggle }) {
+  const fieldId = `${idPrefix}-import-model-${index}`;
+  return (
+    <li className="td-import-row">
+      <input
+        id={fieldId}
+        className="td-checkbox"
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onToggle(model.id, event.target.checked)}
+      />
+      <label className="td-import-label" htmlFor={fieldId}>
+        <span className="td-import-id td-mono">{model.id}</span>
+        {model.name !== '' && model.name !== model.id ? <span className="td-caption td-import-name">{model.name}</span> : null}
+      </label>
+      {existing ? <Chip>{t('providers.import.existing')}</Chip> : null}
+      {model.contextWindow !== null ? (
+        <span className="td-caption td-import-context">
+          {t('providers.contextWindow', { value: formatTokens(model.contextWindow) })}
+        </span>
+      ) : null}
+    </li>
+  );
+}
+
+/**
+ * Inline picker for the models one gateway advertised.
+ *
+ * Mounted with a fresh `key` by its caller so a new gateway read always starts
+ * from that read's list: models already in the draft arrive pre-checked and
+ * labelled, and importing them refreshes their name/capacity only.
+ * @param {{ t: Function, idPrefix: string, models: object[], protocol: string, detected: boolean, draftEndpoint: boolean, existingIds: string[], onImport: Function, onCancel: Function }} props - discovery result and callbacks.
+ * @returns the picker element.
+ */
+function ModelImportPicker(props) {
+  const { t, idPrefix, models, protocol, detected, draftEndpoint, existingIds, onImport, onCancel } = props;
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(() => {
+    const known = new Set(Array.isArray(existingIds) ? existingIds : []);
+    return new Set(models.filter((model) => known.has(model.id)).map((model) => model.id));
+  });
+  const needle = query.trim().toLowerCase();
+  const visible = needle === ''
+    ? models
+    : models.filter((model) => model.id.toLowerCase().includes(needle)
+      || model.name.toLowerCase().includes(needle));
+  const visibleIds = visible.map((model) => model.id);
+  const imported = models.filter((model) => selected.has(model.id));
+  const existingSet = new Set(Array.isArray(existingIds) ? existingIds : []);
+  const toggle = (id, checked) => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+  const selectAll = () => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      for (const id of visibleIds) next.add(id);
+      return next;
+    });
+  };
+  const invert = () => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      for (const id of visibleIds) {
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+  return (
+    <div className="td-import" role="group" aria-label={t('providers.import.title')}>
+      <div className="td-import-head">
+        <span className="td-card-subtitle">{t('providers.import.found', { count: models.length })}</span>
+        {detected && protocol !== '' ? (
+          <span className="td-caption td-tone-ok">{t('providers.import.protocolDetected', { protocol })}</span>
+        ) : null}
+        {draftEndpoint ? <span className="td-caption">{t('providers.import.draftEndpoint')}</span> : null}
+      </div>
+      <div className="td-import-tools">
+        <input
+          className="td-input td-import-search"
+          value={query}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('providers.import.search')}
+          aria-label={t('providers.import.search')}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <button
+          type="button"
+          className="td-button td-button-small td-button-secondary"
+          disabled={visibleIds.length === 0}
+          onClick={selectAll}
+        >
+          {t('providers.import.selectAll')}
+        </button>
+        <button
+          type="button"
+          className="td-button td-button-small td-button-secondary"
+          disabled={visibleIds.length === 0}
+          onClick={invert}
+        >
+          {t('providers.import.invert')}
+        </button>
+      </div>
+      {visible.length === 0 ? (
+        <p className="td-muted">{t('providers.import.noMatch')}</p>
+      ) : (
+        <ul className="td-import-list">
+          {visible.map((model, index) => (
+            <ImportModelRow
+              key={model.id}
+              t={t}
+              idPrefix={idPrefix}
+              index={index}
+              model={model}
+              existing={existingSet.has(model.id)}
+              checked={selected.has(model.id)}
+              onToggle={toggle}
+            />
+          ))}
+        </ul>
+      )}
+      <div className="td-import-foot">
+        <span className="td-caption">{t('providers.import.selectedCount', { count: imported.length })}</span>
+        <button type="button" className="td-button td-button-small td-button-secondary" onClick={onCancel}>
+          {t('actions.cancel')}
+        </button>
+        <button
+          type="button"
+          className="td-button td-button-small td-button-primary"
+          disabled={imported.length === 0}
+          onClick={() => onImport(imported)}
+        >
+          {t('providers.import.importSelected')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The detection matrix and suggestion action of one model row.
+ * @param {{ t: Function, probe: object, onApplySuggestion: Function }} props - probe state and callback.
+ * @returns the results element.
+ */
+function ReasoningProbeResult({ t, probe, onApplySuggestion }) {
+  if (probe === null || probe === undefined) return null;
+  if (probe.phase === 'error') {
+    return (
+      <span className="td-caption td-tone-error" role="status">
+        {failureText(probe.error, t, 'errors.detect.generic')}
+      </span>
+    );
+  }
+  if (probe.phase !== 'done') return null;
+  const results = Array.isArray(probe.report?.results) ? probe.report.results : [];
+  const suggestion = probe.report?.suggestion !== null && typeof probe.report?.suggestion === 'object'
+    ? probe.report.suggestion
+    : null;
+  return (
+    <>
+      <span className="td-chips">
+        {results.map((row, index) => {
+          const accepted = row?.accepted === true;
+          const value = row?.value === '(omitted)' ? t('providers.edit.detectOmitted') : String(row?.value ?? '?');
+          const detail = [
+            typeof row?.message === 'string' && row.message !== '' ? row.message : null,
+            typeof row?.reasoningTokens === 'number'
+              ? t('providers.edit.detectReasoningTokens', { count: row.reasoningTokens })
+              : null,
+            typeof row?.latencyMs === 'number'
+              ? t('providers.edit.detectLatency', { ms: row.latencyMs })
+              : null,
+          ].filter((part) => part !== null).join(' · ');
+          return (
+            <Chip
+              key={`${String(row?.value ?? '?')}-${index}`}
+              tone={accepted ? 'success' : 'error'}
+              title={detail === '' ? undefined : detail}
+            >
+              {`${accepted ? '✓' : '✕'} ${value}`}
+            </Chip>
+          );
+        })}
+      </span>
+      {results.length === 0 ? <span className="td-caption">{t('providers.edit.detectNoResults')}</span> : null}
+      {suggestion !== null ? (
+        <button
+          type="button"
+          className="td-button td-button-small td-button-secondary"
+          onClick={() => onApplySuggestion(suggestion)}
+        >
+          {t('providers.edit.applySuggestion')}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * One editable model row: identity, capacities, modalities, reasoning chips with
+ * wire-spelling overrides, and the raw-value detection action.
+ */
+function ModelEditorRow(props) {
+  const {
+    t, row, index, idPrefix, errors, onUpdate, onRemove, registerIdInput,
+    reasoningEditable, saved, probe, onProbe, onApplySuggestion, providerBusy,
+  } = props;
   const idField = `${idPrefix}-model-${index}-id`;
   const nameField = `${idPrefix}-model-${index}-name`;
   const contextField = `${idPrefix}-model-${index}-context`;
@@ -407,6 +976,14 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
   const effortsField = `${idPrefix}-model-${index}-efforts`;
   const textField = `${idPrefix}-model-${index}-text`;
   const imageField = `${idPrefix}-model-${index}-image`;
+  const [customWireOpen, setCustomWireOpen] = useState(false);
+  const selectedLevels = reasoningEditable === true ? effortLevelsOf(row.efforts) : [];
+  const probeRunning = probe !== null && probe !== undefined && probe.phase === 'running';
+  const canProbe = reasoningEditable === true && saved === true && providerBusy !== true && !probeRunning;
+  const probeTitle = saved !== true
+    ? t('providers.edit.detectNeedsSaved')
+    : t('providers.edit.detectHint');
+  const effortError = errors.efforts === undefined ? undefined : t(errors.efforts);
   return (
     <div className="td-editor-model">
       <div className="td-editor-model-head">
@@ -459,23 +1036,6 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
             onChange={(event) => onUpdate(row.key, 'maxTokens', event.target.value)}
           />
         </Field>
-        {reasoningEditable === true ? (
-          <Field
-            id={effortsField}
-            label={t('providers.edit.efforts')}
-            hint={t('providers.edit.effortsHint')}
-            error={errors.efforts === undefined ? undefined : t(errors.efforts)}
-          >
-            <input
-              className="td-input td-mono"
-              value={row.efforts}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t('providers.edit.effortsPlaceholder')}
-              onChange={(event) => onUpdate(row.key, 'efforts', event.target.value)}
-            />
-          </Field>
-        ) : null}
         <div className="td-field">
           <span className="td-field-label">{t('providers.edit.modalities')}</span>
           <div className="td-editor-checks">
@@ -497,6 +1057,88 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
             <label className="td-check-label" htmlFor={imageField}>{t('providers.edit.modalityImage')}</label>
           </div>
         </div>
+        {reasoningEditable === true ? (
+          <div className="td-effort-block" id={effortsField} aria-describedby={effortError === undefined ? undefined : `${effortsField}-error`}>
+            <span className="td-field-label">{t('providers.edit.efforts')}</span>
+            <div className="td-effort-chips" role="group" aria-label={t('providers.edit.efforts')}>
+              {EFFORT_LEVELS.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className="td-effort-chip"
+                  aria-pressed={Object.hasOwn(row.efforts, level)}
+                  onClick={() => onUpdate(row.key, 'efforts', toggleEfforts(row.efforts, level))}
+                >
+                  {effortLabel(t, level)}
+                </button>
+              ))}
+            </div>
+            {selectedLevels.length === 0 ? (
+              <p className="td-caption td-effort-wire">{t('providers.edit.wireNone')}</p>
+            ) : (
+              <p className="td-caption td-mono td-effort-wire">
+                {t('providers.edit.wireMap', {
+                  map: selectedLevels
+                    .map((level) => `${level} → ${effortWireText(t, level, row.efforts[level])}`)
+                    .join(' · '),
+                })}
+              </p>
+            )}
+            {selectedLevels.length > 0 ? (
+              <>
+                <div>
+                  <button
+                    type="button"
+                    className="td-button td-button-small td-button-ghost"
+                    aria-expanded={customWireOpen}
+                    onClick={() => setCustomWireOpen((open) => !open)}
+                  >
+                    {t('providers.edit.customWire')}
+                  </button>
+                </div>
+                {customWireOpen ? (
+                  <div className="td-effort-wires">
+                    {selectedLevels.map((level) => {
+                      const wireField = `${effortsField}-${level}`;
+                      return (
+                        <label className="td-effort-wire-field" key={level} htmlFor={wireField}>
+                          <span className="td-field-label">
+                            {t('providers.edit.wireForLevel', { level: effortLabel(t, level) })}
+                          </span>
+                          <input
+                            id={wireField}
+                            className="td-input td-mono"
+                            value={typeof row.efforts[level] === 'string' ? row.efforts[level] : ''}
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder={level === 'off'
+                              ? t('providers.edit.wireBlankForOff')
+                              : level}
+                            onChange={(event) => onUpdate(row.key, 'efforts', setEffortWire(row.efforts, level, event.target.value))}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            <div className="td-effort-detect">
+              <button
+                type="button"
+                className="td-button td-button-small td-button-secondary"
+                disabled={!canProbe}
+                title={probeTitle}
+                onClick={() => onProbe(row)}
+              >
+                {probeRunning ? <Spinner label={t('providers.edit.detecting')} /> : null}
+                {probeRunning ? t('providers.edit.detecting') : t('providers.edit.detect')}
+              </button>
+              <ReasoningProbeResult t={t} probe={probe} onApplySuggestion={(suggestion) => onApplySuggestion(row.key, suggestion)} />
+            </div>
+            {effortError !== undefined ? <p className="td-field-error" id={`${effortsField}-error`} role="alert">{effortError}</p> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -505,25 +1147,58 @@ function ModelEditorRow({ t, row, index, idPrefix, errors, onUpdate, onRemove, r
 /**
  * Presentational editor for one loaded provider form. Exported so the shipped
  * page can render ready, loading, and failed states without a Host round trip.
- * @param {{ form: object|null, loading?: boolean, loadError?: unknown, providerId: string, providerName?: string, t: Function, onClose?: Function, onSaved?: Function, onRetryLoad?: Function, onRefreshForm?: Function }} props - form state and callbacks.
+ *
+ * Beyond the Host form it takes two internal conveniences from `ProviderEditor`:
+ * `savedTick` (bumped after a successful profile save, so a clean draft can show
+ * 已保存 without a modal) and `onRefreshCredential` (re-read the form after a key
+ * write without discarding an in-progress draft). `initialDraft` is a render-time
+ * draft override used by static harnesses to show a dirty draft.
+ * @param {{ form: object|null, loading?: boolean, loadError?: unknown, providerId: string, providerName?: string, t: Function, onClose?: Function, onSaved?: Function, onRetryLoad?: Function, onRefreshForm?: Function, onRefreshCredential?: Function, savedTick?: number, initialDraft?: object }} props - form state and callbacks.
  * @returns the editor element.
  */
 export function ProviderEditorView(props) {
   const t = translateOf(props.t);
   const { form, loading, loadError, providerId, providerName } = props;
   const { onClose, onSaved, onRetryLoad, onRefreshForm } = props;
+  const refreshCredential = typeof props.onRefreshCredential === 'function' ? props.onRefreshCredential : onRefreshForm;
+  const savedTick = typeof props.savedTick === 'number' && Number.isFinite(props.savedTick) ? props.savedTick : 0;
 
-  const [draft, setDraft] = useState(() => draftFromForm(form));
+  const [draft, setDraft] = useState(() => (
+    props.initialDraft !== null && typeof props.initialDraft === 'object'
+      ? props.initialDraft
+      : draftFromForm(form)
+  ));
   const [busy, setBusy] = useState(null);
   const [formError, setFormError] = useState(null);
   const [keyInput, setKeyInput] = useState('');
   const [keyError, setKeyError] = useState(null);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [discardPrompt, setDiscardPrompt] = useState(false);
   const [focusRowKey, setFocusRowKey] = useState(null);
+  const [importPicker, setImportPicker] = useState(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState(null);
+  const [importEmpty, setImportEmpty] = useState(false);
+  const [probe, setProbe] = useState(null);
   const idInputs = useRef(new Map());
   const confirmDeleteRef = useRef(null);
   const aliveRef = useRef(true);
+  const importSequence = useRef(0);
+
+  const baseline = useMemo(() => draftSignature(draftFromForm(form)), [form]);
+  const savedModelIds = useMemo(() => {
+    const ids = new Set();
+    const models = form !== null && typeof form === 'object' && form.profile !== null
+      && typeof form.profile === 'object' && Array.isArray(form.profile.models)
+      ? form.profile.models
+      : [];
+    for (const model of models) {
+      const id = typeof model?.id === 'string' ? model.id.trim() : '';
+      if (id !== '') ids.add(id);
+    }
+    return ids;
+  }, [form]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -583,7 +1258,9 @@ export function ProviderEditorView(props) {
   const canDelete = ready && writable && form.canDelete === true;
   const modelsDeclared = profile.modelsDeclared === true;
   const validation = validateDraft(draft, capabilities, writable);
+  const dirty = ready && draftSignature(draft) !== baseline;
   const canSave = writable && busy === null && validation.valid;
+  const showSaved = writable && dirty === false && savedTick > 0;
   const providerLabel = typeof providerName === 'string' && providerName !== ''
     ? providerName
     : (typeof providerId === 'string' ? providerId : '');
@@ -596,6 +1273,80 @@ export function ProviderEditorView(props) {
   const credentialMasked = typeof credential.masked === 'string' && credential.masked !== '' ? credential.masked : null;
   const credentialSource = typeof credential.source === 'string' && credential.source !== '' ? credential.source : null;
   const revision = ready ? revisionOf(form) : undefined;
+  const importTarget = ready ? endpointRequest(draft, profile, typeof providerId === 'string' ? providerId : '') : null;
+
+  const requestClose = () => {
+    if (dirty) {
+      setDiscardPrompt(true);
+      return;
+    }
+    onClose?.();
+  };
+
+  const importModels = async () => {
+    if (importBusy || busy !== null || importTarget === null) return;
+    importSequence.current += 1;
+    const sequence = importSequence.current;
+    setImportError(null);
+    setImportEmpty(false);
+    setImportPicker(null);
+    setImportBusy(true);
+    try {
+      const result = await discoverModels(importTarget.request);
+      if (!aliveRef.current || sequence !== importSequence.current) return;
+      const models = normalizeDiscoveredModels(result?.models);
+      setImportBusy(false);
+      if (models.length === 0) {
+        setImportEmpty(true);
+        return;
+      }
+      setImportPicker({
+        version: sequence,
+        models,
+        protocol: stringValue(result?.protocol),
+        detected: importTarget.detected,
+      });
+    } catch (failure) {
+      if (!aliveRef.current || sequence !== importSequence.current) return;
+      setImportBusy(false);
+      setImportError(failure);
+    }
+  };
+
+  const applyImport = (models) => {
+    setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
+    setImportPicker(null);
+  };
+
+  const detectRow = async (row) => {
+    const modelId = row.id.trim();
+    if (modelId === '' || busy !== null || !savedModelIds.has(modelId)) return;
+    if (probe !== null && probe.phase === 'running') return;
+    setProbe({ key: row.key, modelId, phase: 'running' });
+    const target = endpointRequest(draft, profile, typeof providerId === 'string' ? providerId : '');
+    try {
+      const report = await detectReasoning({ ...target.request, modelId });
+      if (!aliveRef.current) return;
+      setProbe({ key: row.key, modelId, phase: 'done', report });
+    } catch (failure) {
+      if (!aliveRef.current) return;
+      setProbe({ key: row.key, modelId, phase: 'error', error: failure });
+    }
+  };
+
+  const applySuggestion = (rowKey, suggestion) => {
+    setDraft((previous) => ({
+      ...previous,
+      models: previous.models.map((row) => (
+        row.key === rowKey ? { ...row, efforts: effortsFromSuggestion(suggestion) } : row
+      )),
+    }));
+  };
+
+  const probeFor = (row) => {
+    if (probe === null || probe.key !== row.key) return null;
+    return probe.modelId === row.id.trim() ? probe : null;
+  };
 
   if (loading === true) {
     const message = providerLabel === ''
@@ -623,7 +1374,7 @@ export function ProviderEditorView(props) {
         </Notice>
         <div className="td-editor-foot">
           <div className="td-editor-foot-right">
-            <button type="button" className="td-button td-button-small td-button-secondary" onClick={() => onClose?.()}>
+            <button type="button" className="td-button td-button-small td-button-secondary" onClick={requestClose}>
               {t('actions.cancel')}
             </button>
           </div>
@@ -654,7 +1405,8 @@ export function ProviderEditorView(props) {
     }
     if (!aliveRef.current) return;
     setBusy(null);
-    onSaved?.({ providerId });
+    setDiscardPrompt(false);
+    onSaved?.({ providerId, saved: 'profile' });
     // The form keeps a fresh revision and masked credential for the next read.
     void onRefreshForm?.();
   };
@@ -681,8 +1433,10 @@ export function ProviderEditorView(props) {
     setBusy(null);
     setKeyInput('');
     setClearConfirm(false);
-    onSaved?.({ providerId });
-    void onRefreshForm?.();
+    onSaved?.({ providerId, saved: 'key' });
+    // A key write must not throw away an unsaved draft, so only the credential
+    // block is refreshed instead of remounting the form.
+    void refreshCredential?.();
   };
 
   const clearKey = async () => {
@@ -702,8 +1456,8 @@ export function ProviderEditorView(props) {
     setBusy(null);
     setKeyInput('');
     setClearConfirm(false);
-    onSaved?.({ providerId });
-    void onRefreshForm?.();
+    onSaved?.({ providerId, saved: 'key' });
+    void refreshCredential?.();
   };
 
   const confirmRemove = async () => {
@@ -738,6 +1492,7 @@ export function ProviderEditorView(props) {
   const conflict = codeOf(formError) === 'conflict';
   const apiOptions = PROTOCOLS.includes(draft.api) ? PROTOCOLS : ['', ...PROTOCOLS];
   const footerVisible = writable;
+  const canImport = writable && capabilities.models === true;
 
   return (
     <div className="td-editor">
@@ -931,20 +1686,52 @@ export function ProviderEditorView(props) {
                 {t('providers.edit.models')} · {formatNumber(draft.models.length)}
               </span>
               {writable ? (
-                <button
-                  type="button"
-                  className="td-button td-button-small td-button-secondary"
-                  disabled={draft.models.length >= MAX_MODELS}
-                  onClick={addModel}
-                >
-                  {t('providers.edit.addModel')}
-                </button>
+                <div className="td-editor-head-actions">
+                  {canImport ? (
+                    <button
+                      type="button"
+                      className="td-button td-button-small td-button-secondary"
+                      disabled={importBusy || busy !== null}
+                      onClick={() => { void importModels(); }}
+                    >
+                      {importBusy ? <Spinner label={t('providers.import.loading')} /> : null}
+                      {t('providers.edit.importModels')}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="td-button td-button-small td-button-secondary"
+                    disabled={draft.models.length >= MAX_MODELS}
+                    onClick={addModel}
+                  >
+                    {t('providers.edit.addModel')}
+                  </button>
+                </div>
               ) : null}
             </div>
+            {importBusy ? <p className="td-caption">{t('providers.import.loading')}</p> : null}
+            {importError !== null ? (
+              <p className="td-field-error" role="alert">{failureText(importError, t, 'errors.discover.generic')}</p>
+            ) : null}
+            {importEmpty ? <p className="td-caption">{t('providers.import.empty')}</p> : null}
             {capabilities.modelReasoning !== true ? (
               <p className="td-caption">{t('providers.edit.effortsFixed')}</p>
             ) : null}
             {modelsDeclared === false ? <p className="td-caption">{t('providers.edit.modelsInherited')}</p> : null}
+            {importPicker !== null ? (
+              <ModelImportPicker
+                key={importPicker.version}
+                t={t}
+                idPrefix={idPrefix}
+                models={importPicker.models}
+                protocol={importPicker.protocol}
+                detected={importPicker.detected}
+                draftEndpoint={importTarget !== null && importTarget.draft === true}
+                existingIds={draft.models.map((row) => row.id.trim()).filter((id) => id !== '')}
+                onImport={applyImport}
+                onCancel={() => setImportPicker(null)}
+              />
+            ) : null}
             {draft.models.length === 0 && modelsDeclared === true ? (
               <p className="td-muted">{t('providers.edit.modelsEmpty')}</p>
             ) : null}
@@ -963,6 +1750,11 @@ export function ProviderEditorView(props) {
                       onRemove={removeModel}
                       registerIdInput={registerIdInput}
                       reasoningEditable={capabilities.modelReasoning === true}
+                      saved={savedModelIds.has(row.id.trim())}
+                      probe={probeFor(row)}
+                      onProbe={(target) => { void detectRow(target); }}
+                      onApplySuggestion={applySuggestion}
+                      providerBusy={busy !== null || (probe !== null && probe.phase === 'running')}
                     />
                   ))}
                 </div>
@@ -980,6 +1772,35 @@ export function ProviderEditorView(props) {
               )
             ) : null}
           </section>
+        ) : null}
+
+        {discardPrompt ? (
+          <Notice
+            tone="warn"
+            action={(
+              <>
+                <button
+                  type="button"
+                  className="td-button td-button-small td-button-danger"
+                  onClick={() => {
+                    setDiscardPrompt(false);
+                    onClose?.();
+                  }}
+                >
+                  {t('providers.edit.discard')}
+                </button>
+                <button
+                  type="button"
+                  className="td-button td-button-small td-button-secondary"
+                  onClick={() => setDiscardPrompt(false)}
+                >
+                  {t('providers.edit.keepEditing')}
+                </button>
+              </>
+            )}
+          >
+            {t('providers.edit.discardTitle')}
+          </Notice>
         ) : null}
 
         {footerVisible ? (
@@ -1020,12 +1841,16 @@ export function ProviderEditorView(props) {
               ) : null}
             </div>
             <div className="td-editor-foot-right">
+              {dirty ? (
+                <span className="td-caption td-editor-dirty"><Dot tone="warn" />{t('providers.edit.unsaved')}</span>
+              ) : null}
+              {showSaved ? <span className="td-caption td-tone-ok" role="status">{t('providers.edit.saved')}</span> : null}
               {!validation.valid ? <span className="td-caption">{t('providers.edit.invalidFields')}</span> : null}
               <button
                 type="button"
                 className="td-button td-button-small td-button-secondary"
                 disabled={busy !== null}
-                onClick={() => onClose?.()}
+                onClick={requestClose}
               >
                 {t('actions.cancel')}
               </button>
@@ -1045,7 +1870,7 @@ export function ProviderEditorView(props) {
               <button
                 type="button"
                 className="td-button td-button-small td-button-secondary"
-                onClick={() => onClose?.()}
+                onClick={requestClose}
               >
                 {t('actions.cancel')}
               </button>
@@ -1063,6 +1888,11 @@ export function ProviderEditorView(props) {
  * Loads its own form on mount, renders a loading or failed state until the Host
  * answers, and calls `onSaved` after every successful write so the parent can
  * refresh its snapshot. `onClose` is for cancel/dismiss.
+ *
+ * `onSaved` payloads are additive to the route id: `{ providerId, saved:
+ * 'profile' }` after a profile save, `{ providerId, saved: 'key' }` after a
+ * credential write, and `{ providerId, removed: true }` after the route is
+ * removed.
  * @param {{ providerId: string, providerName?: string, t: Function, onClose?: Function, onSaved?: Function }} props - target route and callbacks.
  * @returns the editor element.
  */
@@ -1073,6 +1903,7 @@ export function ProviderEditor(props) {
   const [generation, setGeneration] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [savedTick, setSavedTick] = useState(0);
   const aliveRef = useRef(true);
 
   useEffect(() => {
@@ -1102,9 +1933,29 @@ export function ProviderEditor(props) {
     }
   }, [providerId]);
 
+  // Credential-only refresh: update the form (masked preview, source, revision)
+  // without remounting the view, so an unsaved draft survives a key write.
+  const refreshCredential = useCallback(async () => {
+    try {
+      const next = await fetchProviderForm(providerId);
+      if (!aliveRef.current) return;
+      setForm(next);
+      setLoadError(null);
+    } catch {
+      // The key write already succeeded; a stale masked preview is cosmetic.
+    }
+  }, [providerId]);
+
   useEffect(() => {
     void readForm();
   }, [readForm]);
+
+  const afterSaved = (info) => {
+    if (info !== null && typeof info === 'object' && info.saved === 'profile') {
+      setSavedTick((previous) => previous + 1);
+    }
+    props.onSaved?.(info);
+  };
 
   return (
     <ProviderEditorView
@@ -1115,16 +1966,212 @@ export function ProviderEditor(props) {
       providerId={providerId}
       providerName={props.providerName}
       t={t}
+      savedTick={savedTick}
       onClose={props.onClose}
-      onSaved={props.onSaved}
+      onSaved={afterSaved}
       onRetryLoad={() => { void readForm(); }}
       onRefreshForm={() => readForm({ quiet: true })}
+      onRefreshCredential={refreshCredential}
     />
   );
 }
 
 /**
+ * Presentational add-provider form: the fields, the gateway connection, the
+ * imported-model list, and the footer. Exported so static harnesses can render
+ * the ready and discovered states without a Host round trip.
+ * @param {{ t: Function, draft: object, errors: object, canCreate?: boolean, busy: string|null, error: unknown, picker: object|null, importEmpty: boolean, detectedProtocol: string|null, onUpdate: Function, onClose?: Function, onCreate?: Function, onConnect?: Function, onImport?: Function, onCancelImport?: Function, onRemoveModel?: Function }} props - form state and callbacks.
+ * @returns the add form element.
+ */
+export function AddProviderView(props) {
+  const {
+    t, draft, errors, canCreate, busy, error, picker, importEmpty, detectedProtocol,
+    onUpdate, onClose, onCreate, onConnect, onImport, onCancelImport, onRemoveModel,
+  } = props;
+  const connecting = busy === 'connect';
+  const models = Array.isArray(draft.models) ? draft.models : [];
+  const fieldError = (key) => (errors[key] === undefined ? undefined : t(errors[key]));
+  return (
+    <Card className="td-provider-card" title={t('providers.add.title')} subtitle={t('providers.add.subtitle')}>
+      <form className="td-editor-form td-add-form" onSubmit={onCreate} noValidate>
+        {error !== null && error !== undefined ? (
+          <Notice tone="error">{failureText(error, t, 'errors.add.generic')}</Notice>
+        ) : null}
+        <div className="td-editor-grid">
+          <Field
+            id="td-add-id"
+            label={t('providers.add.id')}
+            hint={t('providers.add.idHint')}
+            required
+            error={fieldError('id')}
+          >
+            <input
+              className="td-input td-mono"
+              value={draft.id}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('providers.add.idPlaceholder')}
+              onChange={onUpdate('id')}
+            />
+          </Field>
+          <Field
+            id="td-add-display-name"
+            label={t('providers.add.displayName')}
+            error={fieldError('displayName')}
+          >
+            <input className="td-input" value={draft.displayName} autoComplete="off" onChange={onUpdate('displayName')} />
+          </Field>
+          <Field
+            id="td-add-protocol"
+            label={t('providers.add.protocol')}
+            hint={t('providers.add.protocolHint')}
+            required
+            error={fieldError('api')}
+          >
+            <select className="td-select" value={draft.api} onChange={onUpdate('api')}>
+              <option value="">{t('providers.add.protocolPlaceholder')}</option>
+              {PROTOCOLS.map((protocol) => <option key={protocol} value={protocol}>{protocol}</option>)}
+            </select>
+          </Field>
+          <Field
+            id="td-add-base-url"
+            label={t('providers.add.baseURL')}
+            required
+            error={fieldError('baseURL')}
+          >
+            <input
+              className="td-input td-mono"
+              value={draft.baseURL}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('providers.add.baseURLPlaceholder')}
+              onChange={onUpdate('baseURL')}
+            />
+          </Field>
+          <Field
+            id="td-add-api-key-env"
+            label={t('providers.add.apiKeyEnv')}
+            hint={t('providers.add.apiKeyEnvHint')}
+            error={fieldError('apiKeyEnv')}
+          >
+            <input
+              className="td-input td-mono"
+              value={draft.apiKeyEnv}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('providers.add.apiKeyEnvPlaceholder')}
+              onChange={onUpdate('apiKeyEnv')}
+            />
+          </Field>
+          <Field
+            id="td-add-api-key"
+            label={t('providers.add.apiKey')}
+            hint={t('providers.add.apiKeyHint')}
+          >
+            <input
+              className="td-input"
+              type="password"
+              value={draft.apiKey}
+              autoComplete="new-password"
+              placeholder={t('providers.add.apiKeyPlaceholder')}
+              onChange={onUpdate('apiKey')}
+            />
+          </Field>
+        </div>
+        <div className="td-add-connect">
+          <button
+            type="button"
+            className="td-button td-button-small td-button-secondary"
+            disabled={busy !== null}
+            onClick={onConnect}
+          >
+            {connecting ? <Spinner label={t('providers.add.connecting')} /> : null}
+            {connecting ? t('providers.add.connecting') : t('providers.add.connect')}
+          </button>
+          {detectedProtocol !== null ? (
+            <span className="td-caption td-tone-ok">{t('providers.import.protocolDetected', { protocol: detectedProtocol })}</span>
+          ) : null}
+          {models.length === 0 && picker === null ? (
+            <span className="td-caption">{t('providers.add.modelsHint')}</span>
+          ) : null}
+          {importEmpty ? <span className="td-caption td-tone-warn">{t('providers.import.empty')}</span> : null}
+        </div>
+        {picker !== null ? (
+          <ModelImportPicker
+            key={picker.version}
+            t={t}
+            idPrefix="td-add"
+            models={picker.models}
+            protocol={picker.protocol}
+            detected={picker.detected}
+            draftEndpoint={false}
+            existingIds={models.map((row) => row.id.trim()).filter((id) => id !== '')}
+            onImport={onImport}
+            onCancel={onCancelImport}
+          />
+        ) : null}
+        {models.length > 0 ? (
+          <section className="td-editor-section" aria-labelledby="td-add-models">
+            <div className="td-editor-section-head">
+              <span className="td-card-subtitle" id="td-add-models">
+                {t('providers.add.models')} · {formatNumber(models.length)}
+              </span>
+            </div>
+            <p className="td-caption">{t('providers.add.modelsCount', { count: models.length })}</p>
+            <ul className="td-model-list">
+              {models.map((row) => (
+                <li className="td-add-model-row" key={row.key}>
+                  <span className="td-import-label">
+                    <span className="td-import-id td-mono">{row.id}</span>
+                    {row.name !== '' && row.name !== row.id
+                      ? <span className="td-caption td-import-name">{row.name}</span>
+                      : null}
+                  </span>
+                  {row.contextWindow !== '' ? (
+                    <span className="td-caption">{t('providers.contextWindow', { value: formatTokens(Number(row.contextWindow)) })}</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="td-button td-button-small td-button-danger td-add-model-remove"
+                    aria-label={t('providers.add.removeModelAria', { id: row.id })}
+                    onClick={() => onRemoveModel(row.id)}
+                  >
+                    {t('providers.add.removeModel')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        <div className="td-editor-foot">
+          <div className="td-editor-foot-right">
+            {Object.keys(errors).length > 0 ? <span className="td-caption">{t('providers.edit.invalidFields')}</span> : null}
+            <button
+              type="button"
+              className="td-button td-button-small td-button-secondary"
+              disabled={busy !== null}
+              onClick={onClose}
+            >
+              {t('actions.cancel')}
+            </button>
+            <button type="submit" className="td-button td-button-small td-button-primary" disabled={canCreate !== true}>
+              {busy === 'create' ? <Spinner label={t('providers.add.creating')} /> : null}
+              {busy === 'create' ? t('providers.add.creating') : t('providers.add.create')}
+            </button>
+          </div>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+/**
  * Declare a new pi-ai provider route.
+ *
+ * The form mirrors the Host's add rules and adds the gateway import: an optional
+ * key is stored first when a credential reference is set, the endpoint is read,
+ * the detected protocol fills an empty protocol field, and the chosen models are
+ * written with the create request.
  * @param {{ t: Function, expectedRevision?: number, onClose?: Function, onCreated?: Function }} props - translate, revision, and callbacks.
  * @returns the add-provider form element.
  */
@@ -1132,9 +2179,15 @@ export function AddProviderForm(props) {
   const t = translateOf(props.t);
   const { expectedRevision, onClose, onCreated } = props;
   const [draft, setDraft] = useState(blankAddDraft);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const [attempted, setAttempted] = useState(false);
+  const [connectAttempted, setConnectAttempted] = useState(false);
+  const [picker, setPicker] = useState(null);
+  const [importEmpty, setImportEmpty] = useState(false);
+  const [detectedProtocol, setDetectedProtocol] = useState(null);
   const aliveRef = useRef(true);
+  const connectSequence = useRef(0);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -1142,25 +2195,88 @@ export function AddProviderForm(props) {
   }, []);
 
   const validation = validateAddDraft(draft);
-  const canCreate = !busy && validation.valid;
+  const visibleErrors = {};
+  if (attempted) {
+    for (const [field, key] of Object.entries(validation.errors)) visibleErrors[field] = key;
+  } else if (connectAttempted) {
+    const connection = validateConnectionDraft(draft);
+    for (const [field, key] of Object.entries(connection.errors)) visibleErrors[field] = key;
+  }
+
   const update = (field) => (event) => {
     const value = event.target.value;
     setDraft((previous) => ({ ...previous, [field]: value }));
   };
 
+  const connect = async () => {
+    if (busy !== null) return;
+    setConnectAttempted(true);
+    setError(null);
+    const connection = validateConnectionDraft(draft);
+    if (!connection.valid) return;
+    connectSequence.current += 1;
+    const sequence = connectSequence.current;
+    setBusy('connect');
+    setPicker(null);
+    setImportEmpty(false);
+    try {
+      const key = draft.apiKey.trim();
+      const ref = draft.apiKeyEnv.trim();
+      if (key !== '' && ref !== '') await setApiKey({ ref, value: key });
+      const result = await discoverModels({
+        baseURL: draft.baseURL.trim(),
+        ...draft.api !== '' && PROTOCOLS.includes(draft.api) ? { api: draft.api } : {},
+        ...ref === '' ? {} : { apiKeyEnv: ref },
+      });
+      if (!aliveRef.current || sequence !== connectSequence.current) return;
+      const protocol = stringValue(result?.protocol);
+      const models = normalizeDiscoveredModels(result?.models);
+      const detected = draft.api === '';
+      setBusy(null);
+      if (detected && PROTOCOLS.includes(protocol)) {
+        setDraft((previous) => ({ ...previous, api: protocol }));
+        setDetectedProtocol(protocol);
+      }
+      if (models.length === 0) {
+        setImportEmpty(true);
+        return;
+      }
+      setPicker({ version: sequence, models, protocol, detected });
+    } catch (failure) {
+      if (!aliveRef.current || sequence !== connectSequence.current) return;
+      setBusy(null);
+      setError(failure);
+    }
+  };
+
+  const importModels = (models) => {
+    setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
+    setPicker(null);
+  };
+
+  const removeModel = (id) => {
+    setDraft((previous) => ({ ...previous, models: previous.models.filter((row) => row.id !== id) }));
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    if (!canCreate) return;
+    if (busy !== null) return;
+    setAttempted(true);
+    const latest = validateAddDraft(draft);
+    if (!latest.valid) return;
     const id = draft.id.trim();
     const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
     const displayName = draft.displayName.trim();
     if (displayName !== '') provider.displayName = displayName;
     const apiKeyEnv = draft.apiKeyEnv.trim();
     if (apiKeyEnv !== '') provider.apiKeyEnv = apiKeyEnv;
-    setBusy(true);
+    if (draft.models.length > 0) provider.models = draft.models.slice(0, MAX_MODELS).map(modelWire);
+    setBusy('create');
     setError(null);
     let created;
     try {
+      const key = draft.apiKey.trim();
+      if (key !== '' && apiKeyEnv !== '') await setApiKey({ ref: apiKeyEnv, value: key });
       const value = await addProvider({
         ...typeof expectedRevision === 'number' && Number.isFinite(expectedRevision) ? { expectedRevision } : {},
         provider,
@@ -1171,105 +2287,34 @@ export function AddProviderForm(props) {
     } catch (failure) {
       if (aliveRef.current) {
         setError(failure);
-        setBusy(false);
+        setBusy(null);
       }
       return;
     }
     if (!aliveRef.current) return;
-    setBusy(false);
+    setBusy(null);
     setError(null);
     onCreated?.(created);
   };
 
   return (
-    <Card className="td-provider-card" title={t('providers.add.title')} subtitle={t('providers.add.subtitle')}>
-      <form className="td-editor-form" onSubmit={submit} noValidate>
-        {error !== null ? (
-          <Notice tone="error">{failureText(error, t, 'errors.add.generic')}</Notice>
-        ) : null}
-        <div className="td-editor-grid">
-          <Field
-            id="td-add-id"
-            label={t('providers.add.id')}
-            hint={t('providers.add.idHint')}
-            required
-            error={validation.errors.id === undefined ? undefined : t(validation.errors.id)}
-          >
-            <input
-              className="td-input td-mono"
-              value={draft.id}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t('providers.add.idPlaceholder')}
-              onChange={update('id')}
-            />
-          </Field>
-          <Field
-            id="td-add-display-name"
-            label={t('providers.add.displayName')}
-            error={validation.errors.displayName === undefined ? undefined : t(validation.errors.displayName)}
-          >
-            <input className="td-input" value={draft.displayName} autoComplete="off" onChange={update('displayName')} />
-          </Field>
-          <Field
-            id="td-add-protocol"
-            label={t('providers.add.protocol')}
-            required
-            error={validation.errors.api === undefined ? undefined : t(validation.errors.api)}
-          >
-            <select className="td-select" value={draft.api} onChange={update('api')}>
-              <option value="">{t('providers.add.protocolPlaceholder')}</option>
-              {PROTOCOLS.map((protocol) => <option key={protocol} value={protocol}>{protocol}</option>)}
-            </select>
-          </Field>
-          <Field
-            id="td-add-base-url"
-            label={t('providers.add.baseURL')}
-            required
-            error={validation.errors.baseURL === undefined ? undefined : t(validation.errors.baseURL)}
-          >
-            <input
-              className="td-input td-mono"
-              value={draft.baseURL}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t('providers.add.baseURLPlaceholder')}
-              onChange={update('baseURL')}
-            />
-          </Field>
-          <Field
-            id="td-add-api-key-env"
-            label={t('providers.add.apiKeyEnv')}
-            hint={t('providers.add.apiKeyEnvHint')}
-            error={validation.errors.apiKeyEnv === undefined ? undefined : t(validation.errors.apiKeyEnv)}
-          >
-            <input
-              className="td-input td-mono"
-              value={draft.apiKeyEnv}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t('providers.add.apiKeyEnvPlaceholder')}
-              onChange={update('apiKeyEnv')}
-            />
-          </Field>
-        </div>
-        <div className="td-editor-foot">
-          <div className="td-editor-foot-right">
-            <button
-              type="button"
-              className="td-button td-button-small td-button-secondary"
-              disabled={busy}
-              onClick={() => onClose?.()}
-            >
-              {t('actions.cancel')}
-            </button>
-            <button type="submit" className="td-button td-button-small td-button-primary" disabled={!canCreate}>
-              {busy ? <Spinner label={t('providers.add.creating')} /> : null}
-              {busy ? t('providers.add.creating') : t('providers.add.create')}
-            </button>
-          </div>
-        </div>
-      </form>
-    </Card>
+    <AddProviderView
+      t={t}
+      draft={draft}
+      errors={visibleErrors}
+      canCreate={validation.valid && busy === null}
+      busy={busy}
+      error={error}
+      picker={picker}
+      importEmpty={importEmpty}
+      detectedProtocol={detectedProtocol}
+      onUpdate={update}
+      onClose={onClose}
+      onCreate={submit}
+      onConnect={() => { void connect(); }}
+      onImport={importModels}
+      onCancelImport={() => setPicker(null)}
+      onRemoveModel={removeModel}
+    />
   );
 }
