@@ -7,140 +7,106 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 概述
+![模型看板在侧边栏中的入口，包含余额卡片、模型配置卡片与按日用量柱状图](docs/preview.svg)
 
-在左侧面板列表的 **自动化任务** 下方新增一个 **模型看板** 入口。页面打开在与其他面板相同的主列中，分三个标签页：
+## 功能
 
-- **概览** —— 当前默认模型、DeepSeek 官方账户余额、今日 Token、近 30 日用量、已配置的供应商数量，以及配置价格后的成本估算。
-- **模型配置** —— 每个供应商一张卡片：接入地址、协议、凭据引用与密钥是否已配置、适配器实际提供的模型（含上下文窗口与推理档位）、该供应商当前余额，以及任意模型的一键 **设为默认**。**编辑** 会在卡片内展开表单，直接写入与「设置 > 模型」相同的 profile 层（见下文）。
+在左侧面板列表的 **自动化任务** 下方新增一个 **模型看板** 入口。页面打开在与其他面板相同的主列中，分三个标签页。
+
+- **概览** —— 当前默认模型、DeepSeek 官方账户余额、今日 Token、近 30 日用量、已配置的供应商，以及配置价格后的成本估算。
+- **模型配置** —— 每个供应商一张卡片：接入地址、协议、凭据引用与密钥是否已配置、它提供的模型（含上下文窗口与推理档位）、当前余额，以及任意模型的一键 **设为默认**。**编辑** 会在卡片内展开表单。
 - **用量统计** —— Token 总量、按日柱状图、按供应商与按模型的拆分、用量最大的会话，以及可选的成本估算。
 
-面板不写会话日志，也不新增任何模型请求：它只读取 Harness 已拥有的服务。
+面板不写会话日志，也不新增任何模型请求：它只读取 Harness 已有的数据。
 
-## 数据来源
+## 安装
 
-| 内容 | 来源 |
-|---|---|
-| 供应商路由与模型 | `llm.listProviders()`、`llm.listConfigurableProviders()`、`llm.listModels()`、`llm.resolveModelInfo()` |
-| 配置档案（baseURL、协议、`apiKeyEnv`、声明的模型） | `settings.describe()` 按每个供应商的 `settingsPath` 投影 |
-| 凭据状态 | `credentials.describe()` / `credentials.describeRecord()` |
-| 默认模型 | `agentDefaultModel.currentSelection()`；**设为默认** 通过 `agentDefaultModel.saveSelection()` 保存 |
-| 官方余额 | `deepseekAccount.getBalance()`（与 **设置 > 账户** 显示的是同一组钱包） |
-| 其他余额 | 每个供应商若干次 HTTPS `GET` 探测，见下 |
-| Token 用量 | 本 profile 的会话日志，经 `sessionPersistence` 读取 |
-
-## 测试某个模型支持哪些推理强度
-
-要区分两个问题：
-
-1. **Harness 提供哪些档位。** 档位来自适配器：DeepSeek 路由固定为 Off / Low / High / Max；
-   多供应商路由则由每个模型的 `reasoningEfforts` 声明决定（没声明就没有档位，composer 不显示 Effort 行）。
-   面板的模型行会把档位显示成 chips，composer 的 Effort 行是同一份来源。
-2. **上游到底接受哪些值。** 声明了也可能被网关拒绝（或静默忽略）。模型行上的
-   **测试档位** 按钮就是回答这个问题的：Host 先对每个档位做一次免费的适配器能力检查，
-   然后只对适配器认可的档位**各发一次极小的真实请求**（`maxTokens: 24`、prompt `ping`、20 秒超时），
-   回报结算结果。行内显示 `✓ 上游接受`、`— 适配器未提供`、`✕ 请求失败`（悬停看 Host 的 code/message）、`? 未能确定`。
-
-每个档位消耗少量 Token，串行执行。适配器没提供的档位**不会发请求**，所以「未提供」是配置事实而不是网络结论。
-
-**先探测再声明。** 编辑器里的 **探测** 是反过来的顺序：直接对 OpenAI 兼容端点试原始取值（不需要任何声明），
-再给出建议的档位映射，点 **应用建议** 写入 chips。实测本机这些网关的结论说明了为什么必须区分：
-
-| 端点 | 接受的值 | 写入的映射 |
-|---|---|---|
-| atrouter 的 DeepSeek 模型 | 省略字段、`none`、`minimal`…`max`；`none` 的推理 Token 为 0 | `off: none` + 六个档位 |
-| atrouter 的 GLM 模型 | 所有值都接受，但 `none` 并不能停止思考 | 六个档位，不设 `off` |
-| yuanxi（one-api/new-api 系）模型 | 省略字段、`low`…`max`；`none`、`minimal` 返回 400 | `off:`（不发送）+ `low`…`max` |
-
-所以 `off` 不是同一件事：OpenAI 风格中转通常是**省略字段**（`off:` 留空），
-而按值关闭思考的网关是 `off: none`。**千万不要声明端点会拒绝的档位**——composer 会给出一个发出去就失败的选择。
-
-想测试尚未声明的值：先在「编辑 → 模型清单 → 推理档位」里声明候选（语法 `low=low, max=ultra`），保存后再点测试。
-如果不想改 profile、只想验证网关原始取值，可以直接打接口（以 OpenAI 兼容中转为例）：
-
-```sh
-curl -s https://gateway.example/v1/chat/completions \
-  -H "authorization: Bearer $YOUR_KEY" -H 'content-type: application/json' \
-  -d '{"model":"gpt-6.1-sol","messages":[{"role":"user","content":"ping"}],"max_tokens":24,"reasoning_effort":"max"}'
-```
-
-2xx 表示该值被接受，4xx 会指出被拒的字段。注意「接受」不等于「生效」：有些网关接受参数却忽略它，
-所以最好再对比不同档位下的 `reasoning_tokens`／思考输出。
+**插件** > **添加插件** > 本地目录：选择这个包目录即可。插件行显示为 `model-dashboard`；停用后侧边栏入口与页面一起消失。这个包也发布在 npm 上：`@eternalheart/dsh-model-dashboard`。
 
 ## 在面板内编辑模型配置
 
-「模型配置」页可以就地编辑 profile，走的是与「设置 > 模型」完全相同的两条通道，没有任何私有捷径：
+**模型配置** 标签页编辑的就是「设置 > 模型」那一份配置，写入通道和校验规则完全相同。
 
-- `settings.mutate(ns, ops, expectedRevision)` 对 profile 的 volatile 设置表单做叶子级修改，因此无关配置和所有未改动的字段保持原样。表单会带上读取时的 `revision`；期间若有并发修改，写入会被拒绝并提示 **冲突**、提供 **重新读取**，而不是覆盖别人的改动。
-- `credentials.set/unset(ref, value)` 独占密钥。API Key 不会写进 profile patch，不会回传给页面，页面只显示凭据库的掩码预览。
-
-### 便捷流程
-
-- **从网关导入** —— 模型清单里的 **从网关读取模型** 会向端点请求目录（profile 没写协议时自动识别），
-  随后出现内联选择器：搜索、多选、批量导入。已存在的模型默认勾选且保留原有推理档位，
-  导入只会刷新名称/上下文窗口。
-- **推理档位用 chips** —— 每个模型行直接点选 7 个档位，不再写语法；下方小字显示每个已选档位的线上拼写
-  （`off → 不发送` 为默认），需要时展开 **自定义线上拼写** 逐档改。
-- **一键探测** —— **探测** 会对原始端点依次尝试省略字段、`none`、`minimal`…`max`，显示接受/拒绝矩阵与推理 Token 数，
-  **应用建议** 直接把结果写进该行。探测不需要先声明，所以新路由也能用。
-- **新增供应商向导** —— 路由还没创建就能 **连接并读取模型**：填了 API Key 会先写入凭据库，
-  协议由探测结果自动填，选中的模型随创建请求一起提交。
-- 未保存修改有拦截（取消会问「放弃未保存的修改？」），footer 显示 未保存 / 已保存。
-
-能改什么由路由决定（表单里的 `capabilities`）：
+能改什么取决于路由类型：
 
 | 路由 | 可编辑 |
 |---|---|
-| 多供应商适配器（`llm-pi-ai`）声明的供应商 | 显示名称、协议、接入地址、凭据引用、API Key、档案声明的模型；当 profile patch 声明了该路由时可删除，也可新增路由 |
-| 官方 API Key 路由（`deepseek-official`） | 接入地址、凭据引用、API Key、档案声明的模型 |
-| 官方账户路由（`deepseek-account`） | 只读——它的配置属于账户登录 |
+| 你自己声明的供应商 | 显示名称、协议、接入地址、凭据引用、API Key，以及它声明的模型清单；可删除该路由，也可新增路由 |
+| DeepSeek 官方 API Key 路由 | 接入地址、凭据引用、API Key、声明的模型 |
+| DeepSeek 官方账户路由 | 只读 —— 它的设置属于账户登录 |
 
-所有值在写入前都会在 Host 侧校验（`http(s)` 接入地址、受支持的协议、环境变量风格的凭据引用、模型 id 非空且唯一、容量为正整数、推理档位合法）。档案未声明模型时继续继承适配器目录，编辑器会明确说明而不是悄悄把目录复制进档案；已有模型中本构建不认识的字段（如适配器的 `compat` 开关）按 id 保留。
+### 便捷操作
+
+- **从网关读取模型** —— 向端点索取模型目录（配置里没写协议时会自动识别），然后搜索、勾选、批量导入。已声明的模型保留原有推理档位，导入只刷新名称与上下文窗口。
+- **用 chips 编辑推理档位** —— 每个模型行把档位做成开关而不是语法，选中的档位旁边显示线上拼写（默认 `off → 发送时省略`）。网关对某个档位的叫法不同时，用 **自定义线上拼写** 逐个填写。
+- **探测** —— 直接问端点接受哪些取值，见下文。
+- **新增供应商** —— 草稿路由在创建之前就能连接并读取模型：API Key 先写入凭据库，协议由探测结果填入，选中的模型随创建请求一起提交。
+- 未保存的修改有保护（**取消** 会先询问是否放弃），页脚标记 **未保存** / **已保存**。
+
+### 安全边界
+
+- 所有值在写入前都会校验：`http(s)` 接入地址、受支持的协议、环境变量风格的凭据引用、唯一且非空的模型 id、正数容量、已知的推理档位。
+- 表单打开期间配置被别处改过时，保存会被拒绝并提示冲突，提供 **重新读取**，而不是覆盖更新的值。
+- API Key 只进凭据库：不写进模型配置，不回传给页面，只以凭据库的掩码预览展示。
+
+配置里没有声明的模型继续继承适配器的模型目录，编辑器会明确说明，而不是悄悄复制一份。
+
+## 推理档位
+
+有两个问题看起来一样，其实不是：
+
+1. **Harness 会提供哪些档位。** DeepSeek 路由固定是 Off/Low/High/Max；其他路由取决于适配器为每个模型声明了什么。没有声明的模型一个档位都不提供，输入框旁就不会出现 Effort 行。
+2. **端点实际接受哪些档位。** 声明了也可能被网关拒绝，或者被接受但静默忽略。
+
+**测试档位** 回答的是第二个问题：对适配器提供的每个档位发一次极小的真实请求（`maxTokens: 24`、提示词 `ping`、20 秒超时），然后报告结果 —— `✓ 接受`、`— 未提供`、`✕ 拒绝`（悬停可看网关返回的代码与消息）、`? 无法判定`。每个档位会消耗少量 Token，探测按顺序执行。适配器没有提供的档位根本不会发送，所以「未提供」是配置事实，不是网络结果。
+
+**探测** 反过来：不需要先声明，直接拿候选原始值打一次 OpenAI 兼容端点，然后给出建议映射；**应用建议** 会把它写进模型行。
+
+`off` 不是一种东西：在 OpenAI 风格的中继上它通常等于「省略该字段」（`off:` 后面不写值），而在按值关闭思考的网关上它是 `off: none`。不要把端点会拒绝的档位声明上去——输入框会提供一个必定失败的选项。拿不准时，先声明候选档位（编辑 → 模型 → 推理档位），保存，再探测。
+
+另外，「接受」不等于「生效」：有的网关收下取值却不理会，需要在档位之间对比推理 Token 数或思考内容。
 
 ## 余额
 
-DeepSeek 官方路由有两条：账户路由（`deepseek-account`）通过 `deepseekAccount` 显示 Platform 钱包；API Key 路由（`deepseek-official`）用该路由本身的 `DEEPSEEK_API_KEY` 凭据探测 `https://api.deepseek.com/user/balance`——profile 里不写 `baseURL` 也可以，因为适配器内置的默认端点会被当作兜底。Platform 账户未登录但该探测有余额时，概览卡片会显示 API Key 路由的余额并注明来源。
+DeepSeek 官方两条路由各覆盖一层：账户路由显示平台钱包余额；API Key 路由用该路由已配置的密钥探测 `https://api.deepseek.com/user/balance`，不需要额外的接入地址配置。平台账号未登录、但探测拿到了余额时，概览卡片会显示 API Key 的余额并注明来源。
 
-其他供应商按需探测，结果缓存 `balanceCacheSeconds`：
+其他供应商按需探测，结果缓存 `balanceCacheSeconds` 秒：
 
-1. `GET …/user/balance` —— DeepSeek API 形态
-   （`balance_infos[].total_balance`）。当端点主机名包含 `deepseek` 时优先尝试。
-2. `GET …/dashboard/billing/subscription` 与
-   `GET …/dashboard/billing/usage?start_date=…&end_date=…` —— OpenAI 兼容中转（one-api / new-api 系）提供的计费兼容形态。剩余额度为 `hard_limit_usd - total_usage / 100`，以 USD 呈现。
+1. `GET …/user/balance` —— DeepSeek 的返回结构（`balance_infos[].total_balance`）；接入地址的 host 含 `deepseek` 时优先尝试。
+2. `GET …/dashboard/billing/subscription` 与 `GET …/dashboard/billing/usage?start_date=…&end_date=…` —— OpenAI 计费兼容接口，one-api / new-api 之类的中继会提供。余额为 `hard_limit_usd - total_usage / 100`，以美元计。
 
-每个路径会先在配置的 baseURL 下尝试，再在站点 origin 下尝试——中转常见做法是把 API 放在 `/v1` 前缀，而计费兼容路由挂在站点根路径。
+每种路径先按配置的 base URL 尝试，再退回 origin，因为中继常把 API 放在 `/v1` 下，而计费接口在根路径。
 
-两种形态都不提供的供应商会显示「不可用」而不是报错。one-api/new-api 对没有限额的账户会返回一个
-兼容额度哨兵值（100,000,000 USD），这种情况显示为「无限额度」并附上已用量，而不是一个上亿的余额。自带查询接口的中转可以在插件配置里描述：
+两种结构都不返回的供应商显示「余额不可用」，而不是报错。one-api / new-api 对没有有限额度的账号会返回一个哨兵值（100,000,000「美元」），这种情况显示为 **无限额度** 加已用金额，而不是九位数余额。自带接口的中继可以在插件配置里描述：
 
 ```yaml
 providerBalance:
   acme-relay:
     mode: custom            # auto | openai-billing | deepseek | custom | off
     url: https://relay.example/api/me
-    amountPath: data.balance # JSON 回复里的点路径
+    amountPath: data.balance # 指向 JSON 回复的点路径
     limitPath: data.quota
-    scale: 0.000002          # 乘数（例如把内部额度单位换算成美元）
+    scale: 0.000002          # 字段乘以该系数（例如把额度单位换算成美元）
     currency: USD
 ```
 
-`mode: off` 可对单个供应商关闭探测；同一对象里的 `baseURL` 会覆盖内置探测使用的端点。
+`mode: off` 关闭某个供应商的探测；同一对象里的 `baseURL` 覆盖内置探测使用的地址。
 
-探测只把该供应商自己的密钥作为 bearer token 发往该供应商自己的端点。密钥不会离开 Host 进程，也不会返回给页面；跨通道的只有金额与状态。
+探测把供应商自己的凭据发到该供应商自己的端点。密钥不离开 Harness 进程，也不会回传给页面，只有金额和状态过通道。
 
 ## 用量统计
 
-页面从每个已存会话日志中提取 `assistant/message` 事件——适配器上报的持久化 `usage`、产生它的路由、事件时间。结果缓存在 `$DSH_HOME/cache/model-dashboard/`，以每个会话的持久化 revision 为键；之后的刷新只读取发生变化会话的新增尾部。
+面板读取 Harness 已经为每条助手回复记录好的 Token 账目 —— 本次 profile 的会话日志里的用量记录、产生它的路由、事件时间 —— 并把结果缓存到 `$DSH_HOME/cache/model-dashboard/`。之后刷新只读发生变化的那部分会话的新增尾部。
 
-- 首次扫描大历史在后台进行，页面显示「已扫描 / 总数」并持续轮询直到结束。
-- **请求数** 统计带有 Token 记账的 assistant 消息；**推理** 仅作展示，不计入任何 Token 合计。
-- **输入**、**缓存读取**、**缓存写入** 是互不重叠的 prompt 桶，prompt 为三者之和，总 Token 再加上 **输出**；**缓存命中率** 为 `cacheRead / (input + cacheRead + cacheWrite)`。
-- 区间按 Host 本地时区的「天」粒度聚合。
-- **重新扫描** 会丢弃缓存并从头重算。
+- 历史很大时首轮扫描在后台跑，页头显示 `已扫描 / 总数` 并持续轮询直到稳定。
+- **请求数** 只统计带 Token 账目的助手消息；**推理** 仅作参考，不计入任何 Token 合计。
+- **输入**、**缓存读取**、**缓存写入** 是互不重叠的提示词口径，三者之和即一次提示词；总 Token 再加 **输出**。缓存命中率为 `cacheRead / (input + cacheRead + cacheWrite)`。
+- 时间范围按本机时区以天为粒度。
+- **重新扫描** 会丢弃缓存并重算全部数据。
 
 ### 成本估算
 
-成本是估算值，不是账单。在插件的 `pricing` 里配置每百万 Token 的价格；键为 `provider/model`，或所有供应商共用的纯模型 id：
+成本是估算值，不是账单。在插件的 `pricing` 里按每百万 Token 配置价格；键是 `provider/model`，或只写模型 id（对所有供应商生效）：
 
 ```yaml
 pricing:
@@ -148,46 +114,25 @@ pricing:
   gpt-6.1-sol: { input: 10, output: 30 }
 ```
 
-`cacheRead` 与 `cacheWrite` 缺省时按 `input` 计算。未配置价格的模型成本显示为 `—`，合计只累加已配置价格的模型——因此部分配置只会得到部分成本，而不会凭空编一个数字。货币取插件配置里的 `currency`（`CNY` 或 `USD`）。
+`cacheRead` 与 `cacheWrite` 默认取 `input`。未配置价格的模型成本显示 `—`，合计只累加已配置价格的模型，所以只配了一部分时给出的是部分成本，而不是编造的数字。货币标签取自 `currency` 配置（`CNY` 或 `USD`）。
 
 ## 配置项
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `locale` | `auto` | Host 侧文本语言：`auto`、`zh` 或 `en` |
-| `currency` | `CNY` | 成本估算与探测金额的货币 |
+| `locale` | `auto` | `auto`、`zh` 或 `en`，控制面板文本语言 |
+| `currency` | `CNY` | 成本估算与探测金额使用的货币标签 |
 | `scanConcurrency` | `3` | 扫描时并行读取的会话日志数 |
-| `maxSessions` | `0` | 每轮扫描的最新会话数；`0` 表示全部 |
+| `maxSessions` | `0` | 每轮只扫描最新的 N 个会话；`0` 表示全部 |
 | `cacheDir` | `''` | 用量缓存目录；留空使用 `$DSH_HOME/cache/model-dashboard` |
-| `balanceTimeoutMs` | `8000` | 单次余额探测超时 |
-| `balanceCacheSeconds` | `300` | 单次探测结果的复用秒数 |
-| `pricing` | `{}` | 成本估算表，单位：每 100 万 Token |
-| `providerBalance` | `{}` | 单个供应商的探测覆盖（见上） |
-
-## 安装
-
-**插件** > **添加插件** > 本地目录：选择本包目录即可。Bundle 行为 `model-dashboard`；停用后侧边栏入口与页面消失，Host 通道也不再提供。
-
-同时发布到 npm：`@eternalheart/dsh-model-dashboard`。
-
-## 发布
-
-### 本机发布
-
-```sh
-npm login --registry=https://registry.npmjs.com   # 每个 npm 账号一次
-npm run pub
-```
-
-`npm run pub` 会先检查 npmjs 登录状态；未登录时打印上面的登录命令并退出，不会改动仓库。它同时要求工作区干净，避免未提交的内容漏在发布 commit 之外。登录后给出默认版本号：当前版本尚未发布时默认沿用当前版本（首次发布可以是 `1.0.0`），已发布则默认自增补丁版本；也可以直接输入任意稳定的 `x.y.z`，但小于当前版本或已存在的版本会被拒绝。确认后依次构建、测试、把版本写入 `package.json` 与 `package-lock.json`、创建 commit `feat: vX.Y.Z`，再以 public 访问级别发布到 `https://registry.npmjs.com`。推送该 commit 后由 CI 创建 GitHub Release。
-
-### CI 发布
-
-`.github/workflows/release.yml` 在每次推送到 `master`/`main` 时运行，但只有 HEAD commit 标题恰好为 `feat: vX.Y.Z` 才继续。它会校验 `package.json` 中的版本、构建与测试，然后打 tag `vX.Y.Z` 并创建 GitHub Release。npm 发布只在本机 `npm run pub` 完成，CI 不存放 npm 凭据。Release 正文列出上一个 `vX.Y.Z` tag 之后的提交记录，末尾是 npm 地址。
+| `balanceTimeoutMs` | `8000` | 单次余额探测的超时 |
+| `balanceCacheSeconds` | `300` | 单次探测结果复用多久（秒） |
+| `pricing` | `{}` | 成本估算表，单位为每 1,000,000 Token |
+| `providerBalance` | `{}` | 按供应商的探测覆盖项（见上文） |
 
 ## 限制
 
-- 面板展示的是当前 composition 拥有的内容。profile 从未声明的供应商，只有在其适配器路由处于活动状态时才会出现。
-- 用量覆盖本 profile 会话后端存储的会话；其他机器或其他 profile 的会话不计入。
-- 余额探测本质上是尽力而为：既不提供计费兼容接口、也不提供 DeepSeek 形态余额接口的网关无法显示余额。官方账户余额依赖已保存的 Cloud 登录凭据。
-- 成本由配置的价格推导，不会与供应商账单对账。
+- 面板展示的是当前运行环境拥有的内容。配置里从未声明的供应商，只有在其适配器路由处于活动状态时才会出现。
+- 用量只覆盖本 profile 会话后端保存的会话。其他机器或其他 profile 的会话不包含在内。
+- 余额探测本质上是尽力而为：两种计费结构都不提供的网关无法给出余额。官方账户余额依赖已保存的 Cloud 登录状态。
+- 成本由你配置的价格推导，不会与供应商账单对账。
