@@ -476,9 +476,11 @@ The built `index.js` and `client.js` are committed, so installing a local
 directory does not require a build. Rebuild after changing `src/`, then restart
 DSH.
 
-Releases: `npm run pub` bumps the version, builds, tests, and publishes to npm;
-pushing the resulting `feat: vX.Y.Z` commit lets the GitHub workflow create the
-Release.
+Releases: `npm run pub` bumps the version, builds, tests, and publishes to the
+canonical `registry.npmjs.org`; pushing the resulting `feat: vX.Y.Z` commit lets
+the GitHub workflow create the Release. The first run needs
+`npm login --registry=https://registry.npmjs.org`; with 2FA enabled, npm opens
+the browser for the publish confirmation, so complete it when prompted.
 
 Questions and bug reports are welcome in
 [GitHub Issues](https://github.com/wh131462/dsh-model-dashboard/issues); pull

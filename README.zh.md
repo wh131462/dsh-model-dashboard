@@ -408,8 +408,10 @@ npm test        # Host 测试套件
 构建产物 `index.js` 与 `client.js` 会提交到仓库，所以本地目录安装不需要先构建。修改
 `src/` 后重新构建，并重启 DSH。
 
-发布：`npm run pub` 负责版本号、构建、测试与 npm 发布；推送
-`feat: vX.Y.Z` 提交后，GitHub Actions 会创建对应的 Release。
+发布：`npm run pub` 负责版本号、构建、测试与发布，目标是官方源
+`registry.npmjs.org`；推送 `feat: vX.Y.Z` 提交后，GitHub Actions 会创建对应的
+Release。首次发布需先执行 `npm login --registry=https://registry.npmjs.org`；账号开启
+2FA 时 npm 会打开浏览器要求确认，按提示完成即可。
 
 问题和 Bug 欢迎提交到
 [GitHub Issues](https://github.com/wh131462/dsh-model-dashboard/issues)；也欢迎 PR。
