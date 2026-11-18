@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({ id: "@local/dsh-model-dashboard", factory: (require) => {
+window.__ModuleLoader__.load({ id: "@eternalheart/dsh-model-dashboard", factory: (require) => {
 var module = { exports: {} }; var exports = module.exports;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -6353,10 +6353,10 @@ function DashboardPage(props) {
 // src/client/locales.js
 var NS = "model-dashboard";
 var zh = {
-  "panel.title": "\u6A21\u578B\u4EEA\u8868\u76D8",
+  "panel.title": "\u6A21\u578B\u770B\u677F",
   "ui.listSeparator": "\u3001",
   "page.subtitle": "\u6A21\u578B\u914D\u7F6E\u3001\u8D26\u6237\u4F59\u989D\u4E0E Token \u7528\u91CF\u4E00\u89C8",
-  "tabs.label": "\u6A21\u578B\u4EEA\u8868\u76D8\u89C6\u56FE",
+  "tabs.label": "\u6A21\u578B\u770B\u677F\u89C6\u56FE",
   "tabs.overview": "\u6982\u89C8",
   "tabs.providers": "\u6A21\u578B\u914D\u7F6E",
   "tabs.usage": "\u7528\u91CF\u7EDF\u8BA1",
@@ -6387,8 +6387,8 @@ var zh = {
   "actions.copyCredentialRef": "\u590D\u5236\u51ED\u636E\u5F15\u7528",
   "actions.copyModelId": "\u590D\u5236\u6A21\u578B ID",
   "actions.copied": "\u5DF2\u590D\u5236",
-  "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u4EEA\u8868\u76D8\u2026",
-  "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u4EEA\u8868\u76D8\uFF1A{message}",
+  "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u770B\u677F\u2026",
+  "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u770B\u677F\uFF1A{message}",
   "errors.refreshFailed": "\u5237\u65B0\u5931\u8D25\uFF0C\u6B63\u5728\u663E\u793A\u4E0A\u6B21\u7684\u6570\u636E\uFF1A{message}",
   "errors.balances": "\u4F59\u989D\u5237\u65B0\u5931\u8D25\uFF1A{message}",
   "errors.usage": "\u7528\u91CF\u6570\u636E\u52A0\u8F7D\u5931\u8D25\uFF1A{message}",
@@ -6689,10 +6689,10 @@ var zh = {
   "usage.sessionUntitled": "\u672A\u547D\u540D\u4F1A\u8BDD"
 };
 var en = {
-  "panel.title": "Model dashboard",
+  "panel.title": "model-dashboard",
   "ui.listSeparator": ", ",
   "page.subtitle": "Model configuration, account balances, and token usage at a glance",
-  "tabs.label": "Model dashboard sections",
+  "tabs.label": "model-dashboard sections",
   "tabs.overview": "Overview",
   "tabs.providers": "Models",
   "tabs.usage": "Usage",
@@ -6723,8 +6723,8 @@ var en = {
   "actions.copyCredentialRef": "Copy credential reference",
   "actions.copyModelId": "Copy model ID",
   "actions.copied": "Copied",
-  "loading.page": "Loading the model dashboard\u2026",
-  "errors.snapshot": "Could not load the model dashboard: {message}",
+  "loading.page": "Loading the model-dashboard\u2026",
+  "errors.snapshot": "Could not load the model-dashboard: {message}",
   "errors.refreshFailed": "Refresh failed; showing the previous data: {message}",
   "errors.balances": "Balance refresh failed: {message}",
   "errors.usage": "Could not load usage: {message}",

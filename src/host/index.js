@@ -1,5 +1,5 @@
 /**
- * Model dashboard — Host half.
+ * model-dashboard — Host half.
  *
  * Registers one authenticated JSON channel and owns everything the page reads:
  * provider/model discovery from the Harness services, the official account's
@@ -16,7 +16,7 @@ import { normalizeConfig } from './config.js';
 import { createDashboard } from './dashboard.js';
 import { PREFIX } from './shared.js';
 
-export const name = '@local/dsh-model-dashboard';
+export const name = '@eternalheart/dsh-model-dashboard';
 
 /** No hard dependency: each capability is resolved at use time. */
 export const inject = [];

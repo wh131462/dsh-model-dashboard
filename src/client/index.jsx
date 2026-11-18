@@ -61,7 +61,7 @@ export function PanelIcon({ size = 18 } = {}) {
 export const inject = ['slots', 'locale'];
 
 /**
- * Register the Model dashboard entry and its page.
+ * Register the model-dashboard entry and its page.
  * @param {object} ctx - the browser services this half needs.
  */
 export function apply(ctx) {

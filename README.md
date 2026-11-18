@@ -1,15 +1,15 @@
 ---
-description: "Model dashboard: the live model configuration, per-provider balances, and token usage statistics as a dashboard beside the sidebar's Automation tasks."
+description: "model-dashboard: the live model configuration, per-provider balances, and token usage statistics as a dashboard beside the sidebar's Automation tasks."
 kind: "package-reference"
 ---
 
-# Model dashboard
+# model-dashboard
 
 English | [中文](README.zh.md)
 
 ## Summary
 
-Adds one sidebar panel entry, **Model dashboard**, under **Automation tasks**. The
+Adds one sidebar panel entry, **model-dashboard**, under **Automation tasks**. The
 page opens on the same main column the other panel entries use and is organised
 in three tabs:
 

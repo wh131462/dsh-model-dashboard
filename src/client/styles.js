@@ -1,5 +1,5 @@
 /**
- * Every style the Model dashboard uses, injected once by `DashboardPage` as a
+ * Every style the model-dashboard uses, injected once by `DashboardPage` as a
  * `<style>` child.
  *
  * Design system (defined once on `.td-page`, applied everywhere below):

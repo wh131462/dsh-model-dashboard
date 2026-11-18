@@ -11,11 +11,11 @@ export const NS = 'model-dashboard';
 
 /** Chinese dictionary (the Harness default locale). */
 export const zh = {
-  'panel.title': '模型仪表盘',
+  'panel.title': '模型看板',
   'ui.listSeparator': '、',
   'page.subtitle': '模型配置、账户余额与 Token 用量一览',
 
-  'tabs.label': '模型仪表盘视图',
+  'tabs.label': '模型看板视图',
   'tabs.overview': '概览',
   'tabs.providers': '模型配置',
   'tabs.usage': '用量统计',
@@ -49,9 +49,9 @@ export const zh = {
   'actions.copyModelId': '复制模型 ID',
   'actions.copied': '已复制',
 
-  'loading.page': '正在加载模型仪表盘…',
+  'loading.page': '正在加载模型看板…',
 
-  'errors.snapshot': '无法加载模型仪表盘：{message}',
+  'errors.snapshot': '无法加载模型看板：{message}',
   'errors.refreshFailed': '刷新失败，正在显示上次的数据：{message}',
   'errors.balances': '余额刷新失败：{message}',
   'errors.usage': '用量数据加载失败：{message}',
@@ -362,11 +362,11 @@ export const zh = {
 
 /** English dictionary. */
 export const en = {
-  'panel.title': 'Model dashboard',
+  'panel.title': 'model-dashboard',
   'ui.listSeparator': ', ',
   'page.subtitle': 'Model configuration, account balances, and token usage at a glance',
 
-  'tabs.label': 'Model dashboard sections',
+  'tabs.label': 'model-dashboard sections',
   'tabs.overview': 'Overview',
   'tabs.providers': 'Models',
   'tabs.usage': 'Usage',
@@ -400,9 +400,9 @@ export const en = {
   'actions.copyModelId': 'Copy model ID',
   'actions.copied': 'Copied',
 
-  'loading.page': 'Loading the model dashboard…',
+  'loading.page': 'Loading the model-dashboard…',
 
-  'errors.snapshot': 'Could not load the model dashboard: {message}',
+  'errors.snapshot': 'Could not load the model-dashboard: {message}',
   'errors.refreshFailed': 'Refresh failed; showing the previous data: {message}',
   'errors.balances': 'Balance refresh failed: {message}',
   'errors.usage': 'Could not load usage: {message}',

@@ -2327,7 +2327,7 @@ function accountBalanceView(account) {
 }
 
 // src/host/index.js
-var name = "@local/dsh-model-dashboard";
+var name = "@eternalheart/dsh-model-dashboard";
 var inject = [];
 function apply(ctx, rawConfig) {
   const config = normalizeConfig(rawConfig);

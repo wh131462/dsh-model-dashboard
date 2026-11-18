@@ -1,9 +1,9 @@
-# Model dashboard: one Host row (balances, usage scan, authenticated JSON channel) and
-# its Client half (the sidebar "Model dashboard" entry and the dashboard page under it).
+# model-dashboard: one Host row (balances, usage scan, authenticated JSON channel) and
+# its Client half (the sidebar "model-dashboard" entry and the dashboard page under it).
 # The profile's own patch layer may repeat this id to override any field below.
 - insert:
     - id: model-dashboard
-      name: '@local/dsh-model-dashboard'
+      name: '@eternalheart/dsh-model-dashboard'
       config:
         # Host locale used for description text sent to the page; `auto` follows the
         # Harness locale, `zh` and `en` pin one.

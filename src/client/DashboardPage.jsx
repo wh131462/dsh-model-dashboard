@@ -1,5 +1,5 @@
 /**
- * Root page of the Model dashboard.
+ * Root page of the model-dashboard.
  *
  * Owns the snapshot request and its polling, the page shell, tabs, and the
  * balance/default-model actions; the tabs themselves (`Overview`, `Providers`,
@@ -145,7 +145,7 @@ function liveScanState(snapshot, scanning, t) {
 }
 
 /**
- * Render the Model dashboard page.
+ * Render the model-dashboard page.
  * @param {{ t?: (key: string, params?: Record<string, unknown>) => string }} props - the namespace-bound translate seat.
  * @returns the page element.
  */
