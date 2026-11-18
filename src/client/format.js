@@ -153,6 +153,37 @@ export function formatDate(value) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
+/** Cached `month/day` formatter for chart axis keys and tooltips. */
+let dayKeyFormat;
+
+/**
+ * A Host `YYYY-MM-DD` day key as a localized month/day: `11/17` in en-US,
+ * `11月17日` in zh-CN. The key names one calendar day, not an instant, so it is
+ * rebuilt as a local date and printed with `Intl.DateTimeFormat`; a malformed
+ * key is passed through untouched instead of inventing a date.
+ * @param {unknown} value - the Host's day key.
+ * @returns {string} localized day text.
+ */
+export function formatDayKey(value) {
+  if (typeof value !== 'string' || value === '') return DASH;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match === null) return value;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())
+    || date.getFullYear() !== year
+    || date.getMonth() !== month - 1
+    || date.getDate() !== day) {
+    return value;
+  }
+  if (dayKeyFormat === undefined) {
+    dayKeyFormat = new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric' });
+  }
+  return dayKeyFormat.format(date);
+}
+
 /**
  * Date and time in the page locale: `2026-11-17 14:19`.
  * @param {unknown} value - epoch milliseconds.

@@ -1,7 +1,11 @@
 /**
  * The 用量统计 tab: one fetch of the Host's usage report per range, polled while
- * a background scan is running, with totals, a daily bar chart, model/provider
- * breakdowns, and the largest recent sessions.
+ * a background scan is running.
+ *
+ * The composition is a reading sequence rather than a card grid: the period's
+ * token total and its coverage context, the supporting metric row, the daily
+ * shape, the breakdown tables (sticky headers inside their scroll regions), and
+ * finally the largest sessions.
  *
  * Token totals use the Host's disjoint buckets (`input + cacheRead + cacheWrite
  * + output`); `cacheHitRate` is rendered as delivered.
@@ -11,17 +15,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorText, fetchUsage, rescanUsage } from './api.js';
 import {
   BarChart,
-  Card,
   CardSkeleton,
   EmptyState,
   Notice,
   ProgressBar,
+  Section,
   SegmentedControl,
   Spinner,
-  Stat,
   TableWrap,
 } from './ui.jsx';
-import { formatCost, formatDateTime, formatNumber, formatPercent, formatTokens, totalTokens } from './format.js';
+import {
+  formatCost,
+  formatDateTime,
+  formatDayKey,
+  formatNumber,
+  formatPercent,
+  formatTokens,
+  totalTokens,
+} from './format.js';
 
 /** Range options in display order. */
 const RANGES = ['today', '7d', '30d', 'all'];
@@ -88,9 +99,18 @@ function labelIndexes(length, maximum) {
   return result;
 }
 
-/** Chart axis label for a `YYYY-MM-DD` day key. */
-function chartLabel(date) {
-  return typeof date === 'string' && date.length >= 10 ? date.slice(5) : (typeof date === 'string' ? date : '');
+/**
+ * Share of the stored sessions the current cache covers: `scanned / total`.
+ * `null` when the Host has not reported a scan total.
+ * @param {any} scan - the report's ScanProgress.
+ * @returns {number|null} a fraction in `[0, 1]`.
+ */
+function coverageOf(scan) {
+  if (scan === null || typeof scan !== 'object') return null;
+  const total = typeof scan.total === 'number' && Number.isFinite(scan.total) ? scan.total : 0;
+  const scanned = typeof scan.scanned === 'number' && Number.isFinite(scan.scanned) ? scan.scanned : 0;
+  if (total <= 0) return null;
+  return Math.min(Math.max(scanned / total, 0), 1);
 }
 
 /** Session title, falling back to the cwd basename and then to the id. */
@@ -107,20 +127,21 @@ function sessionTitle(session, t) {
 
 /**
  * Render the usage tab.
- * @param {{ t: (key: string, params?: Record<string, unknown>) => string }} props - translate function.
+ * @param {{ t: (key: string, params?: Record<string, unknown>) => string, initialReport?: any }} props - translate function; `initialReport` is a render-harness seed only (production never passes it, and the tab still fetches on mount).
  * @returns the usage tab element.
  */
 export function Usage(props) {
   const t = props.t ?? ((key) => key);
+  const seed = props.initialReport !== null && typeof props.initialReport === 'object' ? props.initialReport : null;
   const [range, setRange] = useState(DEFAULT_RANGE);
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState(seed);
+  const [loading, setLoading] = useState(seed === null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
   const [rescanning, setRescanning] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
-  const reportRef = useRef(null);
+  const reportRef = useRef(seed);
   const requestSequence = useRef(0);
   const pollGuard = useRef({ key: '', count: 0 });
 
@@ -235,9 +256,11 @@ export function Usage(props) {
         />
         <div className="td-toolbar-group">
           <button type="button" className="td-button td-button-small td-button-secondary" disabled={refreshing} onClick={refresh}>
+            {refreshing ? <Spinner label={t('actions.refreshing')} /> : null}
             {refreshing ? t('actions.refreshing') : t('actions.refresh')}
           </button>
           <button type="button" className="td-button td-button-small td-button-secondary" disabled={rescanning} onClick={() => { void rescan(); }}>
+            {rescanning ? <Spinner label={t('actions.rescanning')} /> : null}
             {rescanning ? t('actions.rescanning') : t('actions.rescan')}
           </button>
         </div>
@@ -276,93 +299,129 @@ export function Usage(props) {
 
       {report === null ? (
         error === null ? <CardSkeleton count={4} label={t('loading.page')} /> : null
+      ) : calls === 0 ? (
+        <Section>
+          <EmptyState title={t('usage.empty')} hint={t('usage.emptyHint')} />
+        </Section>
       ) : (
         <>
-          <p className="td-caption td-caveat">
-            {t('usage.caveat', { count: typeof scan?.total === 'number' ? formatNumber(scan.total) : '0' })}
-          </p>
-          {calls === 0 ? (
-            <Card className="td-section">
-              <EmptyState title={t('usage.empty')} hint={t('usage.emptyHint')} />
-            </Card>
-          ) : (
-            <>
-              <Card className="td-section">
-                <div className="td-totals">
-                  <Stat label={t('usage.totalTokens')} value={formatTokens(totalTokens(totals))} />
-                  <Stat label={t('usage.input')} value={formatTokens(totals?.input)} />
-                  <Stat label={t('usage.output')} value={formatTokens(totals?.output)} />
-                  <Stat label={t('usage.cacheRead')} value={formatTokens(totals?.cacheRead)} />
-                  <Stat label={t('usage.cacheWrite')} value={formatTokens(totals?.cacheWrite)} />
-                  <Stat label={t('usage.cacheHitRate')} value={formatPercent(totals?.cacheHitRate)} />
-                  <Stat label={t('usage.calls')} value={formatNumber(totals?.calls)} />
-                  <Stat
-                    label={t('usage.cost')}
-                    value={pricingConfigured ? formatCost(totals?.cost, currency) : '—'}
-                    hint={pricingConfigured ? t('usage.costPricedOnly') : t('usage.costUnconfigured')}
-                  />
-                </div>
-              </Card>
-              {pricingConfigured ? <p className="td-caption">{t('usage.priceNote')}</p> : null}
-              <DailyChartCard days={days} t={t} />
-              <BreakdownCard
-                title={t('usage.byModel')}
-                kind="model"
-                rows={visibleModels}
-                t={t}
-                currency={currency}
-                pricingConfigured={pricingConfigured}
-                footer={models.length > MODEL_ROW_LIMIT ? (
-                  <button type="button" className="td-button td-button-small td-button-ghost" onClick={() => setShowAllModels((previous) => !previous)}>
-                    {showAllModels ? t('usage.showLess') : t('usage.showAll', { count: models.length })}
-                  </button>
-                ) : undefined}
-              />
-              <BreakdownCard
-                title={t('usage.byProvider')}
-                kind="provider"
-                rows={providers}
-                t={t}
-                currency={currency}
-                pricingConfigured={pricingConfigured}
-              />
-              <SessionsCard sessions={sessions} t={t} currency={currency} pricingConfigured={pricingConfigured} />
-            </>
-          )}
+          <UsageHeadline totals={totals} calls={calls} range={range} scan={scan} t={t} />
+          <UsageMetrics
+            totals={totals}
+            currency={currency}
+            pricingConfigured={pricingConfigured}
+            t={t}
+          />
+          {pricingConfigured ? <p className="td-caption td-price-note">{t('usage.priceNote')}</p> : null}
+          <DailyChartSection days={days} t={t} />
+          <BreakdownSection
+            title={t('usage.byModel')}
+            kind="model"
+            rows={visibleModels}
+            t={t}
+            currency={currency}
+            pricingConfigured={pricingConfigured}
+            footer={models.length > MODEL_ROW_LIMIT ? (
+              <button type="button" className="td-button td-button-small td-button-ghost" onClick={() => setShowAllModels((previous) => !previous)}>
+                {showAllModels ? t('usage.showLess') : t('usage.showAll', { count: models.length })}
+              </button>
+            ) : undefined}
+          />
+          <BreakdownSection
+            title={t('usage.byProvider')}
+            kind="provider"
+            rows={providers}
+            t={t}
+            currency={currency}
+            pricingConfigured={pricingConfigured}
+          />
+          <SessionsSection sessions={sessions} t={t} currency={currency} pricingConfigured={pricingConfigured} />
         </>
       )}
     </div>
   );
 }
 
+/**
+ * The tab's dominant readout: the period's total, with the range, call count,
+ * and the cache coverage that qualifies it.
+ */
+function UsageHeadline({ totals, calls, range, scan, t }) {
+  const coverage = coverageOf(scan);
+  const coverageText = coverage === null ? '—' : formatPercent(coverage);
+  const stored = typeof scan?.total === 'number' ? formatNumber(scan.total) : '0';
+  return (
+    <section className="td-usage-hero">
+      <p className="td-eyebrow">{t('usage.totalTokens')}</p>
+      <p className="td-usage-total">{formatTokens(totalTokens(totals))}</p>
+      <p className="td-usage-context">
+        <span>{rangeLabel(t, range)}</span>
+        <span>{t('usage.sessionRequests', { count: formatNumber(calls) })}</span>
+        <span>{t('usage.coverage', { value: coverageText })}</span>
+      </p>
+      <p className="td-caption td-usage-caveat">{t('usage.caveat', { count: stored })}</p>
+    </section>
+  );
+}
+
+/** Supporting metrics under the total: the disjoint buckets, hit rate, and cost. */
+function UsageMetrics({ totals, currency, pricingConfigured, t }) {
+  const costHint = pricingConfigured ? t('usage.costPricedOnly') : t('usage.costUnconfigured');
+  const items = [
+    { key: 'input', label: t('usage.input'), value: formatTokens(totals?.input) },
+    { key: 'output', label: t('usage.output'), value: formatTokens(totals?.output) },
+    { key: 'cache-read', label: t('usage.cacheRead'), value: formatTokens(totals?.cacheRead) },
+    { key: 'cache-write', label: t('usage.cacheWrite'), value: formatTokens(totals?.cacheWrite) },
+    { key: 'hit-rate', label: t('usage.cacheHitRate'), value: formatPercent(totals?.cacheHitRate) },
+    {
+      key: 'cost',
+      label: t('usage.cost'),
+      value: pricingConfigured ? formatCost(totals?.cost, currency) : '—',
+      hint: costHint,
+    },
+  ];
+  return (
+    <dl className="td-metrics">
+      {items.map((item) => (
+        <div className="td-metric" key={item.key}>
+          <dt className="td-metric-label">{item.label}</dt>
+          <dd className="td-metric-value">{item.value}</dd>
+          {item.hint !== undefined ? <dd className="td-metric-hint">{item.hint}</dd> : null}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /** Dense daily bar chart; bars scale to the largest day. */
-function DailyChartCard({ days, t }) {
+function DailyChartSection({ days, t }) {
   const labels = labelIndexes(days.length, MAX_CHART_LABELS);
   const items = days.map((day, index) => {
     const value = totalTokens(day);
+    const date = typeof day?.date === 'string' ? day.date : '';
     return {
       key: `${day?.date ?? 'day'}-${index}`,
       value,
-      label: labels.has(index) ? chartLabel(day?.date) : null,
-      title: t('usage.chart.barTitle', { date: typeof day?.date === 'string' ? day.date : '', tokens: formatNumber(value) }),
+      label: labels.has(index) ? formatDayKey(day?.date) : null,
+      title: t('usage.chart.barTitle', { date: formatDayKey(date), tokens: formatNumber(value) }),
     };
   });
   const hasUsage = items.some((item) => item.value > 0);
   return (
-    <Card className="td-section" title={t('usage.chart.title')}>
+    <Section title={t('usage.chart.title')}>
       {items.length === 0 || !hasUsage
         ? <EmptyState title={t('usage.chart.empty')} />
         : <BarChart items={items} ariaLabel={t('usage.chart.title')} />}
-    </Card>
+    </Section>
   );
 }
 
-/** One model or provider breakdown table. */
-function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, footer }) {
+/** One model or provider breakdown table with a sticky header. */
+function BreakdownSection({ title, kind, rows, t, currency, pricingConfigured, footer }) {
   const firstColumn = kind === 'model' ? t('usage.table.model') : t('usage.table.provider');
   return (
-    <Card className="td-section" title={title} footer={footer}>
-      <TableWrap>
+    <Section title={title} footer={footer}>
+      <TableWrap label={title}>
         <table className="td-table">
           <thead>
             <tr>
@@ -383,12 +442,12 @@ function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, foot
               return (
                 <tr key={`${kind}-${row?.provider ?? ''}-${row?.model ?? ''}-${index}`}>
                   <td>
-                    <div className="td-cell-main">
+                    <div className="td-cell-main" translate="no">
                       {kind === 'model'
                         ? (row?.name ?? row?.model ?? '—')
                         : (row?.displayName ?? row?.provider ?? '—')}
                     </div>
-                    <div className="td-cell-sub td-mono">
+                    <div className="td-cell-sub td-mono" translate="no">
                       {kind === 'model'
                         ? `${row?.provider ?? '—'}/${row?.model ?? '—'}`
                         : (typeof row?.provider === 'string' ? row.provider : '')}
@@ -411,14 +470,14 @@ function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, foot
           </tbody>
         </table>
       </TableWrap>
-    </Card>
+    </Section>
   );
 }
 
 /** The largest sessions in the range. */
-function SessionsCard({ sessions, t, currency, pricingConfigured }) {
+function SessionsSection({ sessions, t, currency, pricingConfigured }) {
   return (
-    <Card className="td-section" title={t('usage.sessions')}>
+    <Section title={t('usage.sessions')}>
       {sessions.length === 0 ? <EmptyState title={t('usage.sessions.empty')} /> : (
         <ul className="td-session-list">
           {sessions.map((session, index) => {
@@ -426,18 +485,18 @@ function SessionsCard({ sessions, t, currency, pricingConfigured }) {
             const title = sessionTitle(session, t);
             return (
               <li className="td-session-row" key={session?.id ?? `session-${index}`}>
-                <span className="td-session-title" title={title}>{title}</span>
+                <span className="td-session-title" title={title} translate="no">{title}</span>
                 <span className="td-session-meta">
                   <span>{formatDateTime(when)}</span>
                   <span>{t('usage.sessionTokens', { value: formatNumber(totalTokens(session)) })}</span>
                   <span>{t('usage.sessionRequests', { count: formatNumber(session?.calls) })}</span>
-                  <span>{pricingConfigured ? formatCost(session?.cost, currency) : '—'}</span>
+                  {pricingConfigured ? <span>{formatCost(session?.cost, currency)}</span> : null}
                 </span>
               </li>
             );
           })}
         </ul>
       )}
-    </Card>
+    </Section>
   );
 }

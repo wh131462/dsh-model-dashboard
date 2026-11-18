@@ -27,7 +27,7 @@ import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, 
 import {
   addProvider, detectReasoning, discoverModels, errorText, fetchProviderForm, removeProvider, saveProvider, setApiKey,
 } from './api.js';
-import { Card, Chip, Dot, Notice, Spinner } from './ui.jsx';
+import { Card, Chip, CopyButton, Dot, Notice, Spinner } from './ui.jsx';
 import { formatNumber, formatTokens } from './format.js';
 
 /** Wire protocols the pi-ai adapter accepts. */
@@ -182,6 +182,26 @@ function failureText(failure, t, fallbackKey) {
 function sourceText(t, source) {
   const key = SOURCE_KEYS[source];
   return key === undefined ? String(source) : t(key);
+}
+
+/**
+ * Put keyboard focus on the first invalid control after a rejected submit, so
+ * the user is not left at the submit button with the error out of view. The
+ * reasoning chips are buttons inside a group rather than labelled inputs, so
+ * that group's first chip is the fallback.
+ * @param {HTMLFormElement|null} form - the submitted form.
+ */
+function focusFirstInvalid(form) {
+  if (form === null || form === undefined || typeof form.querySelector !== 'function') return;
+  const control = form.querySelector('input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"]');
+  if (control !== null && typeof control.focus === 'function') {
+    control.focus();
+    return;
+  }
+  const efforts = form.querySelector('.td-effort-block[data-invalid="true"]');
+  if (efforts === null) return;
+  const first = efforts.querySelector('button');
+  if (first !== null && typeof first.focus === 'function') first.focus();
 }
 
 /** True for an absolute http(s) URL. */
@@ -723,8 +743,13 @@ function endpointRequest(draft, profile, providerId) {
   return { request, detected: request.api === undefined, draft: true };
 }
 
-/** One labelled form control; the child gets the `id` and the described-by wiring. */
-function Field({ id, label, hint, error, required = false, children }) {
+/**
+ * One labelled form control; the child gets the `id` and the described-by
+ * wiring. `action` is a trailing affordance in the label row (the copy button of
+ * an endpoint, credential reference, or model id), never a second control that
+ * changes the field's value.
+ */
+function Field({ id, label, hint, error, required = false, action, children }) {
   const description = [
     hint !== undefined && hint !== null ? `${id}-hint` : null,
     error !== undefined && error !== null ? `${id}-error` : null,
@@ -739,10 +764,13 @@ function Field({ id, label, hint, error, required = false, children }) {
   }
   return (
     <div className="td-field">
-      <label className="td-field-label" htmlFor={id}>
-        {label}
-        {required ? <span className="td-field-flag" aria-hidden="true"> *</span> : null}
-      </label>
+      <div className="td-field-head">
+        <label className="td-field-label" htmlFor={id}>
+          {label}
+          {required ? <span className="td-field-flag" aria-hidden="true"> *</span> : null}
+        </label>
+        {action !== undefined ? <div className="td-field-action">{action}</div> : null}
+      </div>
       {control}
       {hint !== undefined && hint !== null ? <p className="td-field-hint" id={`${id}-hint`}>{hint}</p> : null}
       {error !== undefined && error !== null ? <p className="td-field-error" id={`${id}-error`} role="alert">{error}</p> : null}
@@ -763,6 +791,8 @@ function ImportModelRow({ t, idPrefix, index, model, existing, checked, onToggle
         id={fieldId}
         className="td-checkbox"
         type="checkbox"
+        name="importModel"
+        value={model.id}
         checked={checked}
         onChange={(event) => onToggle(model.id, event.target.checked)}
       />
@@ -841,6 +871,8 @@ function ModelImportPicker(props) {
       <div className="td-import-tools">
         <input
           className="td-input td-import-search"
+          name="modelSearch"
+          type="search"
           value={query}
           autoComplete="off"
           spellCheck={false}
@@ -934,7 +966,7 @@ function ReasoningProbeResult({ t, probe, onApplySuggestion }) {
             typeof row?.latencyMs === 'number'
               ? t('providers.edit.detectLatency', { ms: row.latencyMs })
               : null,
-          ].filter((part) => part !== null).join(' · ');
+          ].filter((part) => part !== null).join('; ');
           return (
             <Chip
               key={`${String(row?.value ?? '?')}-${index}`}
@@ -998,12 +1030,26 @@ function ModelEditorRow(props) {
         </button>
       </div>
       <div className="td-editor-model-grid">
-        <Field id={idField} label={t('providers.edit.modelId')} required error={errors.id === undefined ? undefined : t(errors.id)}>
+        <Field
+          id={idField}
+          label={t('providers.edit.modelId')}
+          required
+          error={errors.id === undefined ? undefined : t(errors.id)}
+          action={(
+            <CopyButton
+              value={row.id}
+              label={t('actions.copyModelId')}
+              copiedLabel={t('actions.copied')}
+            />
+          )}
+        >
           <input
             className="td-input td-mono"
+            name={`models[${index}].id`}
             value={row.id}
             autoComplete="off"
             spellCheck={false}
+            translate="no"
             ref={registerIdInput(row.key)}
             onChange={(event) => onUpdate(row.key, 'id', event.target.value)}
           />
@@ -1011,6 +1057,7 @@ function ModelEditorRow(props) {
         <Field id={nameField} label={t('providers.edit.modelName')} error={errors.name === undefined ? undefined : t(errors.name)}>
           <input
             className="td-input"
+            name={`models[${index}].name`}
             value={row.name}
             autoComplete="off"
             onChange={(event) => onUpdate(row.key, 'name', event.target.value)}
@@ -1019,9 +1066,12 @@ function ModelEditorRow(props) {
         <Field id={contextField} label={t('providers.edit.contextWindow')} error={errors.contextWindow === undefined ? undefined : t(errors.contextWindow)}>
           <input
             className="td-input td-mono"
+            name={`models[${index}].contextWindow`}
             type="number"
+            inputMode="numeric"
             min="1"
             step="1"
+            autoComplete="off"
             value={row.contextWindow}
             onChange={(event) => onUpdate(row.key, 'contextWindow', event.target.value)}
           />
@@ -1029,9 +1079,12 @@ function ModelEditorRow(props) {
         <Field id={maxField} label={t('providers.edit.maxTokens')} error={errors.maxTokens === undefined ? undefined : t(errors.maxTokens)}>
           <input
             className="td-input td-mono"
+            name={`models[${index}].maxTokens`}
             type="number"
+            inputMode="numeric"
             min="1"
             step="1"
+            autoComplete="off"
             value={row.maxTokens}
             onChange={(event) => onUpdate(row.key, 'maxTokens', event.target.value)}
           />
@@ -1043,6 +1096,8 @@ function ModelEditorRow(props) {
               id={textField}
               className="td-checkbox"
               type="checkbox"
+              name={`models[${index}].modalities`}
+              value="text"
               checked={row.text === true}
               onChange={(event) => onUpdate(row.key, 'text', event.target.checked)}
             />
@@ -1051,6 +1106,8 @@ function ModelEditorRow(props) {
               id={imageField}
               className="td-checkbox"
               type="checkbox"
+              name={`models[${index}].modalities`}
+              value="image"
               checked={row.image === true}
               onChange={(event) => onUpdate(row.key, 'image', event.target.checked)}
             />
@@ -1058,7 +1115,13 @@ function ModelEditorRow(props) {
           </div>
         </div>
         {reasoningEditable === true ? (
-          <div className="td-effort-block" id={effortsField} aria-describedby={effortError === undefined ? undefined : `${effortsField}-error`}>
+          <div
+            className="td-effort-block"
+            id={effortsField}
+            aria-describedby={effortError === undefined ? undefined : `${effortsField}-error`}
+            aria-invalid={effortError === undefined ? undefined : true}
+            data-invalid={effortError === undefined ? undefined : 'true'}
+          >
             <span className="td-field-label">{t('providers.edit.efforts')}</span>
             <div className="td-effort-chips" role="group" aria-label={t('providers.edit.efforts')}>
               {EFFORT_LEVELS.map((level) => (
@@ -1080,7 +1143,7 @@ function ModelEditorRow(props) {
                 {t('providers.edit.wireMap', {
                   map: selectedLevels
                     .map((level) => `${level} → ${effortWireText(t, level, row.efforts[level])}`)
-                    .join(' · '),
+                    .join(t('ui.listSeparator')),
                 })}
               </p>
             )}
@@ -1108,9 +1171,11 @@ function ModelEditorRow(props) {
                           <input
                             id={wireField}
                             className="td-input td-mono"
+                            name={`models[${index}].reasoningEfforts.${level}`}
                             value={typeof row.efforts[level] === 'string' ? row.efforts[level] : ''}
                             autoComplete="off"
                             spellCheck={false}
+                            translate="no"
                             placeholder={level === 'off'
                               ? t('providers.edit.wireBlankForOff')
                               : level}
@@ -1180,9 +1245,11 @@ export function ProviderEditorView(props) {
   const [importBusy, setImportBusy] = useState(false);
   const [importError, setImportError] = useState(null);
   const [importEmpty, setImportEmpty] = useState(false);
+  const [importStatus, setImportStatus] = useState(null);
   const [probe, setProbe] = useState(null);
   const idInputs = useRef(new Map());
   const confirmDeleteRef = useRef(null);
+  const formRef = useRef(null);
   const aliveRef = useRef(true);
   const importSequence = useRef(0);
 
@@ -1259,7 +1326,9 @@ export function ProviderEditorView(props) {
   const modelsDeclared = profile.modelsDeclared === true;
   const validation = validateDraft(draft, capabilities, writable);
   const dirty = ready && draftSignature(draft) !== baseline;
-  const canSave = writable && busy === null && validation.valid;
+  // Save stays enabled while the draft is invalid so a submit can focus the
+  // first offending field (the guideline: enable until the request starts).
+  const canSave = writable && busy === null;
   const showSaved = writable && dirty === false && savedTick > 0;
   const providerLabel = typeof providerName === 'string' && providerName !== ''
     ? providerName
@@ -1289,6 +1358,7 @@ export function ProviderEditorView(props) {
     const sequence = importSequence.current;
     setImportError(null);
     setImportEmpty(false);
+    setImportStatus(null);
     setImportPicker(null);
     setImportBusy(true);
     try {
@@ -1316,6 +1386,7 @@ export function ProviderEditorView(props) {
   const applyImport = (models) => {
     setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
     setImportPicker(null);
+    setImportStatus(models.length);
   };
 
   const detectRow = async (row) => {
@@ -1387,7 +1458,10 @@ export function ProviderEditorView(props) {
     event.preventDefault();
     if (!writable || busy !== null) return;
     const latest = validateDraft(draft, capabilities, writable);
-    if (!latest.valid) return;
+    if (!latest.valid) {
+      focusFirstInvalid(formRef.current);
+      return;
+    }
     setBusy('save');
     setFormError(null);
     try {
@@ -1520,7 +1594,7 @@ export function ProviderEditorView(props) {
         <Notice tone="info">{t('providers.edit.accountReadonly')}</Notice>
       ) : null}
 
-      <form className="td-editor-form" onSubmit={submit} noValidate>
+      <form className="td-editor-form" ref={formRef} onSubmit={submit} noValidate>
         <div className="td-editor-grid">
           {showDisplayName ? (
             <Field
@@ -1529,9 +1603,9 @@ export function ProviderEditorView(props) {
               error={validation.fieldErrors.displayName === undefined ? undefined : t(validation.fieldErrors.displayName)}
             >
               {readOnly ? (
-                <input className="td-input" value={draft.displayName} readOnly placeholder={t('providers.edit.notSet')} />
+                <input className="td-input" name="displayName" value={draft.displayName} readOnly autoComplete="off" placeholder={t('providers.edit.notSet')} />
               ) : (
-                <input className="td-input" value={draft.displayName} autoComplete="off" onChange={updateScalar('displayName')} />
+                <input className="td-input" name="displayName" value={draft.displayName} autoComplete="off" onChange={updateScalar('displayName')} />
               )}
             </Field>
           ) : null}
@@ -1542,9 +1616,9 @@ export function ProviderEditorView(props) {
               error={validation.fieldErrors.api === undefined ? undefined : t(validation.fieldErrors.api)}
             >
               {readOnly ? (
-                <input className="td-input td-mono" value={draft.api} readOnly placeholder={t('providers.edit.notSet')} />
+                <input className="td-input td-mono" name="api" value={draft.api} readOnly autoComplete="off" spellCheck={false} translate="no" placeholder={t('providers.edit.notSet')} />
               ) : (
-                <select className="td-select" value={draft.api} onChange={updateScalar('api')}>
+                <select className="td-select" name="api" value={draft.api} onChange={updateScalar('api')}>
                   {apiOptions.map((protocol) => (
                     <option key={protocol === '' ? 'inherit' : protocol} value={protocol}>
                       {protocol === '' ? t('providers.edit.protocolInherit') : protocol}
@@ -1559,15 +1633,26 @@ export function ProviderEditorView(props) {
               id={`${idPrefix}-base-url`}
               label={t('providers.edit.baseURL')}
               error={validation.fieldErrors.baseURL === undefined ? undefined : t(validation.fieldErrors.baseURL)}
+              action={(
+                <CopyButton
+                  value={draft.baseURL}
+                  label={t('actions.copyEndpoint')}
+                  copiedLabel={t('actions.copied')}
+                />
+              )}
             >
               {readOnly ? (
-                <input className="td-input td-mono" value={draft.baseURL} readOnly placeholder={t('providers.edit.notSet')} />
+                <input className="td-input td-mono" name="baseURL" value={draft.baseURL} readOnly autoComplete="off" spellCheck={false} translate="no" placeholder={t('providers.edit.notSet')} />
               ) : (
                 <input
                   className="td-input td-mono"
+                  name="baseURL"
+                  type="url"
+                  inputMode="url"
                   value={draft.baseURL}
                   autoComplete="off"
                   spellCheck={false}
+                  translate="no"
                   placeholder={t('providers.edit.baseURLPlaceholder')}
                   onChange={updateScalar('baseURL')}
                 />
@@ -1580,15 +1665,24 @@ export function ProviderEditorView(props) {
               label={t('providers.edit.apiKeyEnv')}
               hint={t('providers.edit.apiKeyEnvHint')}
               error={validation.fieldErrors.apiKeyEnv === undefined ? undefined : t(validation.fieldErrors.apiKeyEnv)}
+              action={(
+                <CopyButton
+                  value={draft.apiKeyEnv}
+                  label={t('actions.copyCredentialRef')}
+                  copiedLabel={t('actions.copied')}
+                />
+              )}
             >
               {readOnly ? (
-                <input className="td-input td-mono" value={draft.apiKeyEnv} readOnly placeholder={t('providers.edit.notSet')} />
+                <input className="td-input td-mono" name="apiKeyEnv" value={draft.apiKeyEnv} readOnly autoComplete="off" spellCheck={false} translate="no" placeholder={t('providers.edit.notSet')} />
               ) : (
                 <input
                   className="td-input td-mono"
+                  name="apiKeyEnv"
                   value={draft.apiKeyEnv}
                   autoComplete="off"
                   spellCheck={false}
+                  translate="no"
                   placeholder={t('providers.edit.apiKeyEnvPlaceholder')}
                   onChange={updateScalar('apiKeyEnv')}
                 />
@@ -1602,7 +1696,7 @@ export function ProviderEditorView(props) {
         {showApiKey ? (
           <section className="td-editor-section" aria-labelledby={`${idPrefix}-api-key`}>
             <div className="td-editor-section-head">
-              <span className="td-card-subtitle" id={`${idPrefix}-api-key`}>{t('providers.edit.apiKey')}</span>
+              <h2 className="td-section-title" id={`${idPrefix}-api-key`}>{t('providers.edit.apiKey')}</h2>
               <Dot
                 tone={credentialConfigured ? 'ok' : 'muted'}
                 label={credentialConfigured ? t('providers.edit.apiKeyConfigured') : t('providers.edit.apiKeyMissing')}
@@ -1611,7 +1705,7 @@ export function ProviderEditorView(props) {
                 {credentialConfigured ? t('providers.edit.apiKeyConfigured') : t('providers.edit.apiKeyMissing')}
               </span>
               {credentialMasked !== null ? (
-                <span className="td-mono td-ellipsis" title={credentialMasked}>{credentialMasked}</span>
+                <span className="td-mono td-ellipsis" translate="no" title={credentialMasked}>{credentialMasked}</span>
               ) : null}
               {credentialSource !== null ? (
                 <span className="td-caption">{t('providers.edit.apiKeySource', { source: sourceText(t, credentialSource) })}</span>
@@ -1626,9 +1720,12 @@ export function ProviderEditorView(props) {
               <Field id={`${idPrefix}-api-key-input`} label={t('providers.edit.apiKeyInput')}>
                 <input
                   className="td-input"
+                  name="apiKey"
                   type="password"
                   value={keyInput}
                   autoComplete="new-password"
+                  spellCheck={false}
+                  translate="no"
                   placeholder={t('providers.edit.apiKeyPlaceholder')}
                   disabled={busy !== null || keyRefDirty}
                   onChange={(event) => setKeyInput(event.target.value)}
@@ -1682,10 +1779,9 @@ export function ProviderEditorView(props) {
         {showModels ? (
           <section className="td-editor-section" aria-labelledby={`${idPrefix}-models`}>
             <div className="td-editor-section-head">
-              <span className="td-card-subtitle" id={`${idPrefix}-models`}>
-                {t('providers.edit.models')} · {formatNumber(draft.models.length)}
-              </span>
-              {writable ? (
+              <h2 className="td-section-title" id={`${idPrefix}-models`}>{t('providers.edit.models')}</h2>
+              <span className="td-caption td-num">{formatNumber(draft.models.length)}</span>
+              {writable && draft.models.length > 0 ? (
                 <div className="td-editor-head-actions">
                   {canImport ? (
                     <button
@@ -1714,10 +1810,17 @@ export function ProviderEditorView(props) {
               <p className="td-field-error" role="alert">{failureText(importError, t, 'errors.discover.generic')}</p>
             ) : null}
             {importEmpty ? <p className="td-caption">{t('providers.import.empty')}</p> : null}
+            {importStatus !== null ? (
+              <p className="td-editor-imported" role="status">
+                {t('providers.edit.imported', { count: importStatus })}
+              </p>
+            ) : null}
             {capabilities.modelReasoning !== true ? (
               <p className="td-caption">{t('providers.edit.effortsFixed')}</p>
             ) : null}
-            {modelsDeclared === false ? <p className="td-caption">{t('providers.edit.modelsInherited')}</p> : null}
+            {modelsDeclared === false && draft.models.length > 0 ? (
+              <p className="td-caption">{t('providers.edit.modelsInherited')}</p>
+            ) : null}
             {importPicker !== null ? (
               <ModelImportPicker
                 key={importPicker.version}
@@ -1732,8 +1835,37 @@ export function ProviderEditorView(props) {
                 onCancel={() => setImportPicker(null)}
               />
             ) : null}
-            {draft.models.length === 0 && modelsDeclared === true ? (
-              <p className="td-muted">{t('providers.edit.modelsEmpty')}</p>
+            {draft.models.length === 0 ? (
+              <div className="td-editor-empty">
+                <p className="td-editor-empty-title">
+                  {modelsDeclared === false ? t('providers.edit.modelsInheritedTitle') : t('providers.edit.modelsEmptyTitle')}
+                </p>
+                <p className="td-caption">
+                  {modelsDeclared === false ? t('providers.edit.modelsInherited') : t('providers.edit.modelsEmpty')}
+                </p>
+                {writable ? (
+                  <div className="td-editor-empty-actions">
+                    {canImport ? (
+                      <button
+                        type="button"
+                        className="td-button td-button-small td-button-secondary"
+                        disabled={importBusy || busy !== null}
+                        onClick={() => { void importModels(); }}
+                      >
+                        {importBusy ? <Spinner label={t('providers.import.loading')} /> : null}
+                        {t('providers.edit.importModels')}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="td-button td-button-small td-button-secondary"
+                      onClick={addModel}
+                    >
+                      {t('providers.edit.addModel')}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
             {draft.models.length > 0 ? (
               writable ? (
@@ -1763,8 +1895,8 @@ export function ProviderEditorView(props) {
                   {draft.models.map((row) => (
                     <li className="td-model-row" key={row.key}>
                       <span className="td-model-main">
-                        <span className="td-model-name">{row.name === '' ? row.id : row.name}</span>
-                        {row.id !== '' ? <span className="td-model-id td-mono">{row.id}</span> : null}
+                        <span className="td-model-name" translate="no">{row.name === '' ? row.id : row.name}</span>
+                        {row.id !== '' ? <span className="td-model-id td-mono" translate="no">{row.id}</span> : null}
                       </span>
                     </li>
                   ))}
@@ -1985,15 +2117,15 @@ export function ProviderEditor(props) {
  */
 export function AddProviderView(props) {
   const {
-    t, draft, errors, canCreate, busy, error, picker, importEmpty, detectedProtocol,
-    onUpdate, onClose, onCreate, onConnect, onImport, onCancelImport, onRemoveModel,
+    t, draft, errors, canCreate, busy, error, picker, importEmpty, imported, detectedProtocol,
+    onUpdate, onClose, onCreate, onConnect, onImport, onCancelImport, onRemoveModel, formRef,
   } = props;
   const connecting = busy === 'connect';
   const models = Array.isArray(draft.models) ? draft.models : [];
   const fieldError = (key) => (errors[key] === undefined ? undefined : t(errors[key]));
   return (
-    <Card className="td-provider-card" title={t('providers.add.title')} subtitle={t('providers.add.subtitle')}>
-      <form className="td-editor-form td-add-form" onSubmit={onCreate} noValidate>
+    <Card className="td-add-panel" title={t('providers.add.title')} subtitle={t('providers.add.subtitle')}>
+      <form className="td-editor-form td-add-form" ref={formRef} onSubmit={onCreate} noValidate>
         {error !== null && error !== undefined ? (
           <Notice tone="error">{failureText(error, t, 'errors.add.generic')}</Notice>
         ) : null}
@@ -2007,9 +2139,11 @@ export function AddProviderView(props) {
           >
             <input
               className="td-input td-mono"
+              name="providerId"
               value={draft.id}
               autoComplete="off"
               spellCheck={false}
+              translate="no"
               placeholder={t('providers.add.idPlaceholder')}
               onChange={onUpdate('id')}
             />
@@ -2019,7 +2153,7 @@ export function AddProviderView(props) {
             label={t('providers.add.displayName')}
             error={fieldError('displayName')}
           >
-            <input className="td-input" value={draft.displayName} autoComplete="off" onChange={onUpdate('displayName')} />
+            <input className="td-input" name="displayName" value={draft.displayName} autoComplete="off" onChange={onUpdate('displayName')} />
           </Field>
           <Field
             id="td-add-protocol"
@@ -2028,7 +2162,7 @@ export function AddProviderView(props) {
             required
             error={fieldError('api')}
           >
-            <select className="td-select" value={draft.api} onChange={onUpdate('api')}>
+            <select className="td-select" name="api" value={draft.api} onChange={onUpdate('api')}>
               <option value="">{t('providers.add.protocolPlaceholder')}</option>
               {PROTOCOLS.map((protocol) => <option key={protocol} value={protocol}>{protocol}</option>)}
             </select>
@@ -2041,9 +2175,13 @@ export function AddProviderView(props) {
           >
             <input
               className="td-input td-mono"
+              name="baseURL"
+              type="url"
+              inputMode="url"
               value={draft.baseURL}
               autoComplete="off"
               spellCheck={false}
+              translate="no"
               placeholder={t('providers.add.baseURLPlaceholder')}
               onChange={onUpdate('baseURL')}
             />
@@ -2056,9 +2194,11 @@ export function AddProviderView(props) {
           >
             <input
               className="td-input td-mono"
+              name="apiKeyEnv"
               value={draft.apiKeyEnv}
               autoComplete="off"
               spellCheck={false}
+              translate="no"
               placeholder={t('providers.add.apiKeyEnvPlaceholder')}
               onChange={onUpdate('apiKeyEnv')}
             />
@@ -2070,9 +2210,12 @@ export function AddProviderView(props) {
           >
             <input
               className="td-input"
+              name="apiKey"
               type="password"
               value={draft.apiKey}
               autoComplete="new-password"
+              spellCheck={false}
+              translate="no"
               placeholder={t('providers.add.apiKeyPlaceholder')}
               onChange={onUpdate('apiKey')}
             />
@@ -2110,19 +2253,21 @@ export function AddProviderView(props) {
             onCancel={onCancelImport}
           />
         ) : null}
+        {imported !== null && imported !== undefined ? (
+          <p className="td-editor-imported" role="status">{t('providers.add.imported', { count: imported })}</p>
+        ) : null}
         {models.length > 0 ? (
           <section className="td-editor-section" aria-labelledby="td-add-models">
             <div className="td-editor-section-head">
-              <span className="td-card-subtitle" id="td-add-models">
-                {t('providers.add.models')} · {formatNumber(models.length)}
-              </span>
+              <h3 className="td-section-title" id="td-add-models">{t('providers.add.models')}</h3>
+              <span className="td-caption td-num">{formatNumber(models.length)}</span>
             </div>
             <p className="td-caption">{t('providers.add.modelsCount', { count: models.length })}</p>
             <ul className="td-model-list">
               {models.map((row) => (
                 <li className="td-add-model-row" key={row.key}>
                   <span className="td-import-label">
-                    <span className="td-import-id td-mono">{row.id}</span>
+                    <span className="td-import-id td-mono" translate="no">{row.id}</span>
                     {row.name !== '' && row.name !== row.id
                       ? <span className="td-caption td-import-name">{row.name}</span>
                       : null}
@@ -2185,7 +2330,10 @@ export function AddProviderForm(props) {
   const [connectAttempted, setConnectAttempted] = useState(false);
   const [picker, setPicker] = useState(null);
   const [importEmpty, setImportEmpty] = useState(false);
+  const [importStatus, setImportStatus] = useState(null);
   const [detectedProtocol, setDetectedProtocol] = useState(null);
+  const [invalidTick, setInvalidTick] = useState(0);
+  const formRef = useRef(null);
   const aliveRef = useRef(true);
   const connectSequence = useRef(0);
 
@@ -2193,6 +2341,12 @@ export function AddProviderForm(props) {
     aliveRef.current = true;
     return () => { aliveRef.current = false; };
   }, []);
+
+  // The add form reveals validation only after a submit attempt, so the first
+  // invalid submit has to wait one render before the marked field exists.
+  useEffect(() => {
+    if (invalidTick > 0) focusFirstInvalid(formRef.current);
+  }, [invalidTick]);
 
   const validation = validateAddDraft(draft);
   const visibleErrors = {};
@@ -2219,6 +2373,7 @@ export function AddProviderForm(props) {
     setBusy('connect');
     setPicker(null);
     setImportEmpty(false);
+    setImportStatus(null);
     try {
       const key = draft.apiKey.trim();
       const ref = draft.apiKeyEnv.trim();
@@ -2252,6 +2407,7 @@ export function AddProviderForm(props) {
   const importModels = (models) => {
     setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
     setPicker(null);
+    setImportStatus(models.length);
   };
 
   const removeModel = (id) => {
@@ -2263,7 +2419,10 @@ export function AddProviderForm(props) {
     if (busy !== null) return;
     setAttempted(true);
     const latest = validateAddDraft(draft);
-    if (!latest.valid) return;
+    if (!latest.valid) {
+      setInvalidTick((previous) => previous + 1);
+      return;
+    }
     const id = draft.id.trim();
     const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
     const displayName = draft.displayName.trim();
@@ -2300,13 +2459,15 @@ export function AddProviderForm(props) {
   return (
     <AddProviderView
       t={t}
+      formRef={formRef}
       draft={draft}
       errors={visibleErrors}
-      canCreate={validation.valid && busy === null}
+      canCreate={busy === null}
       busy={busy}
       error={error}
       picker={picker}
       importEmpty={importEmpty}
+      imported={importStatus}
       detectedProtocol={detectedProtocol}
       onUpdate={update}
       onClose={onClose}

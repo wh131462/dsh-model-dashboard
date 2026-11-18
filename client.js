@@ -27,10 +27,10 @@ __export(index_exports, {
   inject: () => inject
 });
 module.exports = __toCommonJS(index_exports);
-var import_react5 = require("react");
+var import_react6 = require("react");
 
 // src/client/DashboardPage.jsx
-var import_react4 = require("react");
+var import_react5 = require("react");
 
 // src/client/api.js
 var PREFIX = "dsh-token-dashboard";
@@ -147,9 +147,53 @@ function errorText(error) {
 
 // src/client/styles.js
 var CSS = String.raw`
-/* ── Page shell ──────────────────────────────────────────────────────────── */
+/* ── Design tokens ───────────────────────────────────────────────────────── */
 
 .td-page {
+  /* Spacing rhythm. */
+  --td-space-1: 4px;
+  --td-space-2: 8px;
+  --td-space-3: 12px;
+  --td-space-4: 16px;
+  --td-space-5: 24px;
+  --td-space-6: 32px;
+
+  /* Type scale. */
+  --td-font-title-size: 20px;
+  --td-font-title-line: 28px;
+  --td-font-title-weight: 500;
+  --td-font-display-size: 26px;
+  --td-font-display-line: 32px;
+  --td-font-display-weight: 600;
+  --td-font-metric-size: 18px;
+  --td-font-metric-line: 24px;
+  --td-font-metric-weight: 600;
+  --td-font-section-size: 13px;
+  --td-font-section-line: 20px;
+  --td-font-section-weight: 560;
+  --td-font-body-size: 13px;
+  --td-font-body-line: 20px;
+  --td-font-caption-size: 12px;
+  --td-font-caption-line: 18px;
+
+  /* Host radii only. */
+  --td-radius-sm: var(--dsw-radius-sm, 8px);
+  --td-radius-md: var(--dsw-radius-md, 12px);
+  --td-radius-xl: var(--dsw-radius-xl, 14px);
+
+  /* Motion. */
+  --td-motion-fast: 120ms;
+  --td-motion-base: 180ms;
+  --td-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Hairlines and the one opaque surface recipe (card fill over page base). */
+  --td-hairline: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  --td-hairline-soft: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  --td-surface: linear-gradient(
+    var(--dsw-alias-settings-card-fill, rgba(127, 127, 127, 0.06)),
+    var(--dsw-alias-settings-card-fill, rgba(127, 127, 127, 0.06))
+  ), var(--dsw-alias-bg-base, #ffffff);
+
   display: flex;
   width: 100%;
   height: 100%;
@@ -158,78 +202,134 @@ var CSS = String.raw`
   overflow: hidden;
   background: var(--dsw-alias-bg-base, #ffffff);
   color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  -webkit-tap-highlight-color: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+}
+
+.td-page *,
+.td-page *::before,
+.td-page *::after {
+  box-sizing: border-box;
+}
+
+.td-page button,
+.td-page input,
+.td-page select,
+.td-page label,
+.td-page [role='tab'] {
+  touch-action: manipulation;
 }
 
 .td-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  /* Keep a focused field clear of the editor's sticky action bar. */
+  scroll-padding-bottom: calc(var(--td-space-6) * 3);
   /* A 9px rail carries the 5px thumb inset 2px from the pane edge. */
   --dsh-scrollbar-width: 9px;
   --dsh-scrollbar-thumb-border: 2px;
 }
 
 .td-content {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 0 clamp(24px, 4vw, 48px) 48px;
+  padding: 0 clamp(24px, 4vw, 48px) 64px;
 }
 
-.td-heading {
+/* ── Page header ─────────────────────────────────────────────────────────── */
+
+.td-head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  padding-top: 28px;
-  margin-bottom: 24px;
+  gap: var(--td-space-5);
+  padding-top: var(--td-space-6);
+  padding-bottom: var(--td-space-4);
+  margin-bottom: var(--td-space-5);
+  border-bottom: var(--td-hairline);
 }
 
 /* macOS hiddenInset titlebar: keep the same total top inset as sibling pages. */
-[data-platform='darwin'] .td-heading {
-  padding-top: calc(28px + var(--dsh-frame-top-clearance, 0px));
+[data-platform='darwin'] .td-head {
+  padding-top: calc(var(--td-space-6) + var(--dsh-frame-top-clearance, 0px));
 }
 
-.td-heading-text {
+.td-head-text {
   min-width: 0;
 }
 
-.td-heading h1 {
+.td-page-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 500;
+  font-size: var(--td-font-title-size);
+  line-height: var(--td-font-title-line);
+  font-weight: var(--td-font-title-weight);
+  text-wrap: balance;
 }
 
 .td-subtitle {
   margin: 2px 0 0;
-  font-size: 13px;
-  line-height: 20px;
   color: var(--dsw-alias-label-secondary, #5b6470);
+  text-wrap: pretty;
 }
 
-.td-heading-actions {
+.td-live {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: var(--td-space-2) var(--td-space-4);
+}
+
+.td-live-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.td-live-item:not(:first-child) {
+  padding-left: var(--td-space-4);
+  border-left: var(--td-hairline-soft);
+}
+
+.td-live-key {
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-live-value {
+  max-width: 34ch;
+  overflow: hidden;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-live-scan {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--td-space-2);
 }
 
 /* ── Shared type helpers ─────────────────────────────────────────────────── */
 
 .td-muted {
   margin: 0;
-  font-size: 13px;
-  line-height: 20px;
   color: var(--dsw-alias-label-tertiary, #8b929e);
 }
 
 .td-caption {
-  font-size: 12px;
-  line-height: 18px;
   color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
 .td-mono {
@@ -245,10 +345,28 @@ var CSS = String.raw`
 }
 
 .td-footer {
-  margin: 16px 0 0;
-  font-size: 12px;
-  line-height: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--td-space-2) var(--td-space-5);
+  margin: var(--td-space-5) 0 0;
+  padding-top: var(--td-space-3);
+  border-top: var(--td-hairline-soft);
   color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.td-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .td-tone-ok { color: var(--dsw-alias-state-success-primary, #2e9e5b); }
@@ -256,42 +374,11 @@ var CSS = String.raw`
 .td-tone-muted { color: var(--dsw-alias-label-tertiary, #8b929e); }
 .td-tone-error { color: var(--dsw-alias-state-error-primary, #d64545); }
 
-/* ── Tabs ────────────────────────────────────────────────────────────────── */
+/* ── Focus ring ──────────────────────────────────────────────────────────── */
 
-.td-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  margin-bottom: 20px;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-}
-
-.td-tab {
-  appearance: none;
-  flex: none;
-  padding: 8px 12px;
-  margin-bottom: -0.5px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: var(--dsw-radius-sm, 8px) var(--dsw-radius-sm, 8px) 0 0;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary, #5b6470);
-  font: inherit;
-  font-size: 13px;
-  line-height: 20px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.td-tab[aria-selected='true'] {
-  color: var(--dsw-alias-label-primary, #1f2328);
-  border-bottom-color: var(--dsw-alias-brand-primary, #247bbf);
-  font-weight: 500;
-}
-
-.td-panel {
-  min-width: 0;
+.td-page :focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, #247bbf);
+  outline-offset: 2px;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
@@ -303,16 +390,21 @@ var CSS = String.raw`
   justify-content: center;
   gap: 6px;
   height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--td-space-3);
   border: 0.5px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--td-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-primary, #1f2328);
   font: inherit;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color var(--td-motion-fast) var(--td-ease),
+    border-color var(--td-motion-fast) var(--td-ease),
+    color var(--td-motion-fast) var(--td-ease),
+    opacity var(--td-motion-fast) var(--td-ease);
 }
 
 .td-button:disabled {
@@ -335,10 +427,14 @@ var CSS = String.raw`
 
 .td-button-small {
   height: 28px;
-  padding: 0 12px;
-  border-radius: 14px;
-  font-size: 12px;
-  line-height: 18px;
+  padding: 0 10px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-button-danger {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
+  color: var(--dsw-alias-state-error-primary, #d64545);
 }
 
 .td-icon-button {
@@ -355,9 +451,13 @@ var CSS = String.raw`
   background: transparent;
   color: var(--dsw-alias-label-secondary, #5b6470);
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
+  transition:
+    background-color var(--td-motion-fast) var(--td-ease),
+    color var(--td-motion-fast) var(--td-ease),
+    opacity var(--td-motion-fast) var(--td-ease);
 }
 
 .td-icon-button:disabled {
@@ -365,14 +465,117 @@ var CSS = String.raw`
   cursor: default;
 }
 
-.td-page :focus-visible {
-  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, #247bbf);
-  outline-offset: 2px;
+.td-copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
 }
+
+.td-copy-button {
+  gap: 4px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+
+.td-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-space-3);
+  margin-bottom: var(--td-space-4);
+}
+
+.td-toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+
+.td-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--td-space-1);
+  margin-bottom: var(--td-space-5);
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  border-bottom: var(--td-hairline);
+}
+
+.td-tab {
+  appearance: none;
+  position: relative;
+  flex: none;
+  min-height: 40px;
+  padding: var(--td-space-2) var(--td-space-3);
+  margin-bottom: -0.5px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--td-radius-sm) var(--td-radius-sm) 0 0;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font: inherit;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--td-motion-fast) var(--td-ease),
+    border-color var(--td-motion-fast) var(--td-ease),
+    color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-tab[aria-selected='true'] {
+  color: var(--dsw-alias-label-primary, #1f2328);
+  border-bottom-color: var(--dsw-alias-brand-primary, #247bbf);
+  font-weight: 500;
+}
+
+.td-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.1));
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.td-panel {
+  min-width: 0;
+}
+
+.td-panel-enter {
+  animation: td-panel-in var(--td-motion-base) var(--td-ease) both;
+}
+
+@keyframes td-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Buttons, tabs, segments: hover states ───────────────────────────────── */
 
 @media (hover: hover) {
   .td-tab:hover {
     background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+    color: var(--dsw-alias-label-primary, #1f2328);
   }
 
   .td-button-secondary:hover:not(:disabled) {
@@ -388,46 +591,136 @@ var CSS = String.raw`
     color: var(--dsw-alias-label-primary, #1f2328);
   }
 
+  .td-button-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
+  }
+
   .td-icon-button:hover:not(:disabled) {
     background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
     color: var(--dsw-alias-label-primary, #1f2328);
   }
 }
 
-/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+/* ── Segmented control ───────────────────────────────────────────────────── */
 
-.td-toolbar {
+.td-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  border: var(--td-hairline);
+  border-radius: var(--td-radius-sm);
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.08));
+}
+
+.td-segment {
+  appearance: none;
+  flex: none;
+  height: 28px;
+  padding: 0 var(--td-space-3);
+  border: 0.5px solid transparent;
+  border-radius: calc(var(--td-radius-sm) - 2px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font: inherit;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--td-motion-fast) var(--td-ease),
+    border-color var(--td-motion-fast) var(--td-ease),
+    color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-segment[aria-pressed='true'] {
+  border-color: var(--dsw-alias-button-ghost-active-border, rgba(127, 127, 127, 0.3));
+  background: var(--dsw-alias-button-ghost-active-fill, rgba(127, 127, 127, 0.12));
+  color: var(--dsw-alias-label-primary, #1f2328);
+}
+
+.td-segment:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .td-segment:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+    color: var(--dsw-alias-label-primary, #1f2328);
+  }
+}
+
+/* ── Sections and cards ──────────────────────────────────────────────────── */
+
+.td-block {
+  min-width: 0;
+  padding-top: var(--td-space-4);
+  margin-top: var(--td-space-5);
+  border-top: var(--td-hairline);
+}
+
+.td-block-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--td-space-3);
 }
 
-.td-toolbar-group {
+.td-block-heading {
+  min-width: 0;
+}
+
+.td-block-title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-section-size);
+  line-height: var(--td-font-section-line);
+  font-weight: var(--td-font-section-weight);
+  text-wrap: balance;
+}
+
+.td-block-subtitle {
+  margin: 2px 0 0;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-block-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* ── Cards ───────────────────────────────────────────────────────────────── */
+.td-block-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--td-space-3);
+  padding-top: var(--td-space-3);
+  border-top: var(--td-hairline-soft);
+}
 
 .td-card {
   min-width: 0;
-  padding: 14px 16px;
+  padding: var(--td-space-4);
   border: 0.5px solid var(--dsw-alias-settings-card-stroke, rgba(127, 127, 127, 0.2));
-  border-radius: var(--dsw-radius-xl, 14px);
+  border-radius: var(--td-radius-xl);
   background: var(--dsw-alias-settings-card-fill, rgba(127, 127, 127, 0.06));
 }
 
 .td-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--td-space-3);
+  margin-bottom: var(--td-space-3);
 }
 
 .td-card-heading {
@@ -436,17 +729,19 @@ var CSS = String.raw`
 
 .td-card-title {
   margin: 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
   font-size: 15px;
   line-height: 22px;
   font-weight: 500;
-  color: var(--dsw-alias-label-primary, #1f2328);
+  text-wrap: balance;
 }
 
 .td-card-subtitle {
   margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 18px;
   color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  text-wrap: pretty;
 }
 
 .td-card-actions {
@@ -459,120 +754,337 @@ var CSS = String.raw`
 .td-card-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  margin-top: var(--td-space-3);
+  padding-top: var(--td-space-3);
+  border-top: var(--td-hairline-soft);
 }
 
-.td-card-caption {
-  margin: 10px 0 0;
+/* ── Overview: hero, KPIs, split ─────────────────────────────────────────── */
+
+.td-hero {
+  padding: var(--td-space-2) 0 var(--td-space-5);
+  margin-bottom: var(--td-space-5);
+  border-bottom: var(--td-hairline);
 }
 
-.td-section {
-  margin-top: 16px;
-}
-
-.td-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.td-stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.td-card-emphasis {
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.td-card-value-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  font-size: 13px;
-  line-height: 20px;
+.td-eyebrow {
+  margin: 0;
   color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  font-weight: var(--td-font-section-weight);
 }
 
-.td-card-url {
-  display: block;
-  max-width: 100%;
-  margin-top: 8px;
-  color: var(--dsw-alias-label-tertiary, #8b929e);
+.td-display {
+  margin: var(--td-space-1) 0 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-display-size);
+  line-height: var(--td-font-display-line);
+  font-weight: var(--td-font-display-weight);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
-/* ── Stats / key-value grid ──────────────────────────────────────────────── */
+.td-display-quiet {
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-title-size);
+  line-height: var(--td-font-title-line);
+  font-weight: var(--td-font-title-weight);
+}
 
-.td-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.td-hero-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'id actions'
+    'endpoint actions';
+  align-items: center;
+  gap: var(--td-space-2) var(--td-space-6);
+  margin-top: var(--td-space-3);
+}
+
+.td-hero-id {
+  grid-area: id;
   min-width: 0;
 }
 
-.td-stat-label {
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary, #8b929e);
+.td-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-2);
+  margin-top: var(--td-space-2);
 }
 
-.td-stat-value {
-  font-size: 22px;
-  line-height: 30px;
+.td-hero-endpoint {
+  grid-area: endpoint;
+  display: flex;
+  align-items: center;
+  gap: var(--td-space-2);
+  min-width: 0;
+  max-width: 72ch;
+}
+
+.td-hero-url {
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+}
+
+.td-hero-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--td-space-2);
+}
+
+.td-hero-empty .td-display-quiet {
+  margin-top: var(--td-space-1);
+}
+
+.td-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 var(--td-space-1);
+}
+
+.td-kpi {
+  min-width: 0;
+  padding: var(--td-space-3) var(--td-space-4);
+  border-left: var(--td-hairline-soft);
+}
+
+.td-kpi:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.td-kpi-label {
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-kpi-value {
+  margin: 2px 0 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-metric-size);
+  line-height: var(--td-font-metric-line);
+  font-weight: var(--td-font-metric-weight);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.td-kpi-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: var(--td-space-6);
+}
+
+.td-split > .td-block {
+  margin-top: var(--td-space-5);
+}
+
+/* ── Scan banner ─────────────────────────────────────────────────────────── */
+
+.td-scan-banner {
+  padding: var(--td-space-3) 0;
+  margin-bottom: var(--td-space-4);
+  border-bottom: var(--td-hairline-soft);
+}
+
+.td-scan-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+}
+
+.td-scan-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.td-scan-hint {
+  margin-left: auto;
+}
+
+.td-scan-banner .td-progress {
+  margin-top: var(--td-space-2);
+}
+
+.td-usage-scan {
+  margin: 0 0 var(--td-space-4);
+}
+
+.td-usage-scan .td-progress {
+  flex: 0 1 160px;
+  min-width: 80px;
+  margin-left: auto;
+}
+
+/* ── Progress and charts ─────────────────────────────────────────────────── */
+
+.td-progress {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--dsw-alias-bg-skeleton, rgba(127, 127, 127, 0.14));
+}
+
+.td-progress-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--dsw-alias-brand-primary, #247bbf);
+  transform-origin: left center;
+  transition: transform var(--td-motion-base) var(--td-ease);
+}
+
+.td-progress-warn .td-progress-fill {
+  background: var(--dsw-alias-state-warn-primary, #b07800);
+}
+
+.td-progress-brand .td-progress-fill {
+  background: var(--dsw-alias-brand-primary, #247bbf);
+}
+
+.td-chart-wrap {
+  margin-top: var(--td-space-2);
+}
+
+.td-chart {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  height: 150px;
+  border-bottom: var(--td-hairline-soft);
+}
+
+.td-chart-col {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.td-chart-fill {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 70%, transparent);
+}
+
+.td-chart-fill-empty {
+  background: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+}
+
+.td-chart-labels {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  overflow: visible;
+}
+
+.td-chart-label {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Thinned labels sit in one bar-width cell but print the whole date; the
+     neighbouring labels are several cells away, so overflowing is safe and
+     clipping here would hide every 30-day axis tick. */
+  overflow: visible;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── Wallets and provider balances ───────────────────────────────────────── */
+
+.td-wallet-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-1);
+  margin-top: var(--td-space-2);
+}
+
+.td-wallet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-space-2);
+  min-width: 0;
+}
+
+.td-wallet-amount {
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.td-stat-hint {
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-caption, #8b929e);
+.td-wallet-group {
+  margin-top: var(--td-space-1);
 }
 
-.td-totals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 14px 12px;
+.td-wallet-source {
+  margin: var(--td-space-2) 0 0;
+  text-wrap: pretty;
 }
 
-.td-kv {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 14px;
-  margin: 8px 0 0;
-}
-
-.td-kv-item {
+.td-balance-list {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  margin: var(--td-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.td-balance-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
+  gap: var(--td-space-4);
+  padding: var(--td-space-2) 0;
+  border-bottom: var(--td-hairline-soft);
 }
 
-.td-kv-item dt {
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary, #8b929e);
-  white-space: nowrap;
+.td-balance-row:last-child {
+  border-bottom: 0;
 }
 
-.td-kv-item dd {
+.td-balance-name {
+  display: flex;
+  align-items: center;
+  gap: var(--td-space-2);
   min-width: 0;
-  margin: 0;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+}
+
+.td-balance-text {
+  flex: none;
+  max-width: 55%;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: right;
   overflow-wrap: anywhere;
@@ -585,14 +1097,14 @@ var CSS = String.raw`
   align-items: center;
   max-width: 100%;
   height: 20px;
-  padding: 0 8px;
+  padding: 0 var(--td-space-2);
   overflow: hidden;
-  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-  border-radius: 10px;
+  border: var(--td-hairline);
+  border-radius: var(--td-radius-sm);
   background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.08));
   color: var(--dsw-alias-label-secondary, #5b6470);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -621,6 +1133,13 @@ var CSS = String.raw`
   color: var(--dsw-alias-state-error-primary, #d64545);
 }
 
+.td-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--td-space-1);
+  min-width: 0;
+}
+
 .td-dot {
   flex: none;
   width: 7px;
@@ -635,390 +1154,358 @@ var CSS = String.raw`
 .td-dot-muted { background: var(--dsw-alias-label-dimmed, #8b929e); }
 .td-dot-brand { background: var(--dsw-alias-brand-primary, #247bbf); }
 
-/* ── Segmented control ───────────────────────────────────────────────────── */
+/* ── Metrics (stat / kv primitives) ──────────────────────────────────────── */
 
-.td-segmented {
-  display: inline-flex;
-  align-items: center;
+.td-stat {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
-  max-width: 100%;
-  padding: 2px;
-  overflow-x: auto;
-  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-  border-radius: 16px;
-  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.08));
-}
-
-.td-segment {
-  appearance: none;
-  flex: none;
-  height: 28px;
-  padding: 0 12px;
-  border: 0.5px solid transparent;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary, #5b6470);
-  font: inherit;
-  font-size: 12px;
-  line-height: 18px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.td-segment[aria-pressed='true'] {
-  border-color: var(--dsw-alias-button-ghost-active-border, rgba(127, 127, 127, 0.3));
-  background: var(--dsw-alias-button-ghost-active-fill, rgba(127, 127, 127, 0.12));
-  color: var(--dsw-alias-label-primary, #1f2328);
-}
-
-.td-segment:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .td-segment:hover:not(:disabled) {
-    color: var(--dsw-alias-label-primary, #1f2328);
-  }
-}
-
-/* ── Notices ─────────────────────────────────────────────────────────────── */
-
-.td-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
-  border-radius: var(--dsw-radius-md, 12px);
-  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
-  color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.td-notice-body {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.td-notice-actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-}
-
-.td-notice-warn {
-  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 45%, transparent);
-  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 8%, transparent);
-}
-
-.td-notice-error {
-  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
-  background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
-}
-
-/* ── Scan progress ───────────────────────────────────────────────────────── */
-
-.td-scan-card {
-  margin-bottom: 16px;
-}
-
-.td-scan-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.td-scan-text {
-  font-variant-numeric: tabular-nums;
-}
-
-.td-scan-hint {
-  margin-left: auto;
-}
-
-.td-scan-card .td-progress {
-  margin-top: 10px;
-}
-
-.td-usage-scan {
-  margin: 0 0 14px;
-}
-
-.td-usage-scan .td-progress {
-  flex: 0 1 160px;
-  min-width: 80px;
-  margin-left: auto;
-}
-
-/* ── Progress and charts ─────────────────────────────────────────────────── */
-
-.td-progress {
-  position: relative;
-  width: 100%;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: var(--dsw-alias-bg-skeleton, rgba(127, 127, 127, 0.14));
-}
-
-.td-progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--dsw-alias-brand-primary, #247bbf);
-  transition: width 0.3s ease;
-}
-
-.td-progress-warn .td-progress-fill {
-  background: var(--dsw-alias-state-warn-primary, #b07800);
-}
-
-.td-progress-brand .td-progress-fill {
-  background: var(--dsw-alias-brand-primary, #247bbf);
-}
-
-.td-chart-wrap {
-  margin-top: 4px;
-}
-
-.td-chart {
-  display: flex;
-  align-items: stretch;
-  gap: 3px;
-  height: 150px;
-}
-
-.td-chart-col {
-  display: flex;
-  flex: 1 1 0;
-  align-items: flex-end;
   min-width: 0;
 }
 
-.td-chart-fill {
-  display: block;
-  width: 100%;
-  min-height: 2px;
-  border-radius: 3px 3px 0 0;
-  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #247bbf) 70%, transparent);
-}
-
-.td-chart-fill-empty {
-  background: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-}
-
-.td-chart-labels {
-  display: flex;
-  gap: 3px;
-  margin-top: 6px;
-  overflow: visible;
-}
-
-.td-chart-label {
-  flex: 1 1 0;
-  min-width: 0;
-  /* Thinned labels sit in one bar-width cell but print the whole date; the
-     neighbouring labels are several cells away, so overflowing is safe and
-     clipping here would hide every 30-day axis tick. */
-  overflow: visible;
+.td-stat-label {
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  white-space: nowrap;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
-/* ── Wallets and provider balances ───────────────────────────────────────── */
-
-.td-wallet-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.td-wallet-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.td-wallet-amount {
-  font-size: 14px;
-  line-height: 22px;
-  font-weight: 500;
+.td-stat-value {
+  font-size: var(--td-font-metric-size);
+  line-height: var(--td-font-metric-line);
+  font-weight: var(--td-font-metric-weight);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.td-wallet-group {
-  margin-top: 4px;
+.td-stat-hint {
+  color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
-.td-balance-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.td-kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--td-space-1) var(--td-space-4);
+  margin: var(--td-space-2) 0 0;
 }
 
-.td-balance-row {
+.td-kv-item {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  padding: 9px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
-}
-
-.td-balance-row:last-child {
-  border-bottom: 0;
-}
-
-.td-balance-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: var(--td-space-2);
   min-width: 0;
-  font-size: 13px;
-  line-height: 20px;
 }
 
-.td-balance-text {
-  flex: none;
-  max-width: 55%;
-  font-size: 13px;
-  line-height: 20px;
+.td-kv-item dt {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  white-space: nowrap;
+}
+
+.td-kv-item dd {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   font-variant-numeric: tabular-nums;
   text-align: right;
   overflow-wrap: anywhere;
 }
 
-/* ── Provider cards ──────────────────────────────────────────────────────── */
+/* ── Usage headline and metrics ──────────────────────────────────────────── */
+
+.td-usage-hero {
+  padding: var(--td-space-2) 0 var(--td-space-5);
+  border-bottom: var(--td-hairline);
+}
+
+.td-usage-total {
+  margin: var(--td-space-1) 0 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-display-size);
+  line-height: var(--td-font-display-line);
+  font-weight: var(--td-font-display-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.td-usage-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--td-space-4);
+  margin: var(--td-space-2) 0 0;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.td-usage-caveat {
+  margin: var(--td-space-1) 0 0;
+  max-width: 80ch;
+  text-wrap: pretty;
+}
+
+.td-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: var(--td-space-4) 0 0;
+}
+
+.td-metric {
+  min-width: 0;
+  padding: var(--td-space-2) var(--td-space-4);
+  border-left: var(--td-hairline-soft);
+}
+
+.td-metric:nth-child(3n + 1) {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.td-metric-label {
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-metric-value {
+  margin: 2px 0 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.td-metric-hint {
+  margin: 0;
+  color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-price-note {
+  margin: var(--td-space-3) 0 0;
+}
+
+/* ── Providers: row list ─────────────────────────────────────────────────── */
 
 .td-provider-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--td-hairline);
 }
 
-.td-provider-card {
-  display: flex;
-  flex-direction: column;
+.td-provider-row {
+  padding: var(--td-space-2) 0 var(--td-space-2) var(--td-space-2);
+  border-bottom: var(--td-hairline);
+  border-left: 2px solid transparent;
 }
 
-.td-provider-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+.td-provider-row.td-is-default {
+  border-left-color: var(--dsw-alias-brand-primary, #247bbf);
+}
+
+.td-provider-row.td-is-expanded {
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+}
+
+.td-overview,
+.td-providers {
   min-width: 0;
+}
+
+.td-provider-summary {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.35fr) minmax(120px, 1fr) 96px 148px auto;
+  align-items: center;
+  gap: var(--td-space-2) var(--td-space-3);
+  min-height: 44px;
+}
+
+.td-provider-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--td-space-2);
+  min-width: 0;
+  min-height: 32px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: var(--td-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-provider-toggle-static {
+  cursor: default;
+}
+
+.td-provider-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-provider-id {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-provider-chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: 11px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform var(--td-motion-fast) var(--td-ease);
+}
+
+.td-provider-toggle[aria-expanded='true'] .td-provider-chevron {
+  transform: rotate(90deg);
+}
+
+.td-provider-endpoint {
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-provider-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--td-space-1);
+  white-space: nowrap;
+}
+
+.td-provider-count-value {
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  font-variant-numeric: tabular-nums;
 }
 
 .td-provider-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
+  justify-content: flex-end;
+  gap: var(--td-space-1);
 }
 
-.td-provider-name {
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
+@media (hover: hover) {
+  .td-provider-toggle:hover {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+  }
+
+  .td-provider-toggle:hover .td-provider-name {
+    color: var(--dsw-alias-brand-primary, #247bbf);
+  }
 }
 
-.td-provider-meta {
+.td-provider-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-3);
+  padding: var(--td-space-3) 0 var(--td-space-4);
+  margin-top: var(--td-space-2);
+  border-top: var(--td-hairline-soft);
+}
+
+.td-provider-facts {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 14px;
-  margin-top: 6px;
+  gap: var(--td-space-1) var(--td-space-4);
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.td-provider-base {
-  max-width: min(360px, 100%);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
 .td-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--td-space-1);
   min-width: 0;
   max-width: 100%;
-}
-
-.td-provider-balance {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
 }
 
 .td-notes {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 10px 0 0;
+  gap: var(--td-space-1);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .td-note {
-  padding: 2px 8px;
+  padding: 2px var(--td-space-2);
   border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--td-radius-sm);
   background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 8%, transparent);
   color: var(--dsw-alias-state-warn-primary, #b07800);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
 .td-inline-error {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  border-radius: var(--dsw-radius-sm, 8px);
+  margin: 0;
+  padding: var(--td-space-2) 10px;
+  border-radius: var(--td-radius-sm);
   background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
   color: var(--dsw-alias-state-error-primary, #d64545);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   overflow-wrap: anywhere;
 }
 
 /* ── Model rows ──────────────────────────────────────────────────────────── */
 
 .td-models {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  min-width: 0;
 }
 
 .td-models-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 4px;
+  align-items: baseline;
+  gap: var(--td-space-2);
+  margin-bottom: var(--td-space-1);
+}
+
+.td-section-title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-section-size);
+  line-height: var(--td-font-section-line);
+  font-weight: var(--td-font-section-weight);
+  text-wrap: balance;
 }
 
 .td-model-list {
@@ -1031,11 +1518,17 @@ var CSS = String.raw`
 
 .td-model-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(72px, auto) auto auto auto;
+  grid-template-columns: minmax(0, 1.6fr) minmax(72px, auto) auto auto auto;
   align-items: center;
-  gap: 8px 14px;
-  padding: 8px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  gap: var(--td-space-1) var(--td-space-3);
+  padding: var(--td-space-2) 0;
+  border-bottom: var(--td-hairline-soft);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+
+.td-model-row:last-child {
+  border-bottom: 0;
 }
 
 /* Per-level reasoning verdicts span the row's columns under the model. */
@@ -1044,12 +1537,8 @@ var CSS = String.raw`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: var(--td-space-1) var(--td-space-2);
   min-width: 0;
-}
-
-.td-model-row:last-child {
-  border-bottom: 0;
 }
 
 .td-model-main {
@@ -1061,8 +1550,8 @@ var CSS = String.raw`
 .td-model-name {
   overflow: hidden;
   color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1070,8 +1559,8 @@ var CSS = String.raw`
 .td-model-id {
   overflow: hidden;
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1080,78 +1569,94 @@ var CSS = String.raw`
   white-space: nowrap;
 }
 
-.td-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 0;
+.td-model-action {
+  justify-self: end;
 }
 
-.td-model-action {
+.td-model-probe {
   justify-self: end;
 }
 
 /* ── Provider editor ─────────────────────────────────────────────────────── */
 
 .td-editor {
+  min-width: 0;
   max-width: 720px;
-  margin-top: 12px;
 }
 
 .td-editor-loading {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 18px 0;
+  gap: var(--td-space-2);
+  padding: var(--td-space-4) 0;
   margin: 0;
   color: var(--dsw-alias-label-secondary, #5b6470);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
 }
 
 .td-editor-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  gap: var(--td-space-4);
+  padding-top: var(--td-space-3);
 }
 
 .td-editor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: var(--td-space-3);
 }
 
 .td-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--td-space-1);
   min-width: 0;
+}
+
+.td-field:focus-within .td-field-label {
+  color: var(--dsw-alias-label-primary, #1f2328);
+}
+
+.td-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-space-2);
+  min-height: 20px;
 }
 
 .td-field-label {
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  transition: color var(--td-motion-fast) var(--td-ease);
 }
 
 .td-field-flag {
   color: var(--dsw-alias-state-error-primary, #d64545);
 }
 
+.td-field-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
 .td-field-hint {
   margin: 0;
   color: var(--dsw-alias-label-caption, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  text-wrap: pretty;
 }
 
 .td-field-error {
   margin: 0;
   color: var(--dsw-alias-state-error-primary, #d64545);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   overflow-wrap: anywhere;
 }
 
@@ -1162,12 +1667,16 @@ var CSS = String.raw`
   height: 32px;
   padding: 0 10px;
   border: 0.5px solid var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
-  border-radius: var(--dsw-radius-sm, 8px);
+  border-radius: var(--td-radius-sm);
   background: var(--dsw-alias-bg-base, #ffffff);
   color: var(--dsw-alias-label-primary, #1f2328);
   font: inherit;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  scroll-margin-bottom: calc(var(--td-space-6) * 3);
+  transition:
+    border-color var(--td-motion-fast) var(--td-ease),
+    background-color var(--td-motion-fast) var(--td-ease);
 }
 
 .td-input[readonly] {
@@ -1181,75 +1690,15 @@ var CSS = String.raw`
   cursor: default;
 }
 
-.td-editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
-}
+@media (hover: hover) {
+  .td-input:hover:not(:disabled):not([readonly]),
+  .td-select:hover:not(:disabled) {
+    border-color: var(--dsw-alias-label-tertiary, #8b929e);
+  }
 
-.td-editor-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.td-editor-key-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.td-editor-key-row .td-field {
-  flex: 1 1 220px;
-}
-
-.td-editor-key-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 1px;
-}
-
-.td-editor-models {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.td-editor-model {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-  border-radius: var(--dsw-radius-md, 12px);
-  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
-}
-
-.td-editor-model-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.td-editor-model-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.td-editor-checks {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  min-height: 32px;
+  .td-check-label:hover {
+    color: var(--dsw-alias-label-primary, #1f2328);
+  }
 }
 
 .td-checkbox {
@@ -1263,11 +1712,160 @@ var CSS = String.raw`
 
 .td-check-label {
   color: var(--dsw-alias-label-secondary, #5b6470);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
 }
 
-/* ── Reasoning chips, wire overrides, and detection ──────────────────────── */
+.td-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-2);
+  padding-top: var(--td-space-3);
+  border-top: var(--td-hairline);
+}
+
+.td-editor-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+  padding-bottom: var(--td-space-2);
+  border-bottom: var(--td-hairline-soft);
+}
+
+.td-editor-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--td-space-2);
+}
+
+.td-editor-key-row .td-field {
+  flex: 1 1 220px;
+}
+
+.td-editor-key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+  padding-bottom: 1px;
+}
+
+.td-editor-models {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-2);
+}
+
+.td-editor-model {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-2);
+  padding: var(--td-space-1) 0 var(--td-space-3) var(--td-space-3);
+  border-left: 2px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  border-bottom: var(--td-hairline-soft);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}
+
+.td-editor-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-space-2);
+}
+
+.td-editor-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--td-space-2) var(--td-space-3);
+}
+
+.td-editor-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-3);
+  min-height: 32px;
+}
+
+.td-editor-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--td-space-1);
+}
+
+.td-editor-imported {
+  margin: 0;
+  color: var(--dsw-alias-state-success-primary, #2e9e5b);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-editor-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-space-1);
+  padding: var(--td-space-3);
+  border: 0.5px dashed var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
+  border-radius: var(--td-radius-md);
+}
+
+.td-editor-empty-title {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  font-weight: 500;
+}
+
+.td-editor-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+  margin-top: var(--td-space-1);
+}
+
+/* Sticky footer: translucent host card fill composited over the page base so
+   the bar is opaque without a literal colour, and it can never cover the field
+   that just received focus (the scroll container reserves bottom padding). */
+.td-editor-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+  padding: var(--td-space-2) 0;
+  margin-top: var(--td-space-1);
+  border-top: var(--td-hairline);
+  background: var(--td-surface);
+}
+
+.td-editor-foot-left,
+.td-editor-foot-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-2);
+}
+
+.td-editor-foot-right {
+  margin-left: auto;
+}
+
+.td-editor-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ── Reasoning chips and level detection ─────────────────────────────────── */
 
 .td-effort-block {
   display: flex;
@@ -1287,15 +1885,19 @@ var CSS = String.raw`
   appearance: none;
   height: 26px;
   padding: 0 10px;
-  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-  border-radius: 13px;
+  border: var(--td-hairline);
+  border-radius: var(--td-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-secondary, #5b6470);
   font: inherit;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color var(--td-motion-fast) var(--td-ease),
+    border-color var(--td-motion-fast) var(--td-ease),
+    color var(--td-motion-fast) var(--td-ease);
 }
 
 .td-effort-chip[aria-pressed='true'] {
@@ -1307,6 +1909,11 @@ var CSS = String.raw`
 @media (hover: hover) {
   .td-effort-chip:hover:not(:disabled) {
     background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
+    color: var(--dsw-alias-label-primary, #1f2328);
+  }
+
+  .td-effort-chip[aria-pressed='true']:hover:not(:disabled) {
+    color: var(--dsw-alias-brand-primary, #247bbf);
   }
 }
 
@@ -1318,7 +1925,7 @@ var CSS = String.raw`
 .td-effort-wires {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--td-space-2);
 }
 
 .td-effort-wire-field {
@@ -1333,7 +1940,7 @@ var CSS = String.raw`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-space-2);
 }
 
 /* ── Gateway model import ────────────────────────────────────────────────── */
@@ -1341,25 +1948,26 @@ var CSS = String.raw`
 .td-import {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
-  border-radius: var(--dsw-radius-md, 12px);
+  gap: var(--td-space-2);
+  padding: var(--td-space-3);
+  border: var(--td-hairline);
+  border-radius: var(--td-radius-md);
   background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+  overscroll-behavior: contain;
 }
 
 .td-import-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--td-space-1) 10px;
 }
 
 .td-import-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-space-2);
 }
 
 .td-import-search {
@@ -1375,17 +1983,20 @@ var CSS = String.raw`
   margin: 0;
   padding: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   list-style: none;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  border-top: var(--td-hairline-soft);
 }
 
 .td-import-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--td-space-1) 10px;
   padding: 6px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  border-bottom: var(--td-hairline-soft);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 32px;
 }
 
 .td-import-row:last-child {
@@ -1403,8 +2014,8 @@ var CSS = String.raw`
 .td-import-id {
   overflow: hidden;
   color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1425,34 +2036,39 @@ var CSS = String.raw`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
   justify-content: flex-end;
+  gap: var(--td-space-2);
 }
 
 .td-import-foot .td-caption {
   margin-right: auto;
 }
 
-/* ── Add-provider gateway connection ─────────────────────────────────────── */
+/* ── Add-provider panel ──────────────────────────────────────────────────── */
+
+.td-add-panel {
+  max-width: 720px;
+  margin: var(--td-space-3) 0 var(--td-space-4);
+}
 
 .td-add-form {
-  max-width: 720px;
+  padding-top: 0;
 }
 
 .td-add-connect {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-space-2);
 }
 
 .td-add-model-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--td-space-1) 10px;
   padding: 6px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  border-bottom: var(--td-hairline-soft);
 }
 
 .td-add-model-row:last-child {
@@ -1463,80 +2079,47 @@ var CSS = String.raw`
   margin-left: auto;
 }
 
-.td-editor-head-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.td-editor-dirty {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.td-editor-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
-}
-
-.td-editor-foot-left,
-.td-editor-foot-right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.td-editor-foot-right {
-  margin-left: auto;
-}
-
-.td-button-danger {
-  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
-  color: var(--dsw-alias-state-error-primary, #d64545);
-}
-
-@media (hover: hover) {
-  .td-button-danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
-  }
-}
-
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 
 .td-table-scroll {
   width: 100%;
-  overflow-x: auto;
+  max-height: 384px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: var(--td-hairline-soft);
+}
+
+.td-table-scroll:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, #247bbf);
+  outline-offset: 2px;
 }
 
 .td-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
 }
 
 .td-table th {
-  padding: 6px 8px 8px;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px var(--td-space-2) var(--td-space-2);
+  border-bottom: var(--td-hairline);
+  background: var(--dsw-alias-bg-base, #ffffff);
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
+  font-size: var(--td-font-caption-size);
   font-weight: 400;
-  line-height: 18px;
+  line-height: var(--td-font-caption-line);
   text-align: left;
   white-space: nowrap;
 }
 
 .td-table td {
-  padding: 9px 8px;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  padding: var(--td-space-2) var(--td-space-2);
+  border-bottom: var(--td-hairline-soft);
   vertical-align: middle;
 }
 
@@ -1565,8 +2148,8 @@ var CSS = String.raw`
   max-width: 240px;
   overflow: hidden;
   color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1575,8 +2158,8 @@ var CSS = String.raw`
   max-width: 240px;
   overflow: hidden;
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1584,7 +2167,7 @@ var CSS = String.raw`
 .td-share {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-space-2);
   min-width: 110px;
   max-width: 180px;
 }
@@ -1599,8 +2182,8 @@ var CSS = String.raw`
   flex: none;
   min-width: 34px;
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -1610,7 +2193,7 @@ var CSS = String.raw`
 .td-session-list {
   display: flex;
   flex-direction: column;
-  margin: 0;
+  margin: var(--td-space-2) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1619,9 +2202,9 @@ var CSS = String.raw`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  padding: 9px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.14));
+  gap: var(--td-space-4);
+  padding: var(--td-space-2) 0;
+  border-bottom: var(--td-hairline-soft);
 }
 
 .td-session-row:last-child {
@@ -1632,8 +2215,8 @@ var CSS = String.raw`
   min-width: 0;
   overflow: hidden;
   color: var(--dsw-alias-label-primary, #1f2328);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1643,21 +2226,17 @@ var CSS = String.raw`
   flex: none;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px 12px;
+  gap: var(--td-space-1) var(--td-space-3);
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
   font-variant-numeric: tabular-nums;
-}
-
-.td-caveat {
-  margin: 0 0 14px;
 }
 
 /* ── Empty / loading states ──────────────────────────────────────────────── */
 
 .td-empty {
-  padding: 24px 12px;
+  padding: var(--td-space-5) var(--td-space-3);
   text-align: center;
 }
 
@@ -1671,8 +2250,8 @@ var CSS = String.raw`
 .td-empty-hint {
   margin: 6px 0 0;
   color: var(--dsw-alias-label-tertiary, #8b929e);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
 }
 
 .td-spinner {
@@ -1693,13 +2272,13 @@ var CSS = String.raw`
 .td-skeleton-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  gap: var(--td-space-3);
 }
 
 .td-skeleton {
   display: block;
   height: 132px;
-  border-radius: var(--dsw-radius-xl, 14px);
+  border-radius: var(--td-radius-xl);
   background: var(--dsw-alias-bg-skeleton, rgba(127, 127, 127, 0.14));
   animation: td-pulse 1.4s ease-in-out infinite;
 }
@@ -1709,33 +2288,190 @@ var CSS = String.raw`
   50% { opacity: 1; }
 }
 
+/* ── Notices ─────────────────────────────────────────────────────────────── */
+
+.td-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--td-space-3);
+  margin-bottom: var(--td-space-4);
+  padding: var(--td-space-2) var(--td-space-3);
+  border: 0.5px solid var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
+  border-radius: var(--td-radius-md);
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+}
+
+.td-notice-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.td-notice-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--td-space-2);
+}
+
+.td-notice-info {
+  border-color: var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
+}
+
+.td-notice-warn {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 45%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #b07800) 8%, transparent);
+}
+
+.td-notice-error {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 8%, transparent);
+}
+
+/* ── Motion preference ───────────────────────────────────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
+  .td-page *,
+  .td-page *::before,
+  .td-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .td-panel-enter,
+  .td-spinner,
   .td-skeleton {
     animation: none;
   }
 
-  .td-progress-fill {
+  .td-progress-fill,
+  .td-provider-chevron {
     transition: none;
   }
 }
 
 /* ── Narrow windows ──────────────────────────────────────────────────────── */
 
+@media (max-width: 1024px) {
+  .td-provider-summary {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 96px auto;
+  }
+
+  .td-provider-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .td-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .td-hero-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'id'
+      'endpoint'
+      'actions';
+  }
+
+  .td-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .td-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .td-kpi {
+    padding: var(--td-space-3) var(--td-space-3);
+  }
+
+  .td-kpi:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .td-kpi:nth-child(n + 3) {
+    border-top: var(--td-hairline-soft);
+  }
+
+  .td-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--td-space-3);
+  }
+
+  .td-live {
+    justify-content: flex-start;
+  }
+
+  .td-live-item {
+    align-items: flex-start;
+  }
+
+  .td-live-item:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
 @media (max-width: 767px) {
   .td-content {
     padding-inline: 20px;
   }
 
-  .td-heading {
-    align-items: flex-start;
+  .td-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .td-scan-hint {
-    margin-left: 0;
+  .td-metric {
+    padding: var(--td-space-2) var(--td-space-3);
   }
 
-  .td-kv {
-    grid-template-columns: minmax(0, 1fr);
+  .td-metric:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .td-provider-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--td-space-1) var(--td-space-3);
+  }
+
+  .td-provider-toggle {
+    flex: 1 1 100%;
+  }
+
+  .td-provider-endpoint {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .td-provider-count {
+    order: 4;
+  }
+
+  .td-balance-text {
+    max-width: 100%;
+    order: 5;
+    margin-left: auto;
+  }
+
+  .td-provider-actions {
+    order: 2;
+    margin-left: auto;
   }
 
   .td-model-row {
@@ -1777,16 +2513,99 @@ var CSS = String.raw`
   .td-notice {
     flex-wrap: wrap;
   }
+
+  .td-toolbar {
+    align-items: flex-start;
+  }
 }
 `;
 
 // src/client/ui.jsx
+var import_react = require("react");
 var import_jsx_runtime = require("react/jsx-runtime");
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 function numberOrZero(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+async function copyText(text) {
+  if (typeof navigator !== "undefined" && navigator.clipboard !== void 0 && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+    }
+  }
+  if (typeof document === "undefined" || typeof document.execCommand !== "function") return false;
+  try {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.setAttribute("aria-hidden", "true");
+    area.style.position = "fixed";
+    area.style.top = "-1000px";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    area.setSelectionRange(0, text.length);
+    const copied = document.execCommand("copy");
+    document.body.removeChild(area);
+    return copied === true;
+  } catch {
+    return false;
+  }
+}
+function CopyButton({ value, label, copiedLabel, compact = true, className }) {
+  const text = typeof value === "string" ? value.trim() : "";
+  const disabled = text === "";
+  const [copied, setCopied] = (0, import_react.useState)(false);
+  const timer = (0, import_react.useRef)(null);
+  (0, import_react.useEffect)(() => () => {
+    if (timer.current !== null) clearTimeout(timer.current);
+  }, []);
+  const run = async () => {
+    if (disabled) return;
+    const ok = await copyText(text);
+    if (!ok) return;
+    setCopied(true);
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 1600);
+  };
+  if (compact) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: cx("td-copy", className), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-icon-button td-copy-button",
+          "aria-label": label,
+          title: copied ? copiedLabel : label,
+          disabled,
+          onClick: () => {
+            void run();
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: copied ? "\u2713" : "\u29C9" })
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-sr-only", "aria-live": "polite", children: copied ? copiedLabel : "" })
+    ] });
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    "button",
+    {
+      type: "button",
+      className: cx("td-button td-button-small td-button-secondary td-copy-button", className),
+      disabled,
+      onClick: () => {
+        void run();
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-hidden": "true", children: copied ? "\u2713" : "\u29C9" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { "aria-live": "polite", children: copied ? copiedLabel : label })
+      ]
+    }
+  );
 }
 function Card({ title, subtitle, actions, footer, className, children }) {
   const hasHead = title !== void 0 || actions !== void 0;
@@ -1802,24 +2621,30 @@ function Card({ title, subtitle, actions, footer, className, children }) {
     footer !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-card-footer", children: footer }) : null
   ] });
 }
-function Stat({ label, value, hint }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "td-stat", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-stat-label", children: label }),
-    value !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-stat-value", children: value }) : null,
-    hint !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-stat-hint", children: hint }) : null
+function Section({ title, subtitle, actions, footer, className, children }) {
+  const hasHead = title !== void 0 || actions !== void 0;
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: cx("td-block", className), children: [
+    hasHead ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "td-block-head", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "td-block-heading", children: [
+        title !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { className: "td-block-title", children: title }) : null,
+        subtitle !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "td-block-subtitle", children: subtitle }) : null
+      ] }),
+      actions !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-block-actions", children: actions }) : null
+    ] }) : null,
+    children,
+    footer !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-block-foot", children: footer }) : null
   ] });
 }
-function Kv({ className, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dl", { className: cx("td-kv", className), children });
-}
-function KvItem({ label, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "td-kv-item", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: label }),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children })
-  ] });
-}
-function Chip({ tone = "neutral", title, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: cx("td-chip", tone !== "neutral" && `td-chip-${tone}`), title, children });
+function Chip({ tone = "neutral", title, translateNo = false, children }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+    "span",
+    {
+      className: cx("td-chip", tone !== "neutral" && `td-chip-${tone}`),
+      title,
+      translate: translateNo ? "no" : void 0,
+      children
+    }
+  );
 }
 function Dot({ tone = "muted", label }) {
   const className = cx("td-dot", `td-dot-${tone}`);
@@ -1827,14 +2652,44 @@ function Dot({ tone = "muted", label }) {
   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className, role: "img", "aria-label": label, title: label });
 }
 function SegmentedControl({ value, options, onChange, ariaLabel, disabled = false }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-segmented", role: "group", "aria-label": ariaLabel, children: options.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+  const refs = (0, import_react.useRef)([]);
+  const move = (event, index) => {
+    let nextIndex;
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = (index + 1) % options.length;
+        break;
+      case "ArrowLeft":
+        nextIndex = (index - 1 + options.length) % options.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = options.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const next = options[nextIndex];
+    if (next === void 0) return;
+    onChange(next.value);
+    refs.current[nextIndex]?.focus();
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-segmented", role: "group", "aria-label": ariaLabel, children: options.map((option, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
     "button",
     {
       type: "button",
       className: "td-segment",
       "aria-pressed": option.value === value,
       disabled,
+      tabIndex: option.value === value ? 0 : -1,
+      ref: (node) => {
+        refs.current[index] = node;
+      },
       onClick: () => onChange(option.value),
+      onKeyDown: (event) => move(event, index),
       children: option.label
     },
     option.value
@@ -1843,8 +2698,8 @@ function SegmentedControl({ value, options, onChange, ariaLabel, disabled = fals
 function IconButton({ label, onClick, disabled = false, children }) {
   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", className: "td-icon-button", "aria-label": label, title: label, disabled, onClick, children });
 }
-function TableWrap({ children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-table-scroll", children });
+function TableWrap({ label, children }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "td-table-scroll", tabIndex: 0, role: "region", "aria-label": label, children });
 }
 function BarChart({ items, ariaLabel }) {
   if (!Array.isArray(items) || items.length === 0) return null;
@@ -1877,7 +2732,7 @@ function ProgressBar({ value, max = 1, label, variant }) {
       "aria-valuemin": 0,
       "aria-valuemax": limit,
       "aria-valuenow": current,
-      children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-progress-fill", style: { width: `${current / limit * 100}%` } })
+      children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "td-progress-fill", style: { transform: `scaleX(${current / limit})` } })
     }
   );
 }
@@ -1986,6 +2841,23 @@ function formatDate(value) {
   if (date === null) return DASH;
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
+var dayKeyFormat;
+function formatDayKey(value) {
+  if (typeof value !== "string" || value === "") return DASH;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match === null) return value;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime()) || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return value;
+  }
+  if (dayKeyFormat === void 0) {
+    dayKeyFormat = new Intl.DateTimeFormat(void 0, { month: "numeric", day: "numeric" });
+  }
+  return dayKeyFormat.format(date);
+}
 function formatDateTime(value) {
   const date = dateValue(value);
   if (date === null) return DASH;
@@ -2068,34 +2940,43 @@ var import_jsx_runtime2 = require("react/jsx-runtime");
 function count(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
+function objectOrEmpty(value) {
+  return value !== null && typeof value === "object" ? value : {};
+}
 function Overview(props) {
   const t = props.t ?? ((key) => key);
-  const { snapshot, onRefreshBalances } = props;
-  if (snapshot === null || typeof snapshot !== "object") return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CardSkeleton, { count: 6, label: t("loading.page") });
+  const { snapshot } = props;
+  if (snapshot === null || typeof snapshot !== "object") return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CardSkeleton, { count: 4, label: t("loading.page") });
   const providers = Array.isArray(snapshot.providers) ? snapshot.providers : [];
-  const usage = snapshot.usage !== null && typeof snapshot.usage === "object" ? snapshot.usage : {};
+  const usage = objectOrEmpty(snapshot.usage);
   const scan = snapshot.scan !== null && typeof snapshot.scan === "object" ? snapshot.scan : null;
   const busy = props.balanceBusy === "all";
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-overview", "aria-busy": busy, children: [
     scan?.scanning === true ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ScanBanner, { scan, t }) : null,
     usage.available === false ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Notice, { tone: "info", children: t("overview.usageUnavailable") }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-stat-grid", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(DefaultModelCard, { snapshot, providers, t }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(AccountCard, { account: snapshot.account, providers, t, busy, onRefresh: onRefreshBalances }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(UsageCard, { title: t("overview.today"), totals: usage.today, t, kind: "today" }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(UsageCard, { title: t("overview.last30"), totals: usage.last30, t, kind: "last30" }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProvidersCard, { providers, t }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CostCard, { snapshot, usage, t })
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(DefaultModelHero, { snapshot, providers, t, onOpenProviders: props.onOpenProviders }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KpiStrip, { usage, t }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-split", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        AccountPanel,
+        {
+          account: snapshot.account,
+          providers,
+          t,
+          busy,
+          onRefresh: props.onRefreshBalances
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProviderBalancesPanel, { providers, t, busy, onRefresh: props.onRefreshBalances })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProviderBalancesCard, { providers, t, busy, onRefresh: onRefreshBalances }),
-    typeof usage.builtAt === "number" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-footer", children: t("overview.builtAt", { time: formatDateTime(usage.builtAt) }) }) : null
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(OverviewFooter, { snapshot, usage, scan, t })
   ] });
 }
 function ScanBanner({ scan, t }) {
   const scanned = count(scan?.scanned);
   const total = count(scan?.total);
   const text = total > 0 ? t("scan.progress", { scanned, total }) : t("scan.preparing");
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Card, { className: "td-scan-card", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-scan-banner", children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-scan-line", children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Spinner, { label: text }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-scan-text", children: text }),
@@ -2104,26 +2985,102 @@ function ScanBanner({ scan, t }) {
     total > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProgressBar, { value: scanned, max: total, label: text }) : null
   ] });
 }
-function DefaultModelCard({ snapshot, providers, t }) {
+function DefaultModelHero({ snapshot, providers, t, onOpenProviders }) {
   const selection = snapshot.defaultSelection !== null && typeof snapshot.defaultSelection === "object" ? snapshot.defaultSelection : null;
+  const switchAction = /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    "button",
+    {
+      type: "button",
+      className: "td-button td-button-small td-button-secondary",
+      onClick: () => onOpenProviders?.(),
+      children: t("overview.switchDefault")
+    }
+  );
   if (selection === null || typeof selection.provider !== "string") {
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Card, { className: "td-stat-card", title: t("overview.defaultModel"), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: t("overview.noDefaultModel") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { className: "td-hero td-hero-empty", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-eyebrow", children: t("overview.currentDefault") }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-body", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-hero-id", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h2", { className: "td-display td-display-quiet", children: t("overview.noDefaultModel") }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-hero-actions", children: switchAction })
+      ] })
+    ] });
   }
   const provider = providers.find((item) => item?.id === selection.provider);
   const models = Array.isArray(provider?.models) ? provider.models : [];
   const model = models.find((item) => item?.id === selection.model);
-  const effort = selection.reasoningEffort;
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Card, { className: "td-stat-card", title: t("overview.defaultModel"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-card-emphasis", children: provider?.displayName ?? selection.provider }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-card-value-line", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: model?.name ?? selection.model }),
-      typeof effort === "string" && effort !== "" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Chip, { tone: "brand", title: t("overview.reasoningEffort"), children: effort }) : null
-    ] }),
-    typeof provider?.baseURL === "string" && provider.baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-mono td-ellipsis td-card-url", title: provider.baseURL, children: provider.baseURL }) : null
+  const modelName = typeof model?.name === "string" && model.name !== "" ? model.name : typeof selection.model === "string" && selection.model !== "" ? selection.model : "\u2014";
+  const providerName = typeof provider?.displayName === "string" && provider.displayName !== "" ? provider.displayName : selection.provider;
+  const baseURL = typeof provider?.baseURL === "string" ? provider.baseURL : "";
+  const effort = typeof selection.reasoningEffort === "string" ? selection.reasoningEffort : "";
+  const modelId = typeof selection.model === "string" ? selection.model : "";
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { className: "td-hero", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-eyebrow", children: t("overview.currentDefault") }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-body", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-id", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h2", { className: "td-display", translate: "no", children: modelName }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-chips", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Chip, { translateNo: true, children: providerName }),
+          effort !== "" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Chip, { tone: "brand", translateNo: true, title: t("overview.reasoningEffort"), children: effort }) : null
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-endpoint", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption", children: t("providers.baseUrl") }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-hero-url td-mono td-ellipsis", translate: "no", title: baseURL, children: baseURL !== "" ? baseURL : "\u2014" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(CopyButton, { value: baseURL, label: t("actions.copyEndpoint"), copiedLabel: t("actions.copied") })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-hero-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          CopyButton,
+          {
+            compact: false,
+            value: modelId,
+            label: t("actions.copyModelId"),
+            copiedLabel: t("actions.copied")
+          }
+        ),
+        switchAction
+      ] })
+    ] })
   ] });
 }
-function AccountCard({ account, providers, t, busy, onRefresh }) {
-  const view = account !== null && typeof account === "object" ? account : {};
+function KpiStrip({ usage, t }) {
+  const today = objectOrEmpty(usage.today);
+  const last7 = objectOrEmpty(usage.last7);
+  const total = objectOrEmpty(usage.total);
+  const cells = [
+    {
+      key: "today",
+      label: t("overview.kpi.today"),
+      value: formatTokens(totalTokens(today)),
+      hint: t("overview.kpi.todayHint")
+    },
+    {
+      key: "last7",
+      label: t("overview.kpi.last7"),
+      value: formatTokens(totalTokens(last7)),
+      hint: t("overview.kpi.last7Hint")
+    },
+    {
+      key: "calls",
+      label: t("overview.kpi.calls"),
+      value: formatNumber(total.calls),
+      hint: t("overview.kpi.callsHint")
+    },
+    {
+      key: "cache",
+      label: t("overview.kpi.cacheHit"),
+      value: formatPercent(total.cacheHitRate),
+      hint: t("overview.kpi.cacheHitHint")
+    }
+  ];
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("dl", { className: "td-kpis", "aria-label": t("overview.kpi.label"), children: cells.map((cell) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-kpi", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("dt", { className: "td-kpi-label", children: cell.label }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("dd", { className: "td-kpi-value", children: cell.value }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("dd", { className: "td-kpi-hint", children: cell.hint })
+  ] }, cell.key)) });
+}
+function AccountPanel({ account, providers, t, busy, onRefresh }) {
+  const view = objectOrEmpty(account);
   const wallets = Array.isArray(view.wallets) ? view.wallets : [];
   const bonusWallets = Array.isArray(view.bonusWallets) ? view.bonusWallets : [];
   const accountReady = view.status === "ok" && (wallets.length > 0 || bonusWallets.length > 0);
@@ -2134,10 +3091,10 @@ function AccountCard({ account, providers, t, busy, onRefresh }) {
   else if (view.signedIn === false || view.status === "signed-out") status = t("overview.accountSignedOut");
   else if (view.status === "failed") status = t("overview.accountFailed");
   else if (view.status === "unavailable" || view.available === false) status = t("overview.accountUnavailable");
+  const source = accountReady ? t("overview.balanceSource") : routeBalance !== null ? t("overview.routeBalanceHint", { provider: route.displayName ?? route.id }) : null;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-    Card,
+    Section,
     {
-      className: "td-stat-card",
       title: t("overview.account"),
       actions: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "button",
@@ -2151,11 +3108,7 @@ function AccountCard({ account, providers, t, busy, onRefresh }) {
       ),
       children: [
         status !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: status }) : null,
-        status === null && wallets.length === 0 && bonusWallets.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: t("balance.none") }) : null,
-        routeBalance !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-wallet-list", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-wallet-amount", children: routeBalance.text }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption", children: t("overview.routeBalanceHint", { provider: route.displayName ?? route.id }) })
-        ] }) : null,
+        routeBalance !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-wallet-list", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-wallet-amount", children: routeBalance.text }) }) : null,
         wallets.length > 0 || bonusWallets.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "td-wallet-list", children: [
           wallets.map((wallet, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-wallet-row", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-wallet-amount", children: formatWallet(wallet) }) }, `wallet-${index}`)),
           bonusWallets.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
@@ -2166,68 +3119,24 @@ function AccountCard({ account, providers, t, busy, onRefresh }) {
             ] }, `bonus-${index}`))
           ] }) : null
         ] }) : null,
+        status === null && routeBalance === null && wallets.length === 0 && bonusWallets.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: t("balance.none") }) : null,
+        source !== null ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-caption td-wallet-source", children: source }) : null,
         status === null && typeof view.updatedAt === "number" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption", children: t("balance.updatedAt", { time: formatDateTime(view.updatedAt) }) }) : null
       ]
     }
   );
 }
-function UsageCard({ title, totals, t, kind }) {
-  const view = totals !== null && typeof totals === "object" ? totals : {};
-  const rows = kind === "today" ? [
-    [t("overview.input"), formatTokens(view.input)],
-    [t("overview.output"), formatTokens(view.output)],
-    [t("overview.cacheRead"), formatTokens(view.cacheRead)],
-    [t("overview.calls"), formatNumber(view.calls)]
-  ] : [
-    [t("overview.cacheHitRate"), formatPercent(view.cacheHitRate)],
-    [t("overview.cacheRead"), formatTokens(view.cacheRead)],
-    [t("overview.output"), formatTokens(view.output)],
-    [t("overview.calls"), formatNumber(view.calls)]
-  ];
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Card, { className: "td-stat-card", title, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-stat-value", children: formatTokens(totalTokens(view)) }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Kv, { children: rows.map(([label, value]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label, children: value }, String(label))) })
-  ] });
-}
-function ProvidersCard({ providers, t }) {
-  const registered = providers.filter((provider) => provider?.registered === true).length;
-  const models = providers.reduce((sum, provider) => sum + (Array.isArray(provider?.models) ? provider.models.length : 0), 0);
-  const keys = providers.filter((provider) => provider?.keyConfigured === true).length;
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Card, { className: "td-stat-card", title: t("overview.providers"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "td-stat-value", children: formatNumber(providers.length) }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Kv, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label: t("overview.registered"), children: formatNumber(registered) }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label: t("overview.models"), children: formatNumber(models) }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label: t("overview.keysConfigured"), children: formatNumber(keys) })
-    ] })
-  ] });
-}
-function CostCard({ snapshot, usage, t }) {
-  const pricing = snapshot.pricing !== null && typeof snapshot.pricing === "object" ? snapshot.pricing : {};
-  const source = usage !== null && typeof usage === "object" ? usage : {};
-  if (pricing.configured !== true) {
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Card, { className: "td-stat-card", title: t("overview.cost"), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-muted", children: t("overview.costUnconfigured") }) });
-  }
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Card, { className: "td-stat-card", title: t("overview.cost"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(Kv, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label: t("overview.costLast7"), children: formatCost(source.last7?.cost, snapshot.currency) }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(KvItem, { label: t("overview.costTotal"), children: formatCost(source.total?.cost, snapshot.currency) })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-caption td-card-caption", children: t("usage.costPricedOnly") })
-  ] });
-}
-function ProviderBalancesCard({ providers, t, busy, onRefresh }) {
+function ProviderBalancesPanel({ providers, t, busy, onRefresh }) {
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-    Card,
+    Section,
     {
-      className: "td-section",
       title: t("overview.providerBalances"),
       actions: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "button",
         {
           type: "button",
           className: "td-button td-button-small td-button-secondary",
-          disabled: busy,
+          disabled: busy || providers.length === 0,
           onClick: () => onRefresh?.(),
           children: busy ? t("actions.refreshingBalances") : t("overview.refreshAllBalances")
         }
@@ -2237,8 +3146,8 @@ function ProviderBalancesCard({ providers, t, busy, onRefresh }) {
         return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("li", { className: "td-balance-row", children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { className: "td-balance-name", children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Dot, { tone: provider?.keyConfigured === true ? "ok" : "error" }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-ellipsis", children: provider?.displayName ?? provider?.id ?? "\u2014" }),
-            typeof provider?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption td-mono", children: provider.id }) : null
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-ellipsis", translate: "no", children: provider?.displayName ?? provider?.id ?? "\u2014" }),
+            typeof provider?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "td-caption td-mono", translate: "no", children: provider.id }) : null
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text })
         ] }, provider?.id ?? `provider-${index}`);
@@ -2246,12 +3155,33 @@ function ProviderBalancesCard({ providers, t, busy, onRefresh }) {
     }
   );
 }
+function OverviewFooter({ snapshot, usage, scan, t }) {
+  const pricing = objectOrEmpty(snapshot.pricing);
+  const parts = [];
+  if (typeof usage.builtAt === "number") {
+    parts.push(t("overview.builtAt", { time: formatDateTime(usage.builtAt) }));
+  }
+  const weekCost = objectOrEmpty(usage.last7).cost;
+  if (pricing.configured === true && typeof weekCost === "number" && Number.isFinite(weekCost)) {
+    parts.push(t("overview.footerCost", { cost: formatCost(weekCost, snapshot.currency) }));
+  }
+  if (scan?.scanning === true) {
+    parts.push(t("page.scanning", {
+      scanned: count(scan?.scanned),
+      total: count(scan?.total)
+    }));
+  } else {
+    parts.push(t("page.scanIdle"));
+  }
+  if (parts.length === 0) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "td-footer", children: parts.map((part) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: part }, part)) });
+}
 
 // src/client/Providers.jsx
-var import_react2 = require("react");
+var import_react3 = require("react");
 
 // src/client/ProviderEditor.jsx
-var import_react = require("react");
+var import_react2 = require("react");
 var import_jsx_runtime3 = require("react/jsx-runtime");
 var PROTOCOLS = ["openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai"];
 var EFFORT_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
@@ -2345,6 +3275,18 @@ function failureText(failure, t, fallbackKey) {
 function sourceText(t, source) {
   const key = SOURCE_KEYS[source];
   return key === void 0 ? String(source) : t(key);
+}
+function focusFirstInvalid(form) {
+  if (form === null || form === void 0 || typeof form.querySelector !== "function") return;
+  const control = form.querySelector('input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"]');
+  if (control !== null && typeof control.focus === "function") {
+    control.focus();
+    return;
+  }
+  const efforts = form.querySelector('.td-effort-block[data-invalid="true"]');
+  if (efforts === null) return;
+  const first = efforts.querySelector("button");
+  if (first !== null && typeof first.focus === "function") first.focus();
 }
 function isHttpUrl(value) {
   try {
@@ -2682,23 +3624,26 @@ function endpointRequest(draft, profile, providerId) {
   if (apiKeyEnv !== "") request.apiKeyEnv = apiKeyEnv;
   return { request, detected: request.api === void 0, draft: true };
 }
-function Field({ id, label, hint, error, required = false, children }) {
+function Field({ id, label, hint, error, required = false, action, children }) {
   const description = [
     hint !== void 0 && hint !== null ? `${id}-hint` : null,
     error !== void 0 && error !== null ? `${id}-error` : null
   ].filter(Boolean).join(" ");
   let control = children;
-  if ((0, import_react.isValidElement)(children)) {
-    control = (0, import_react.cloneElement)(children, {
+  if ((0, import_react2.isValidElement)(children)) {
+    control = (0, import_react2.cloneElement)(children, {
       id,
       ...description === "" ? {} : { "aria-describedby": description },
       ...error !== void 0 && error !== null ? { "aria-invalid": true } : {}
     });
   }
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-field-label", htmlFor: id, children: [
-      label,
-      required ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-flag", "aria-hidden": "true", children: " *" }) : null
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-field-head", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-field-label", htmlFor: id, children: [
+        label,
+        required ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-flag", "aria-hidden": "true", children: " *" }) : null
+      ] }),
+      action !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-field-action", children: action }) : null
     ] }),
     control,
     hint !== void 0 && hint !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-hint", id: `${id}-hint`, children: hint }) : null,
@@ -2714,6 +3659,8 @@ function ImportModelRow({ t, idPrefix, index, model, existing, checked, onToggle
         id: fieldId,
         className: "td-checkbox",
         type: "checkbox",
+        name: "importModel",
+        value: model.id,
         checked,
         onChange: (event) => onToggle(model.id, event.target.checked)
       }
@@ -2728,8 +3675,8 @@ function ImportModelRow({ t, idPrefix, index, model, existing, checked, onToggle
 }
 function ModelImportPicker(props) {
   const { t, idPrefix, models, protocol, detected, draftEndpoint, existingIds, onImport, onCancel } = props;
-  const [query, setQuery] = (0, import_react.useState)("");
-  const [selected, setSelected] = (0, import_react.useState)(() => {
+  const [query, setQuery] = (0, import_react2.useState)("");
+  const [selected, setSelected] = (0, import_react2.useState)(() => {
     const known = new Set(Array.isArray(existingIds) ? existingIds : []);
     return new Set(models.filter((model) => known.has(model.id)).map((model) => model.id));
   });
@@ -2774,6 +3721,8 @@ function ModelImportPicker(props) {
         "input",
         {
           className: "td-input td-import-search",
+          name: "modelSearch",
+          type: "search",
           value: query,
           autoComplete: "off",
           spellCheck: false,
@@ -2848,7 +3797,7 @@ function ReasoningProbeResult({ t, probe, onApplySuggestion }) {
         typeof row?.message === "string" && row.message !== "" ? row.message : null,
         typeof row?.reasoningTokens === "number" ? t("providers.edit.detectReasoningTokens", { count: row.reasoningTokens }) : null,
         typeof row?.latencyMs === "number" ? t("providers.edit.detectLatency", { ms: row.latencyMs }) : null
-      ].filter((part) => part !== null).join(" \xB7 ");
+      ].filter((part) => part !== null).join("; ");
       return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         Chip,
         {
@@ -2895,7 +3844,7 @@ function ModelEditorRow(props) {
   const effortsField = `${idPrefix}-model-${index}-efforts`;
   const textField = `${idPrefix}-model-${index}-text`;
   const imageField = `${idPrefix}-model-${index}-image`;
-  const [customWireOpen, setCustomWireOpen] = (0, import_react.useState)(false);
+  const [customWireOpen, setCustomWireOpen] = (0, import_react2.useState)(false);
   const selectedLevels = reasoningEditable === true ? effortLevelsOf(row.efforts) : [];
   const probeRunning = probe !== null && probe !== void 0 && probe.phase === "running";
   const canProbe = reasoningEditable === true && saved === true && providerBusy !== true && !probeRunning;
@@ -2916,21 +3865,41 @@ function ModelEditorRow(props) {
       )
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-model-grid", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: idField, label: t("providers.edit.modelId"), required: true, error: errors.id === void 0 ? void 0 : t(errors.id), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        "input",
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        Field,
         {
-          className: "td-input td-mono",
-          value: row.id,
-          autoComplete: "off",
-          spellCheck: false,
-          ref: registerIdInput(row.key),
-          onChange: (event) => onUpdate(row.key, "id", event.target.value)
+          id: idField,
+          label: t("providers.edit.modelId"),
+          required: true,
+          error: errors.id === void 0 ? void 0 : t(errors.id),
+          action: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            CopyButton,
+            {
+              value: row.id,
+              label: t("actions.copyModelId"),
+              copiedLabel: t("actions.copied")
+            }
+          ),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "input",
+            {
+              className: "td-input td-mono",
+              name: `models[${index}].id`,
+              value: row.id,
+              autoComplete: "off",
+              spellCheck: false,
+              translate: "no",
+              ref: registerIdInput(row.key),
+              onChange: (event) => onUpdate(row.key, "id", event.target.value)
+            }
+          )
         }
-      ) }),
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Field, { id: nameField, label: t("providers.edit.modelName"), error: errors.name === void 0 ? void 0 : t(errors.name), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         "input",
         {
           className: "td-input",
+          name: `models[${index}].name`,
           value: row.name,
           autoComplete: "off",
           onChange: (event) => onUpdate(row.key, "name", event.target.value)
@@ -2940,9 +3909,12 @@ function ModelEditorRow(props) {
         "input",
         {
           className: "td-input td-mono",
+          name: `models[${index}].contextWindow`,
           type: "number",
+          inputMode: "numeric",
           min: "1",
           step: "1",
+          autoComplete: "off",
           value: row.contextWindow,
           onChange: (event) => onUpdate(row.key, "contextWindow", event.target.value)
         }
@@ -2951,9 +3923,12 @@ function ModelEditorRow(props) {
         "input",
         {
           className: "td-input td-mono",
+          name: `models[${index}].maxTokens`,
           type: "number",
+          inputMode: "numeric",
           min: "1",
           step: "1",
+          autoComplete: "off",
           value: row.maxTokens,
           onChange: (event) => onUpdate(row.key, "maxTokens", event.target.value)
         }
@@ -2967,6 +3942,8 @@ function ModelEditorRow(props) {
               id: textField,
               className: "td-checkbox",
               type: "checkbox",
+              name: `models[${index}].modalities`,
+              value: "text",
               checked: row.text === true,
               onChange: (event) => onUpdate(row.key, "text", event.target.checked)
             }
@@ -2978,6 +3955,8 @@ function ModelEditorRow(props) {
               id: imageField,
               className: "td-checkbox",
               type: "checkbox",
+              name: `models[${index}].modalities`,
+              value: "image",
               checked: row.image === true,
               onChange: (event) => onUpdate(row.key, "image", event.target.checked)
             }
@@ -2985,71 +3964,83 @@ function ModelEditorRow(props) {
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "td-check-label", htmlFor: imageField, children: t("providers.edit.modalityImage") })
         ] })
       ] }),
-      reasoningEditable === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-effort-block", id: effortsField, "aria-describedby": effortError === void 0 ? void 0 : `${effortsField}-error`, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.efforts") }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-chips", role: "group", "aria-label": t("providers.edit.efforts"), children: EFFORT_LEVELS.map((level) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-          "button",
-          {
-            type: "button",
-            className: "td-effort-chip",
-            "aria-pressed": Object.hasOwn(row.efforts, level),
-            onClick: () => onUpdate(row.key, "efforts", toggleEfforts(row.efforts, level)),
-            children: effortLabel(t, level)
-          },
-          level
-        )) }),
-        selectedLevels.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-effort-wire", children: t("providers.edit.wireNone") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-mono td-effort-wire", children: t("providers.edit.wireMap", {
-          map: selectedLevels.map((level) => `${level} \u2192 ${effortWireText(t, level, row.efforts[level])}`).join(" \xB7 ")
-        }) }),
-        selectedLevels.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "button",
-            {
-              type: "button",
-              className: "td-button td-button-small td-button-ghost",
-              "aria-expanded": customWireOpen,
-              onClick: () => setCustomWireOpen((open) => !open),
-              children: t("providers.edit.customWire")
-            }
-          ) }),
-          customWireOpen ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-wires", children: selectedLevels.map((level) => {
-            const wireField = `${effortsField}-${level}`;
-            return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-effort-wire-field", htmlFor: wireField, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.wireForLevel", { level: effortLabel(t, level) }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                "input",
+      reasoningEditable === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        "div",
+        {
+          className: "td-effort-block",
+          id: effortsField,
+          "aria-describedby": effortError === void 0 ? void 0 : `${effortsField}-error`,
+          "aria-invalid": effortError === void 0 ? void 0 : true,
+          "data-invalid": effortError === void 0 ? void 0 : "true",
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.efforts") }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-chips", role: "group", "aria-label": t("providers.edit.efforts"), children: EFFORT_LEVELS.map((level) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-effort-chip",
+                "aria-pressed": Object.hasOwn(row.efforts, level),
+                onClick: () => onUpdate(row.key, "efforts", toggleEfforts(row.efforts, level)),
+                children: effortLabel(t, level)
+              },
+              level
+            )) }),
+            selectedLevels.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-effort-wire", children: t("providers.edit.wireNone") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption td-mono td-effort-wire", children: t("providers.edit.wireMap", {
+              map: selectedLevels.map((level) => `${level} \u2192 ${effortWireText(t, level, row.efforts[level])}`).join(t("ui.listSeparator"))
+            }) }),
+            selectedLevels.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "button",
                 {
-                  id: wireField,
-                  className: "td-input td-mono",
-                  value: typeof row.efforts[level] === "string" ? row.efforts[level] : "",
-                  autoComplete: "off",
-                  spellCheck: false,
-                  placeholder: level === "off" ? t("providers.edit.wireBlankForOff") : level,
-                  onChange: (event) => onUpdate(row.key, "efforts", setEffortWire(row.efforts, level, event.target.value))
+                  type: "button",
+                  className: "td-button td-button-small td-button-ghost",
+                  "aria-expanded": customWireOpen,
+                  onClick: () => setCustomWireOpen((open) => !open),
+                  children: t("providers.edit.customWire")
                 }
-              )
-            ] }, level);
-          }) }) : null
-        ] }) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-effort-detect", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-            "button",
-            {
-              type: "button",
-              className: "td-button td-button-small td-button-secondary",
-              disabled: !canProbe,
-              title: probeTitle,
-              onClick: () => onProbe(row),
-              children: [
-                probeRunning ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.detecting") }) : null,
-                probeRunning ? t("providers.edit.detecting") : t("providers.edit.detect")
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ReasoningProbeResult, { t, probe, onApplySuggestion: (suggestion) => onApplySuggestion(row.key, suggestion) })
-        ] }),
-        effortError !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${effortsField}-error`, role: "alert", children: effortError }) : null
-      ] }) : null
+              ) }),
+              customWireOpen ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-effort-wires", children: selectedLevels.map((level) => {
+                const wireField = `${effortsField}-${level}`;
+                return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "td-effort-wire-field", htmlFor: wireField, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-field-label", children: t("providers.edit.wireForLevel", { level: effortLabel(t, level) }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "input",
+                    {
+                      id: wireField,
+                      className: "td-input td-mono",
+                      name: `models[${index}].reasoningEfforts.${level}`,
+                      value: typeof row.efforts[level] === "string" ? row.efforts[level] : "",
+                      autoComplete: "off",
+                      spellCheck: false,
+                      translate: "no",
+                      placeholder: level === "off" ? t("providers.edit.wireBlankForOff") : level,
+                      onChange: (event) => onUpdate(row.key, "efforts", setEffortWire(row.efforts, level, event.target.value))
+                    }
+                  )
+                ] }, level);
+              }) }) : null
+            ] }) : null,
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-effort-detect", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+                "button",
+                {
+                  type: "button",
+                  className: "td-button td-button-small td-button-secondary",
+                  disabled: !canProbe,
+                  title: probeTitle,
+                  onClick: () => onProbe(row),
+                  children: [
+                    probeRunning ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.edit.detecting") }) : null,
+                    probeRunning ? t("providers.edit.detecting") : t("providers.edit.detect")
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ReasoningProbeResult, { t, probe, onApplySuggestion: (suggestion) => onApplySuggestion(row.key, suggestion) })
+            ] }),
+            effortError !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", id: `${effortsField}-error`, role: "alert", children: effortError }) : null
+          ]
+        }
+      ) : null
     ] })
   ] });
 }
@@ -3059,26 +4050,28 @@ function ProviderEditorView(props) {
   const { onClose, onSaved, onRetryLoad, onRefreshForm } = props;
   const refreshCredential = typeof props.onRefreshCredential === "function" ? props.onRefreshCredential : onRefreshForm;
   const savedTick = typeof props.savedTick === "number" && Number.isFinite(props.savedTick) ? props.savedTick : 0;
-  const [draft, setDraft] = (0, import_react.useState)(() => props.initialDraft !== null && typeof props.initialDraft === "object" ? props.initialDraft : draftFromForm(form));
-  const [busy, setBusy] = (0, import_react.useState)(null);
-  const [formError, setFormError] = (0, import_react.useState)(null);
-  const [keyInput, setKeyInput] = (0, import_react.useState)("");
-  const [keyError, setKeyError] = (0, import_react.useState)(null);
-  const [clearConfirm, setClearConfirm] = (0, import_react.useState)(false);
-  const [deleteConfirm, setDeleteConfirm] = (0, import_react.useState)(false);
-  const [discardPrompt, setDiscardPrompt] = (0, import_react.useState)(false);
-  const [focusRowKey, setFocusRowKey] = (0, import_react.useState)(null);
-  const [importPicker, setImportPicker] = (0, import_react.useState)(null);
-  const [importBusy, setImportBusy] = (0, import_react.useState)(false);
-  const [importError, setImportError] = (0, import_react.useState)(null);
-  const [importEmpty, setImportEmpty] = (0, import_react.useState)(false);
-  const [probe, setProbe] = (0, import_react.useState)(null);
-  const idInputs = (0, import_react.useRef)(/* @__PURE__ */ new Map());
-  const confirmDeleteRef = (0, import_react.useRef)(null);
-  const aliveRef = (0, import_react.useRef)(true);
-  const importSequence = (0, import_react.useRef)(0);
-  const baseline = (0, import_react.useMemo)(() => draftSignature(draftFromForm(form)), [form]);
-  const savedModelIds = (0, import_react.useMemo)(() => {
+  const [draft, setDraft] = (0, import_react2.useState)(() => props.initialDraft !== null && typeof props.initialDraft === "object" ? props.initialDraft : draftFromForm(form));
+  const [busy, setBusy] = (0, import_react2.useState)(null);
+  const [formError, setFormError] = (0, import_react2.useState)(null);
+  const [keyInput, setKeyInput] = (0, import_react2.useState)("");
+  const [keyError, setKeyError] = (0, import_react2.useState)(null);
+  const [clearConfirm, setClearConfirm] = (0, import_react2.useState)(false);
+  const [deleteConfirm, setDeleteConfirm] = (0, import_react2.useState)(false);
+  const [discardPrompt, setDiscardPrompt] = (0, import_react2.useState)(false);
+  const [focusRowKey, setFocusRowKey] = (0, import_react2.useState)(null);
+  const [importPicker, setImportPicker] = (0, import_react2.useState)(null);
+  const [importBusy, setImportBusy] = (0, import_react2.useState)(false);
+  const [importError, setImportError] = (0, import_react2.useState)(null);
+  const [importEmpty, setImportEmpty] = (0, import_react2.useState)(false);
+  const [importStatus, setImportStatus] = (0, import_react2.useState)(null);
+  const [probe, setProbe] = (0, import_react2.useState)(null);
+  const idInputs = (0, import_react2.useRef)(/* @__PURE__ */ new Map());
+  const confirmDeleteRef = (0, import_react2.useRef)(null);
+  const formRef = (0, import_react2.useRef)(null);
+  const aliveRef = (0, import_react2.useRef)(true);
+  const importSequence = (0, import_react2.useRef)(0);
+  const baseline = (0, import_react2.useMemo)(() => draftSignature(draftFromForm(form)), [form]);
+  const savedModelIds = (0, import_react2.useMemo)(() => {
     const ids = /* @__PURE__ */ new Set();
     const models = form !== null && typeof form === "object" && form.profile !== null && typeof form.profile === "object" && Array.isArray(form.profile.models) ? form.profile.models : [];
     for (const model of models) {
@@ -3087,19 +4080,19 @@ function ProviderEditorView(props) {
     }
     return ids;
   }, [form]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
     };
   }, []);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     if (focusRowKey === null) return;
     const node = idInputs.current.get(focusRowKey);
     if (node !== void 0 && node !== null && typeof node.focus === "function") node.focus();
     setFocusRowKey(null);
   }, [focusRowKey, draft]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     if (deleteConfirm && confirmDeleteRef.current !== null) confirmDeleteRef.current.focus();
   }, [deleteConfirm]);
   const updateScalar = (field) => (event) => {
@@ -3134,7 +4127,7 @@ function ProviderEditorView(props) {
   const modelsDeclared = profile.modelsDeclared === true;
   const validation = validateDraft(draft, capabilities, writable);
   const dirty = ready && draftSignature(draft) !== baseline;
-  const canSave = writable && busy === null && validation.valid;
+  const canSave = writable && busy === null;
   const showSaved = writable && dirty === false && savedTick > 0;
   const providerLabel = typeof providerName === "string" && providerName !== "" ? providerName : typeof providerId === "string" ? providerId : "";
   const idPrefix = `td-edit-${String(providerId ?? "provider").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -3158,6 +4151,7 @@ function ProviderEditorView(props) {
     const sequence = importSequence.current;
     setImportError(null);
     setImportEmpty(false);
+    setImportStatus(null);
     setImportPicker(null);
     setImportBusy(true);
     try {
@@ -3184,6 +4178,7 @@ function ProviderEditorView(props) {
   const applyImport = (models) => {
     setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
     setImportPicker(null);
+    setImportStatus(models.length);
   };
   const detectRow = async (row) => {
     const modelId = row.id.trim();
@@ -3234,7 +4229,10 @@ function ProviderEditorView(props) {
     event.preventDefault();
     if (!writable || busy !== null) return;
     const latest = validateDraft(draft, capabilities, writable);
-    if (!latest.valid) return;
+    if (!latest.valid) {
+      focusFirstInvalid(formRef.current);
+      return;
+    }
     setBusy("save");
     setFormError(null);
     try {
@@ -3353,7 +4351,7 @@ function ProviderEditorView(props) {
       }
     ) : null,
     readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "info", children: t("providers.edit.accountReadonly") }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form", onSubmit: submit, noValidate: true, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form", ref: formRef, onSubmit: submit, noValidate: true, children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-grid", children: [
         showDisplayName ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           Field,
@@ -3361,7 +4359,7 @@ function ProviderEditorView(props) {
             id: `${idPrefix}-display-name`,
             label: t("providers.edit.displayName"),
             error: validation.fieldErrors.displayName === void 0 ? void 0 : t(validation.fieldErrors.displayName),
-            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: updateScalar("displayName") })
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", name: "displayName", value: draft.displayName, readOnly: true, autoComplete: "off", placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", name: "displayName", value: draft.displayName, autoComplete: "off", onChange: updateScalar("displayName") })
           }
         ) : null,
         showApi ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3370,7 +4368,7 @@ function ProviderEditorView(props) {
             id: `${idPrefix}-protocol`,
             label: t("providers.edit.protocol"),
             error: validation.fieldErrors.api === void 0 ? void 0 : t(validation.fieldErrors.api),
-            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.api, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("select", { className: "td-select", value: draft.api, onChange: updateScalar("api"), children: apiOptions.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol === "" ? t("providers.edit.protocolInherit") : protocol }, protocol === "" ? "inherit" : protocol)) })
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", name: "api", value: draft.api, readOnly: true, autoComplete: "off", spellCheck: false, translate: "no", placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("select", { className: "td-select", name: "api", value: draft.api, onChange: updateScalar("api"), children: apiOptions.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol === "" ? t("providers.edit.protocolInherit") : protocol }, protocol === "" ? "inherit" : protocol)) })
           }
         ) : null,
         showBaseURL ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3379,13 +4377,25 @@ function ProviderEditorView(props) {
             id: `${idPrefix}-base-url`,
             label: t("providers.edit.baseURL"),
             error: validation.fieldErrors.baseURL === void 0 ? void 0 : t(validation.fieldErrors.baseURL),
-            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.baseURL, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            action: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              CopyButton,
+              {
+                value: draft.baseURL,
+                label: t("actions.copyEndpoint"),
+                copiedLabel: t("actions.copied")
+              }
+            ),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", name: "baseURL", value: draft.baseURL, readOnly: true, autoComplete: "off", spellCheck: false, translate: "no", placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
               "input",
               {
                 className: "td-input td-mono",
+                name: "baseURL",
+                type: "url",
+                inputMode: "url",
                 value: draft.baseURL,
                 autoComplete: "off",
                 spellCheck: false,
+                translate: "no",
                 placeholder: t("providers.edit.baseURLPlaceholder"),
                 onChange: updateScalar("baseURL")
               }
@@ -3399,13 +4409,23 @@ function ProviderEditorView(props) {
             label: t("providers.edit.apiKeyEnv"),
             hint: t("providers.edit.apiKeyEnvHint"),
             error: validation.fieldErrors.apiKeyEnv === void 0 ? void 0 : t(validation.fieldErrors.apiKeyEnv),
-            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", value: draft.apiKeyEnv, readOnly: true, placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            action: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              CopyButton,
+              {
+                value: draft.apiKeyEnv,
+                label: t("actions.copyCredentialRef"),
+                copiedLabel: t("actions.copied")
+              }
+            ),
+            children: readOnly ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input td-mono", name: "apiKeyEnv", value: draft.apiKeyEnv, readOnly: true, autoComplete: "off", spellCheck: false, translate: "no", placeholder: t("providers.edit.notSet") }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
               "input",
               {
                 className: "td-input td-mono",
+                name: "apiKeyEnv",
                 value: draft.apiKeyEnv,
                 autoComplete: "off",
                 spellCheck: false,
+                translate: "no",
                 placeholder: t("providers.edit.apiKeyEnvPlaceholder"),
                 onChange: updateScalar("apiKeyEnv")
               }
@@ -3416,7 +4436,7 @@ function ProviderEditorView(props) {
       apiKeyNeedsRef ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "info", children: t("providers.edit.apiKeyNeedsRef") }) : null,
       showApiKey ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": `${idPrefix}-api-key`, children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-section-head", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-card-subtitle", id: `${idPrefix}-api-key`, children: t("providers.edit.apiKey") }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h2", { className: "td-section-title", id: `${idPrefix}-api-key`, children: t("providers.edit.apiKey") }),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             Dot,
             {
@@ -3425,7 +4445,7 @@ function ProviderEditorView(props) {
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: credentialConfigured ? "td-tone-ok" : "td-tone-muted", children: credentialConfigured ? t("providers.edit.apiKeyConfigured") : t("providers.edit.apiKeyMissing") }),
-          credentialMasked !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-mono td-ellipsis", title: credentialMasked, children: credentialMasked }) : null,
+          credentialMasked !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-mono td-ellipsis", translate: "no", title: credentialMasked, children: credentialMasked }) : null,
           credentialSource !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.edit.apiKeySource", { source: sourceText(t, credentialSource) }) }) : null
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.apiKeyStored") }),
@@ -3436,9 +4456,12 @@ function ProviderEditorView(props) {
             "input",
             {
               className: "td-input",
+              name: "apiKey",
               type: "password",
               value: keyInput,
               autoComplete: "new-password",
+              spellCheck: false,
+              translate: "no",
               placeholder: t("providers.edit.apiKeyPlaceholder"),
               disabled: busy !== null || keyRefDirty,
               onChange: (event) => setKeyInput(event.target.value)
@@ -3501,12 +4524,9 @@ function ProviderEditorView(props) {
       ] }) : null,
       showModels ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": `${idPrefix}-models`, children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-section-head", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-card-subtitle", id: `${idPrefix}-models`, children: [
-            t("providers.edit.models"),
-            " \xB7 ",
-            formatNumber(draft.models.length)
-          ] }),
-          writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-head-actions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h2", { className: "td-section-title", id: `${idPrefix}-models`, children: t("providers.edit.models") }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-num", children: formatNumber(draft.models.length) }),
+          writable && draft.models.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-head-actions", children: [
             canImport ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
               "button",
               {
@@ -3537,8 +4557,9 @@ function ProviderEditorView(props) {
         importBusy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.import.loading") }) : null,
         importError !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-field-error", role: "alert", children: failureText(importError, t, "errors.discover.generic") }) : null,
         importEmpty ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.import.empty") }) : null,
+        importStatus !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-editor-imported", role: "status", children: t("providers.edit.imported", { count: importStatus }) }) : null,
         capabilities.modelReasoning !== true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.effortsFixed") }) : null,
-        modelsDeclared === false ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.modelsInherited") }) : null,
+        modelsDeclared === false && draft.models.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.edit.modelsInherited") }) : null,
         importPicker !== null ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           ModelImportPicker,
           {
@@ -3554,7 +4575,36 @@ function ProviderEditorView(props) {
           },
           importPicker.version
         ) : null,
-        draft.models.length === 0 && modelsDeclared === true ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-muted", children: t("providers.edit.modelsEmpty") }) : null,
+        draft.models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-empty", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-editor-empty-title", children: modelsDeclared === false ? t("providers.edit.modelsInheritedTitle") : t("providers.edit.modelsEmptyTitle") }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: modelsDeclared === false ? t("providers.edit.modelsInherited") : t("providers.edit.modelsEmpty") }),
+          writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-empty-actions", children: [
+            canImport ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                disabled: importBusy || busy !== null,
+                onClick: () => {
+                  void importModels();
+                },
+                children: [
+                  importBusy ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Spinner, { label: t("providers.import.loading") }) : null,
+                  t("providers.edit.importModels")
+                ]
+              }
+            ) : null,
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "td-button td-button-small td-button-secondary",
+                onClick: addModel,
+                children: t("providers.edit.addModel")
+              }
+            )
+          ] }) : null
+        ] }) : null,
         draft.models.length > 0 ? writable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-models", children: draft.models.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           ModelEditorRow,
           {
@@ -3577,8 +4627,8 @@ function ProviderEditorView(props) {
           },
           row.key
         )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: draft.models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { className: "td-model-row", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-model-main", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-name", children: row.name === "" ? row.id : row.name }),
-          row.id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-id td-mono", children: row.id }) : null
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-name", translate: "no", children: row.name === "" ? row.id : row.name }),
+          row.id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-model-id td-mono", translate: "no", children: row.id }) : null
         ] }) }, row.key)) }) : null
       ] }) : null,
       discardPrompt ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3694,19 +4744,19 @@ function ProviderEditorView(props) {
 function ProviderEditor(props) {
   const t = translateOf(props.t);
   const { providerId } = props;
-  const [form, setForm] = (0, import_react.useState)(null);
-  const [generation, setGeneration] = (0, import_react.useState)(0);
-  const [loading, setLoading] = (0, import_react.useState)(true);
-  const [loadError, setLoadError] = (0, import_react.useState)(null);
-  const [savedTick, setSavedTick] = (0, import_react.useState)(0);
-  const aliveRef = (0, import_react.useRef)(true);
-  (0, import_react.useEffect)(() => {
+  const [form, setForm] = (0, import_react2.useState)(null);
+  const [generation, setGeneration] = (0, import_react2.useState)(0);
+  const [loading, setLoading] = (0, import_react2.useState)(true);
+  const [loadError, setLoadError] = (0, import_react2.useState)(null);
+  const [savedTick, setSavedTick] = (0, import_react2.useState)(0);
+  const aliveRef = (0, import_react2.useRef)(true);
+  (0, import_react2.useEffect)(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
     };
   }, []);
-  const readForm = (0, import_react.useCallback)(async ({ quiet = false } = {}) => {
+  const readForm = (0, import_react2.useCallback)(async ({ quiet = false } = {}) => {
     if (!quiet) {
       setLoading(true);
       setLoadError(null);
@@ -3725,7 +4775,7 @@ function ProviderEditor(props) {
       setLoading(false);
     }
   }, [providerId]);
-  const refreshCredential = (0, import_react.useCallback)(async () => {
+  const refreshCredential = (0, import_react2.useCallback)(async () => {
     try {
       const next = await fetchProviderForm(providerId);
       if (!aliveRef.current) return;
@@ -3734,7 +4784,7 @@ function ProviderEditor(props) {
     } catch {
     }
   }, [providerId]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react2.useEffect)(() => {
     void readForm();
   }, [readForm]);
   const afterSaved = (info) => {
@@ -3774,6 +4824,7 @@ function AddProviderView(props) {
     error,
     picker,
     importEmpty,
+    imported,
     detectedProtocol,
     onUpdate,
     onClose,
@@ -3781,12 +4832,13 @@ function AddProviderView(props) {
     onConnect,
     onImport,
     onCancelImport,
-    onRemoveModel
+    onRemoveModel,
+    formRef
   } = props;
   const connecting = busy === "connect";
   const models = Array.isArray(draft.models) ? draft.models : [];
   const fieldError = (key) => errors[key] === void 0 ? void 0 : t(errors[key]);
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-provider-card", title: t("providers.add.title"), subtitle: t("providers.add.subtitle"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form td-add-form", onSubmit: onCreate, noValidate: true, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Card, { className: "td-add-panel", title: t("providers.add.title"), subtitle: t("providers.add.subtitle"), children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "td-editor-form td-add-form", ref: formRef, onSubmit: onCreate, noValidate: true, children: [
     error !== null && error !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(Notice, { tone: "error", children: failureText(error, t, "errors.add.generic") }) : null,
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-grid", children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3801,9 +4853,11 @@ function AddProviderView(props) {
             "input",
             {
               className: "td-input td-mono",
+              name: "providerId",
               value: draft.id,
               autoComplete: "off",
               spellCheck: false,
+              translate: "no",
               placeholder: t("providers.add.idPlaceholder"),
               onChange: onUpdate("id")
             }
@@ -3816,7 +4870,7 @@ function AddProviderView(props) {
           id: "td-add-display-name",
           label: t("providers.add.displayName"),
           error: fieldError("displayName"),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", value: draft.displayName, autoComplete: "off", onChange: onUpdate("displayName") })
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("input", { className: "td-input", name: "displayName", value: draft.displayName, autoComplete: "off", onChange: onUpdate("displayName") })
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -3827,7 +4881,7 @@ function AddProviderView(props) {
           hint: t("providers.add.protocolHint"),
           required: true,
           error: fieldError("api"),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "td-select", value: draft.api, onChange: onUpdate("api"), children: [
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("select", { className: "td-select", name: "api", value: draft.api, onChange: onUpdate("api"), children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: "", children: t("providers.add.protocolPlaceholder") }),
             PROTOCOLS.map((protocol) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: protocol, children: protocol }, protocol))
           ] })
@@ -3844,9 +4898,13 @@ function AddProviderView(props) {
             "input",
             {
               className: "td-input td-mono",
+              name: "baseURL",
+              type: "url",
+              inputMode: "url",
               value: draft.baseURL,
               autoComplete: "off",
               spellCheck: false,
+              translate: "no",
               placeholder: t("providers.add.baseURLPlaceholder"),
               onChange: onUpdate("baseURL")
             }
@@ -3864,9 +4922,11 @@ function AddProviderView(props) {
             "input",
             {
               className: "td-input td-mono",
+              name: "apiKeyEnv",
               value: draft.apiKeyEnv,
               autoComplete: "off",
               spellCheck: false,
+              translate: "no",
               placeholder: t("providers.add.apiKeyEnvPlaceholder"),
               onChange: onUpdate("apiKeyEnv")
             }
@@ -3883,9 +4943,12 @@ function AddProviderView(props) {
             "input",
             {
               className: "td-input",
+              name: "apiKey",
               type: "password",
               value: draft.apiKey,
               autoComplete: "new-password",
+              spellCheck: false,
+              translate: "no",
               placeholder: t("providers.add.apiKeyPlaceholder"),
               onChange: onUpdate("apiKey")
             }
@@ -3926,16 +4989,16 @@ function AddProviderView(props) {
       },
       picker.version
     ) : null,
+    imported !== null && imported !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-editor-imported", role: "status", children: t("providers.add.imported", { count: imported }) }) : null,
     models.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "td-editor-section", "aria-labelledby": "td-add-models", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "td-editor-section-head", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-card-subtitle", id: "td-add-models", children: [
-        t("providers.add.models"),
-        " \xB7 ",
-        formatNumber(models.length)
-      ] }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "td-editor-section-head", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h3", { className: "td-section-title", id: "td-add-models", children: t("providers.add.models") }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-num", children: formatNumber(models.length) })
+      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "td-caption", children: t("providers.add.modelsCount", { count: models.length }) }),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("ul", { className: "td-model-list", children: models.map((row) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("li", { className: "td-add-model-row", children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "td-import-label", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-import-id td-mono", children: row.id }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-import-id td-mono", translate: "no", children: row.id }),
           row.name !== "" && row.name !== row.id ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption td-import-name", children: row.name }) : null
         ] }),
         row.contextWindow !== "" ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "td-caption", children: t("providers.contextWindow", { value: formatTokens(Number(row.contextWindow)) }) }) : null,
@@ -3973,22 +5036,28 @@ function AddProviderView(props) {
 function AddProviderForm(props) {
   const t = translateOf(props.t);
   const { expectedRevision, onClose, onCreated } = props;
-  const [draft, setDraft] = (0, import_react.useState)(blankAddDraft);
-  const [busy, setBusy] = (0, import_react.useState)(null);
-  const [error, setError] = (0, import_react.useState)(null);
-  const [attempted, setAttempted] = (0, import_react.useState)(false);
-  const [connectAttempted, setConnectAttempted] = (0, import_react.useState)(false);
-  const [picker, setPicker] = (0, import_react.useState)(null);
-  const [importEmpty, setImportEmpty] = (0, import_react.useState)(false);
-  const [detectedProtocol, setDetectedProtocol] = (0, import_react.useState)(null);
-  const aliveRef = (0, import_react.useRef)(true);
-  const connectSequence = (0, import_react.useRef)(0);
-  (0, import_react.useEffect)(() => {
+  const [draft, setDraft] = (0, import_react2.useState)(blankAddDraft);
+  const [busy, setBusy] = (0, import_react2.useState)(null);
+  const [error, setError] = (0, import_react2.useState)(null);
+  const [attempted, setAttempted] = (0, import_react2.useState)(false);
+  const [connectAttempted, setConnectAttempted] = (0, import_react2.useState)(false);
+  const [picker, setPicker] = (0, import_react2.useState)(null);
+  const [importEmpty, setImportEmpty] = (0, import_react2.useState)(false);
+  const [importStatus, setImportStatus] = (0, import_react2.useState)(null);
+  const [detectedProtocol, setDetectedProtocol] = (0, import_react2.useState)(null);
+  const [invalidTick, setInvalidTick] = (0, import_react2.useState)(0);
+  const formRef = (0, import_react2.useRef)(null);
+  const aliveRef = (0, import_react2.useRef)(true);
+  const connectSequence = (0, import_react2.useRef)(0);
+  (0, import_react2.useEffect)(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
     };
   }, []);
+  (0, import_react2.useEffect)(() => {
+    if (invalidTick > 0) focusFirstInvalid(formRef.current);
+  }, [invalidTick]);
   const validation = validateAddDraft(draft);
   const visibleErrors = {};
   if (attempted) {
@@ -4012,6 +5081,7 @@ function AddProviderForm(props) {
     setBusy("connect");
     setPicker(null);
     setImportEmpty(false);
+    setImportStatus(null);
     try {
       const key = draft.apiKey.trim();
       const ref = draft.apiKeyEnv.trim();
@@ -4044,6 +5114,7 @@ function AddProviderForm(props) {
   const importModels = (models) => {
     setDraft((previous) => ({ ...previous, models: mergeImportedModels(previous.models, models) }));
     setPicker(null);
+    setImportStatus(models.length);
   };
   const removeModel = (id) => {
     setDraft((previous) => ({ ...previous, models: previous.models.filter((row) => row.id !== id) }));
@@ -4053,7 +5124,10 @@ function AddProviderForm(props) {
     if (busy !== null) return;
     setAttempted(true);
     const latest = validateAddDraft(draft);
-    if (!latest.valid) return;
+    if (!latest.valid) {
+      setInvalidTick((previous) => previous + 1);
+      return;
+    }
     const id = draft.id.trim();
     const provider = { id, api: draft.api, baseURL: draft.baseURL.trim() };
     const displayName = draft.displayName.trim();
@@ -4088,13 +5162,15 @@ function AddProviderForm(props) {
     AddProviderView,
     {
       t,
+      formRef,
       draft,
       errors: visibleErrors,
-      canCreate: validation.valid && busy === null,
+      canCreate: busy === null,
       busy,
       error,
       picker,
       importEmpty,
+      imported: importStatus,
       detectedProtocol,
       onUpdate: update,
       onClose,
@@ -4117,6 +5193,43 @@ var NOTE_KEYS = {
   "models-unavailable": "providers.note.models-unavailable",
   "no-models": "providers.note.no-models"
 };
+var EXPANDED_KEY = "dsh-token-dashboard.providers.expanded";
+var EDITING_KEY = "dsh-token-dashboard.providers.editing";
+function readStored(key) {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writeStored(key, value) {
+  try {
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(key, value);
+  } catch {
+  }
+}
+function removeStored(key) {
+  try {
+    if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(key);
+  } catch {
+  }
+}
+function readExpandedIds() {
+  const raw = readStored(EXPANDED_KEY);
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return /* @__PURE__ */ new Set();
+    return new Set(parsed.filter((id) => typeof id === "string"));
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+}
+function detailIdOf(id, index) {
+  const safe = id !== "" ? id.replace(/[^a-zA-Z0-9_-]/g, "-") : `row-${index}`;
+  return `td-provider-detail-${safe}`;
+}
 function noteText(t, note) {
   const key = typeof note === "string" ? NOTE_KEYS[note] : void 0;
   return key === void 0 ? String(note) : t(key);
@@ -4124,18 +5237,36 @@ function noteText(t, note) {
 function Providers(props) {
   const t = props.t ?? ((key) => key);
   const { snapshot, onRefreshBalances, balanceBusy, onSetDefault, onReload } = props;
-  const [expandedIds, setExpandedIds] = (0, import_react2.useState)(() => /* @__PURE__ */ new Set());
-  const [editingId, setEditingId] = (0, import_react2.useState)(null);
-  const [addOpen, setAddOpen] = (0, import_react2.useState)(false);
-  const [addRevision, setAddRevision] = (0, import_react2.useState)(void 0);
-  const [addPreparing, setAddPreparing] = (0, import_react2.useState)(false);
+  const [expandedIds, setExpandedIds] = (0, import_react3.useState)(() => readExpandedIds() ?? /* @__PURE__ */ new Set());
+  const [hadStoredExpansion] = (0, import_react3.useState)(() => readStored(EXPANDED_KEY) !== null);
+  const [editingId, setEditingId] = (0, import_react3.useState)(() => readStored(EDITING_KEY));
+  const [addOpen, setAddOpen] = (0, import_react3.useState)(false);
+  const [addRevision, setAddRevision] = (0, import_react3.useState)(void 0);
+  const [addPreparing, setAddPreparing] = (0, import_react3.useState)(false);
+  const seededExpansion = (0, import_react3.useRef)(false);
+  (0, import_react3.useEffect)(() => {
+    writeStored(EXPANDED_KEY, JSON.stringify([...expandedIds]));
+  }, [expandedIds]);
+  (0, import_react3.useEffect)(() => {
+    if (editingId === null) removeStored(EDITING_KEY);
+    else writeStored(EDITING_KEY, editingId);
+  }, [editingId]);
+  (0, import_react3.useEffect)(() => {
+    if (seededExpansion.current || hadStoredExpansion) return;
+    if (snapshot === null || typeof snapshot !== "object") return;
+    seededExpansion.current = true;
+    const providers2 = Array.isArray(snapshot.providers) ? snapshot.providers : [];
+    const selection2 = snapshot.defaultSelection !== null && typeof snapshot.defaultSelection === "object" ? snapshot.defaultSelection : null;
+    const preferred = providers2.find((provider) => provider?.isDefault === true) ?? providers2.find((provider) => typeof provider?.id === "string" && provider.id === selection2?.provider);
+    if (typeof preferred?.id === "string" && preferred.id !== "") {
+      setExpandedIds((previous) => previous.size > 0 ? previous : /* @__PURE__ */ new Set([preferred.id]));
+    }
+  }, [snapshot, hadStoredExpansion]);
   if (snapshot === null || typeof snapshot !== "object") return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(CardSkeleton, { count: 4, label: t("loading.page") });
   const providers = Array.isArray(snapshot.providers) ? snapshot.providers : [];
   const selection = snapshot.defaultSelection !== null && typeof snapshot.defaultSelection === "object" ? snapshot.defaultSelection : null;
-  const expandable = providers.filter((provider) => typeof provider?.id === "string" && (Array.isArray(provider?.models) ? provider.models.length : 0) > 5);
-  const allExpanded = expandable.length > 0 && expandable.every((provider) => expandedIds.has(provider.id));
+  const allExpanded = providers.length > 0 && providers.every((provider) => typeof provider?.id === "string" && expandedIds.has(provider.id));
   const refreshingAll = balanceBusy === "all";
-  const showAdd = true;
   const piAiProvider = providers.find((provider) => typeof provider?.id === "string" && provider.id !== "" && typeof provider?.settingsNs === "string" && provider.settingsNs.includes("pi-ai"));
   const toggleProvider = (id) => {
     setExpandedIds((previous) => {
@@ -4148,10 +5279,22 @@ function Providers(props) {
   const toggleAll = () => {
     setExpandedIds((previous) => {
       const next = new Set(previous);
-      for (const provider of expandable) {
+      for (const provider of providers) {
+        if (typeof provider?.id !== "string") continue;
         if (allExpanded) next.delete(provider.id);
         else next.add(provider.id);
       }
+      return next;
+    });
+  };
+  const openEditor = (id) => {
+    if (typeof id !== "string" || id === "") return;
+    setAddOpen(false);
+    setEditingId(id);
+    setExpandedIds((previous) => {
+      if (previous.has(id)) return previous;
+      const next = new Set(previous);
+      next.add(id);
       return next;
     });
   };
@@ -4190,54 +5333,57 @@ function Providers(props) {
       await onReload?.();
     } catch {
     }
-    if (typeof providerId === "string" && providerId !== "") setEditingId(providerId);
+    openEditor(providerId);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-toolbar", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar-group", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-providers", "aria-busy": balanceBusy !== null && balanceBusy !== void 0, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-toolbar-group", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-button td-button-small td-button-secondary",
+            disabled: refreshingAll || providers.length === 0,
+            onClick: () => onRefreshBalances?.(),
+            children: refreshingAll ? t("actions.refreshingBalances") : t("actions.refreshBalances")
+          }
+        ),
+        providers.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: toggleAll, children: allExpanded ? t("actions.collapseAll") : t("actions.expandAll") }) : null
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-toolbar-group", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
         "button",
         {
           type: "button",
-          className: "td-button td-button-small td-button-secondary",
-          disabled: refreshingAll || providers.length === 0,
-          onClick: () => onRefreshBalances?.(),
-          children: refreshingAll ? t("actions.refreshingBalances") : t("actions.refreshBalances")
-        }
-      ),
-      expandable.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: toggleAll, children: allExpanded ? t("actions.collapseAll") : t("actions.expandAll") }) : null,
-      showAdd ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-        "button",
-        {
-          type: "button",
-          className: "td-button td-button-small td-button-secondary",
+          className: "td-button td-button-small td-button-primary",
           disabled: addPreparing || addOpen,
           onClick: () => {
             void openAdd();
           },
-          children: addPreparing ? t("providers.add.preparing") : t("providers.add.action")
+          children: [
+            addPreparing ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Spinner, { label: t("providers.add.preparing") }) : null,
+            addPreparing ? t("providers.add.preparing") : t("providers.add.action")
+          ]
         }
-      ) : null
-    ] }) }),
+      ) })
+    ] }),
     addOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(AddProviderForm, { t, expectedRevision: addRevision, onClose: closeAdd, onCreated: (id) => {
       void afterCreated(id);
     } }) : null,
-    providers.length === 0 ? addOpen ? null : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("providers.empty") }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: cx("td-provider-list", addOpen && "td-section"), children: providers.map((provider, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-      ProviderCard,
+    providers.length === 0 ? addOpen ? null : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Section, { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyState, { title: t("providers.empty") }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-provider-list", children: providers.map((provider, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      ProviderRow,
       {
+        index,
         provider,
         t,
         selection,
         editing: typeof provider?.id === "string" && editingId === provider.id,
-        onEdit: () => {
-          if (typeof provider?.id === "string") {
-            setAddOpen(false);
-            setEditingId(provider.id);
-          }
-        },
+        onEdit: () => openEditor(provider?.id),
         onCloseEditor: () => setEditingId(null),
         onSaved: afterSaved,
-        expandedModels: typeof provider?.id === "string" && expandedIds.has(provider.id),
-        onToggleModels: toggleProvider,
+        expanded: typeof provider?.id === "string" && expandedIds.has(provider.id),
+        onToggle: () => {
+          if (typeof provider?.id === "string") toggleProvider(provider.id);
+        },
         onRefresh: (id) => onRefreshBalances?.({ providers: [id] }),
         balanceBusy,
         onSetDefault
@@ -4270,25 +5416,45 @@ function sourceText2(t, source) {
   const key = known[source];
   return key === void 0 ? source : t(key);
 }
-function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expandedModels, onToggleModels, onRefresh, balanceBusy, onSetDefault }) {
-  const [savingModel, setSavingModel] = (0, import_react2.useState)(null);
-  const [saveError, setSaveError] = (0, import_react2.useState)(null);
-  const [probe, setProbe] = (0, import_react2.useState)(null);
+function ProviderRow(props) {
+  const {
+    provider,
+    t,
+    selection,
+    editing,
+    onEdit,
+    onCloseEditor,
+    onSaved,
+    expanded,
+    onToggle,
+    onRefresh,
+    balanceBusy,
+    onSetDefault,
+    index
+  } = props;
+  const [savingModel, setSavingModel] = (0, import_react3.useState)(null);
+  const [saveError, setSaveError] = (0, import_react3.useState)(null);
+  const [probe, setProbe] = (0, import_react3.useState)(null);
   const id = typeof provider?.id === "string" ? provider.id : "";
   const displayName = typeof provider?.displayName === "string" && provider.displayName !== "" ? provider.displayName : id || "\u2014";
   const models = Array.isArray(provider?.models) ? provider.models : [];
-  const shown = expandedModels ? models : models.slice(0, 5);
   const balance = formatBalance(provider?.balance, t);
   const busy = balanceBusy === "all" || id !== "" && balanceBusy === id;
   const keyConfigured = provider?.keyConfigured === true;
   const routeActive = provider?.registered === true;
   const isAccountRoute = provider?.accountRoute === true;
   const baseURL = typeof provider?.baseURL === "string" ? provider.baseURL : "";
+  const protocol = typeof provider?.protocol === "string" ? provider.protocol : "";
   const masked = typeof provider?.keyMasked === "string" && provider.keyMasked !== "" ? provider.keyMasked : null;
   const credentialRef = typeof provider?.apiKeyEnv === "string" && provider.apiKeyEnv !== "" ? provider.apiKeyEnv : null;
   const keySource = keyConfigured && typeof provider?.keySource === "string" ? sourceText2(t, provider.keySource) : null;
   const notes = Array.isArray(provider?.notes) ? provider.notes : [];
   const editingOpen = editing === true && id !== "";
+  const detailId = detailIdOf(id, index);
+  const isDefault = provider?.isDefault === true || selection?.provider === id && typeof selection?.model === "string";
+  const refreshLabel = t("providers.refreshBalanceAria", { provider: displayName });
+  const editLabel = t("providers.editProviderAria", { provider: displayName });
+  const toggleLabel = expanded ? t("providers.collapseAria", { provider: displayName }) : t("providers.expandAria", { provider: displayName });
   const saveDefault = async (model) => {
     if (typeof onSetDefault !== "function" || savingModel !== null) return;
     if (typeof model?.id !== "string" || model.id === "" || id === "") return;
@@ -4320,45 +5486,59 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
     }
   };
   const probeFor = (modelId) => probe !== null && probe.modelId === modelId ? probe : null;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Card, { className: "td-provider-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-title", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-        Dot,
+  const identity = /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      Dot,
+      {
+        tone: keyConfigured ? "ok" : "error",
+        label: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing")
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-name", translate: "no", children: displayName }),
+    isDefault ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone: "brand", children: t("providers.default") }) : null,
+    id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-id td-mono", translate: "no", children: id }) : null,
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-chevron", "aria-hidden": "true", children: "\u25B8" })
+  ] });
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: cx(
+    "td-provider-row",
+    isDefault && "td-is-default",
+    (expanded || editingOpen) && "td-is-expanded",
+    editingOpen && "td-is-editing"
+  ), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-summary", children: [
+      editingOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-toggle td-provider-toggle-static", children: identity }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        "button",
         {
-          tone: keyConfigured ? "ok" : "error",
-          label: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing")
+          type: "button",
+          className: "td-provider-toggle",
+          "aria-expanded": expanded,
+          "aria-controls": detailId,
+          "aria-label": toggleLabel,
+          onClick: onToggle,
+          children: identity
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-name", children: displayName }),
-      id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: id }) : null,
-      typeof provider?.protocol === "string" && provider.protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { title: t("providers.protocol"), children: provider.protocol }) : null,
-      provider?.isDefault === true ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone: "brand", children: t("providers.default") }) : null,
-      isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountRoute") }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-endpoint td-mono td-ellipsis", translate: "no", title: baseURL !== "" ? baseURL : void 0, children: baseURL !== "" ? baseURL : "\u2014" }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-provider-count", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-count-value", children: formatNumber(models.length) }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.models") })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            type: "button",
-            className: "td-button td-button-small td-button-secondary",
-            "aria-label": t("providers.refreshBalanceAria", { provider: displayName }),
-            disabled: busy,
-            onClick: () => onRefresh?.(id),
-            children: busy ? t("actions.refreshing") : t("actions.refreshBalance")
-          }
-        ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconButton, { label: refreshLabel, disabled: busy, onClick: () => onRefresh?.(id), children: busy ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Spinner, { label: refreshLabel }) : "\u21BB" }),
         isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountManaged") }) : !editingOpen && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "button",
           {
             type: "button",
             className: "td-button td-button-small td-button-secondary",
-            "aria-label": t("providers.editProviderAria", { provider: displayName }),
+            "aria-label": editLabel,
             onClick: onEdit,
             children: t("actions.editProvider")
           }
         ) : null
       ] })
     ] }),
-    editingOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    editingOpen ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "td-provider-detail", id: detailId, role: "region", "aria-label": displayName, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
       ProviderEditor,
       {
         providerId: id,
@@ -4367,37 +5547,33 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
         onClose: onCloseEditor,
         onSaved
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-meta", children: [
-        baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.baseUrl") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono td-ellipsis td-provider-base", title: baseURL, children: baseURL })
+    ) }) : expanded ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-detail", id: detailId, role: "region", "aria-label": displayName, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-facts", children: [
+        protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.protocol") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { translateNo: true, children: protocol })
         ] }) : null,
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.credentials") }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: keyConfigured ? "td-tone-ok" : "td-tone-error", children: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing") }),
-          masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono", title: masked, children: masked }) : null,
-          credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.credentialRef", { ref: credentialRef }) }) : null,
-          keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("providers.keySource", { source: keySource }) }) : null
+          masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono td-ellipsis", translate: "no", title: masked, children: masked }) : null,
+          credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-mono", translate: "no", children: t("providers.credentialRef", { ref: credentialRef }) }) : null,
+          keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.keySource", { source: keySource }) }) : null
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-meta-item", children: routeActive ? t("providers.registered") : t("providers.notRegistered") })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.registered") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: routeActive ? "td-tone-ok" : "td-tone-muted", children: routeActive ? t("providers.registered") : t("providers.notRegistered") })
+        ] }),
+        isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountRoute") }) : null
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-balance", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.balance") }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text })
-      ] }),
-      notes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-notes", children: notes.map((note, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("li", { className: "td-note", children: noteText(t, note) }, `${String(note)}-${index}`)) }) : null,
+      notes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-notes", children: notes.map((note, noteIndex) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("li", { className: "td-note", children: noteText(t, note) }, `${String(note)}-${noteIndex}`)) }) : null,
       saveError !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-inline-error", role: "alert", children: t("errors.save", { message: saveError }) }) : null,
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-models", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-models-head", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-card-subtitle", children: [
-            t("providers.models"),
-            " \xB7 ",
-            formatNumber(models.length)
-          ] }),
-          models.length > 5 && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", onClick: () => onToggleModels(id), children: expandedModels ? t("providers.collapseModels") : t("providers.showAllModels", { count: models.length }) }) : null
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { className: "td-section-title", children: t("providers.models") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-num", children: formatNumber(models.length) })
         ] }),
-        models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-muted", children: provider?.modelsIncomplete === true ? t("providers.modelsIncomplete") : t("providers.noModels") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-model-list", children: shown.map((model) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-muted", children: provider?.modelsIncomplete === true ? t("providers.modelsIncomplete") : t("providers.noModels") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-model-list", children: models.map((model) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           ModelRow,
           {
             model,
@@ -4417,11 +5593,11 @@ function ProviderCard({ provider, t, selection, editing, onEdit, onCloseEditor, 
           model?.id ?? String(model?.name)
         )) })
       ] })
-    ] })
+    ] }) : null
   ] });
 }
 function probeOutcomeText(probe, t) {
-  if (probe === null || probe.phase !== "done") return null;
+  if (probe === null || probe.phase !== "done") return [];
   const results = Array.isArray(probe.report?.results) ? probe.report.results : [];
   const groups = { accepted: [], unsupported: [], failed: [], uncertain: [] };
   for (const row of results) {
@@ -4430,11 +5606,11 @@ function probeOutcomeText(probe, t) {
     groups[bucket].push(String(row?.effort ?? "?"));
   }
   const parts = [];
-  if (groups.accepted.length > 0) parts.push(t("providers.effortsAccepted", { levels: groups.accepted.join(" \xB7 ") }));
-  if (groups.unsupported.length > 0) parts.push(t("providers.effortsUnsupported", { levels: groups.unsupported.join(" \xB7 ") }));
-  if (groups.failed.length > 0) parts.push(t("providers.effortsFailed", { levels: groups.failed.join(" \xB7 ") }));
-  if (groups.uncertain.length > 0) parts.push(t("providers.effortsUncertain", { levels: groups.uncertain.join(" \xB7 ") }));
-  return parts.join(" \xB7 ");
+  if (groups.accepted.length > 0) parts.push(t("providers.effortsAccepted", { levels: groups.accepted.join(", ") }));
+  if (groups.unsupported.length > 0) parts.push(t("providers.effortsUnsupported", { levels: groups.unsupported.join(", ") }));
+  if (groups.failed.length > 0) parts.push(t("providers.effortsFailed", { levels: groups.failed.join(", ") }));
+  if (groups.uncertain.length > 0) parts.push(t("providers.effortsUncertain", { levels: groups.uncertain.join(", ") }));
+  return parts;
 }
 function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive, probe, onProbe }) {
   const efforts = Array.isArray(model?.reasoningEfforts) ? model.reasoningEfforts : [];
@@ -4444,14 +5620,14 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive
   const canProbe = routeActive === true && efforts.length > 0 && !probing;
   const probeHint = routeActive !== true ? t("providers.readonlyRouteHint") : efforts.length === 0 ? t("providers.effortsNoLevels") : t("providers.effortsProbeHint");
   const results = probe !== null && probe.phase === "done" && Array.isArray(probe.report?.results) ? probe.report.results : [];
-  const outcomeText = probeOutcomeText(probe, t);
+  const outcomeParts = probeOutcomeText(probe, t);
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: "td-model-row", children: [
     /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-model-main", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", children: model?.name ?? model?.id ?? "\u2014" }),
-      typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-id td-mono", children: model.id }) : null
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", translate: "no", children: model?.name ?? model?.id ?? "\u2014" }),
+      typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-id td-mono", translate: "no", children: model.id }) : null
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-model-context", children: contextWindow !== null ? t("providers.contextWindow", { value: formatTokens(contextWindow) }) : null }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-chips", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-chips", translate: "no", children: [
       efforts.slice(0, 4).map((effort) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: String(effort) }, String(effort))),
       extra > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Chip, { children: [
         "+",
@@ -4483,7 +5659,7 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive
     probe !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-effort-result", role: "status", children: [
       probe.phase === "error" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-tone-error", children: t("providers.effortsProbeError", { message: errorText(probe.error) }) }) : null,
       probe.phase === "running" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("actions.testingEfforts") }) : null,
-      results.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-chips", children: results.map((row) => {
+      results.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-chips", translate: "no", children: results.map((row) => {
         const outcome = typeof row?.outcome === "string" ? row.outcome : "uncertain";
         const tone = outcome === "accepted" ? "success" : outcome === "rejected" || outcome === "error" ? "error" : outcome === "timeout" || outcome === "uncertain" ? "warn" : "neutral";
         const glyph = outcome === "accepted" ? "\u2713" : outcome === "unsupported" ? "\u2014" : outcome === "timeout" ? "?" : "\u2715";
@@ -4491,16 +5667,16 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive
           typeof row?.code === "string" ? row.code : null,
           typeof row?.message === "string" ? row.message : null,
           typeof row?.latencyMs === "number" ? `${row.latencyMs} ms` : null
-        ].filter((part) => part !== null).join(" \xB7 ");
+        ].filter((part) => part !== null).join("; ");
         return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone, title: detail === "" ? void 0 : detail, children: `${glyph} ${String(row?.effort ?? "?")}` }, String(row?.effort ?? "?"));
       }) }) : null,
-      outcomeText !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: outcomeText }) : null
+      outcomeParts.map((part) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: part }, part))
     ] }) : null
   ] });
 }
 
 // src/client/Usage.jsx
-var import_react3 = require("react");
+var import_react4 = require("react");
 var import_jsx_runtime5 = require("react/jsx-runtime");
 var RANGES = ["today", "7d", "30d", "all"];
 var DEFAULT_RANGE = "7d";
@@ -4540,8 +5716,12 @@ function labelIndexes(length, maximum) {
   for (let index = 0; index < maximum; index += 1) result.add(Math.round(index * step));
   return result;
 }
-function chartLabel(date) {
-  return typeof date === "string" && date.length >= 10 ? date.slice(5) : typeof date === "string" ? date : "";
+function coverageOf(scan) {
+  if (scan === null || typeof scan !== "object") return null;
+  const total = typeof scan.total === "number" && Number.isFinite(scan.total) ? scan.total : 0;
+  const scanned = typeof scan.scanned === "number" && Number.isFinite(scan.scanned) ? scan.scanned : 0;
+  if (total <= 0) return null;
+  return Math.min(Math.max(scanned / total, 0), 1);
 }
 function sessionTitle(session, t) {
   if (typeof session?.title === "string" && session.title.trim() !== "") return session.title.trim();
@@ -4555,18 +5735,19 @@ function sessionTitle(session, t) {
 }
 function Usage(props) {
   const t = props.t ?? ((key) => key);
-  const [range, setRange] = (0, import_react3.useState)(DEFAULT_RANGE);
-  const [report, setReport] = (0, import_react3.useState)(null);
-  const [loading, setLoading] = (0, import_react3.useState)(true);
-  const [refreshing, setRefreshing] = (0, import_react3.useState)(false);
-  const [error, setError] = (0, import_react3.useState)(null);
-  const [warning, setWarning] = (0, import_react3.useState)(null);
-  const [rescanning, setRescanning] = (0, import_react3.useState)(false);
-  const [showAllModels, setShowAllModels] = (0, import_react3.useState)(false);
-  const reportRef = (0, import_react3.useRef)(null);
-  const requestSequence = (0, import_react3.useRef)(0);
-  const pollGuard = (0, import_react3.useRef)({ key: "", count: 0 });
-  const loadReport = (0, import_react3.useCallback)(async (options = {}) => {
+  const seed = props.initialReport !== null && typeof props.initialReport === "object" ? props.initialReport : null;
+  const [range, setRange] = (0, import_react4.useState)(DEFAULT_RANGE);
+  const [report, setReport] = (0, import_react4.useState)(seed);
+  const [loading, setLoading] = (0, import_react4.useState)(seed === null);
+  const [refreshing, setRefreshing] = (0, import_react4.useState)(false);
+  const [error, setError] = (0, import_react4.useState)(null);
+  const [warning, setWarning] = (0, import_react4.useState)(null);
+  const [rescanning, setRescanning] = (0, import_react4.useState)(false);
+  const [showAllModels, setShowAllModels] = (0, import_react4.useState)(false);
+  const reportRef = (0, import_react4.useRef)(seed);
+  const requestSequence = (0, import_react4.useRef)(0);
+  const pollGuard = (0, import_react4.useRef)({ key: "", count: 0 });
+  const loadReport = (0, import_react4.useCallback)(async (options = {}) => {
     const silent = options.silent === true;
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
@@ -4594,13 +5775,13 @@ function Usage(props) {
       }
     }
   }, [range]);
-  (0, import_react3.useEffect)(() => {
+  (0, import_react4.useEffect)(() => {
     setShowAllModels(false);
     if (reportRef.current === null) setLoading(true);
     void loadReport();
   }, [loadReport]);
   const scanning = report?.scan?.scanning === true;
-  (0, import_react3.useEffect)(() => {
+  (0, import_react4.useEffect)(() => {
     if (!scanning) return void 0;
     let cancelled = false;
     let timer;
@@ -4660,10 +5841,16 @@ function Usage(props) {
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-toolbar-group", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: refreshing, onClick: refresh, children: refreshing ? t("actions.refreshing") : t("actions.refresh") }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: rescanning, onClick: () => {
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: refreshing, onClick: refresh, children: [
+          refreshing ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Spinner, { label: t("actions.refreshing") }) : null,
+          refreshing ? t("actions.refreshing") : t("actions.refresh")
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", className: "td-button td-button-small td-button-secondary", disabled: rescanning, onClick: () => {
           void rescan();
-        }, children: rescanning ? t("actions.rescanning") : t("actions.rescan") })
+        }, children: [
+          rescanning ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Spinner, { label: t("actions.rescanning") }) : null,
+          rescanning ? t("actions.rescanning") : t("actions.rescan")
+        ] })
       ] })
     ] }),
     scanning && scanText !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-scan-line td-usage-scan", children: [
@@ -4683,73 +5870,100 @@ function Usage(props) {
       }
     ) : null,
     warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warning.kind === "rescan" ? t("errors.rescan", { message: warning.message }) : t("errors.usageRefresh", { message: warning.message }) }) : null,
-    report === null ? error === null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CardSkeleton, { count: 4, label: t("loading.page") }) : null : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption td-caveat", children: t("usage.caveat", { count: typeof scan?.total === "number" ? formatNumber(scan.total) : "0" }) }),
-      calls === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.empty"), hint: t("usage.emptyHint") }) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-totals", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.totalTokens"), value: formatTokens(totalTokens(totals)) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.input"), value: formatTokens(totals?.input) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.output"), value: formatTokens(totals?.output) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheRead"), value: formatTokens(totals?.cacheRead) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheWrite"), value: formatTokens(totals?.cacheWrite) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.cacheHitRate"), value: formatPercent(totals?.cacheHitRate) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Stat, { label: t("usage.calls"), value: formatNumber(totals?.calls) }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
-            Stat,
-            {
-              label: t("usage.cost"),
-              value: pricingConfigured ? formatCost(totals?.cost, currency) : "\u2014",
-              hint: pricingConfigured ? t("usage.costPricedOnly") : t("usage.costUnconfigured")
-            }
-          )
-        ] }) }),
-        pricingConfigured ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption", children: t("usage.priceNote") }) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(DailyChartCard, { days, t }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
-          BreakdownCard,
-          {
-            title: t("usage.byModel"),
-            kind: "model",
-            rows: visibleModels,
-            t,
-            currency,
-            pricingConfigured,
-            footer: models.length > MODEL_ROW_LIMIT ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-ghost", onClick: () => setShowAllModels((previous) => !previous), children: showAllModels ? t("usage.showLess") : t("usage.showAll", { count: models.length }) }) : void 0
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
-          BreakdownCard,
-          {
-            title: t("usage.byProvider"),
-            kind: "provider",
-            rows: providers,
-            t,
-            currency,
-            pricingConfigured
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(SessionsCard, { sessions, t, currency, pricingConfigured })
-      ] })
+    report === null ? error === null ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CardSkeleton, { count: 4, label: t("loading.page") }) : null : calls === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Section, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.empty"), hint: t("usage.emptyHint") }) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(UsageHeadline, { totals, calls, range, scan, t }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        UsageMetrics,
+        {
+          totals,
+          currency,
+          pricingConfigured,
+          t
+        }
+      ),
+      pricingConfigured ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption td-price-note", children: t("usage.priceNote") }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(DailyChartSection, { days, t }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        BreakdownSection,
+        {
+          title: t("usage.byModel"),
+          kind: "model",
+          rows: visibleModels,
+          t,
+          currency,
+          pricingConfigured,
+          footer: models.length > MODEL_ROW_LIMIT ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "td-button td-button-small td-button-ghost", onClick: () => setShowAllModels((previous) => !previous), children: showAllModels ? t("usage.showLess") : t("usage.showAll", { count: models.length }) }) : void 0
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        BreakdownSection,
+        {
+          title: t("usage.byProvider"),
+          kind: "provider",
+          rows: providers,
+          t,
+          currency,
+          pricingConfigured
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(SessionsSection, { sessions, t, currency, pricingConfigured })
     ] })
   ] });
 }
-function DailyChartCard({ days, t }) {
+function UsageHeadline({ totals, calls, range, scan, t }) {
+  const coverage = coverageOf(scan);
+  const coverageText = coverage === null ? "\u2014" : formatPercent(coverage);
+  const stored = typeof scan?.total === "number" ? formatNumber(scan.total) : "0";
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("section", { className: "td-usage-hero", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-eyebrow", children: t("usage.totalTokens") }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-usage-total", children: formatTokens(totalTokens(totals)) }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("p", { className: "td-usage-context", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: rangeLabel(t, range) }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.sessionRequests", { count: formatNumber(calls) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.coverage", { value: coverageText }) })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "td-caption td-usage-caveat", children: t("usage.caveat", { count: stored }) })
+  ] });
+}
+function UsageMetrics({ totals, currency, pricingConfigured, t }) {
+  const costHint = pricingConfigured ? t("usage.costPricedOnly") : t("usage.costUnconfigured");
+  const items = [
+    { key: "input", label: t("usage.input"), value: formatTokens(totals?.input) },
+    { key: "output", label: t("usage.output"), value: formatTokens(totals?.output) },
+    { key: "cache-read", label: t("usage.cacheRead"), value: formatTokens(totals?.cacheRead) },
+    { key: "cache-write", label: t("usage.cacheWrite"), value: formatTokens(totals?.cacheWrite) },
+    { key: "hit-rate", label: t("usage.cacheHitRate"), value: formatPercent(totals?.cacheHitRate) },
+    {
+      key: "cost",
+      label: t("usage.cost"),
+      value: pricingConfigured ? formatCost(totals?.cost, currency) : "\u2014",
+      hint: costHint
+    }
+  ];
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dl", { className: "td-metrics", children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-metric", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { className: "td-metric-label", children: item.label }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { className: "td-metric-value", children: item.value }),
+    item.hint !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { className: "td-metric-hint", children: item.hint }) : null
+  ] }, item.key)) });
+}
+function DailyChartSection({ days, t }) {
   const labels = labelIndexes(days.length, MAX_CHART_LABELS);
   const items = days.map((day, index) => {
     const value = totalTokens(day);
+    const date = typeof day?.date === "string" ? day.date : "";
     return {
       key: `${day?.date ?? "day"}-${index}`,
       value,
-      label: labels.has(index) ? chartLabel(day?.date) : null,
-      title: t("usage.chart.barTitle", { date: typeof day?.date === "string" ? day.date : "", tokens: formatNumber(value) })
+      label: labels.has(index) ? formatDayKey(day?.date) : null,
+      title: t("usage.chart.barTitle", { date: formatDayKey(date), tokens: formatNumber(value) })
     };
   });
   const hasUsage = items.some((item) => item.value > 0);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title: t("usage.chart.title"), children: items.length === 0 || !hasUsage ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.chart.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(BarChart, { items, ariaLabel: t("usage.chart.title") }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Section, { title: t("usage.chart.title"), children: items.length === 0 || !hasUsage ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.chart.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(BarChart, { items, ariaLabel: t("usage.chart.title") }) });
 }
-function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, footer }) {
+function BreakdownSection({ title, kind, rows, t, currency, pricingConfigured, footer }) {
   const firstColumn = kind === "model" ? t("usage.table.model") : t("usage.table.provider");
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title, footer, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(TableWrap, { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("table", { className: "td-table", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Section, { title, footer, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(TableWrap, { label: title, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("table", { className: "td-table", children: [
     /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("tr", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", children: firstColumn }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("th", { scope: "col", children: t("usage.table.share") }),
@@ -4763,8 +5977,8 @@ function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, foot
       const share = typeof row?.share === "number" && Number.isFinite(row.share) ? Math.min(Math.max(row.share, 0), 1) : 0;
       return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("tr", { children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("td", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-main", children: kind === "model" ? row?.name ?? row?.model ?? "\u2014" : row?.displayName ?? row?.provider ?? "\u2014" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-sub td-mono", children: kind === "model" ? `${row?.provider ?? "\u2014"}/${row?.model ?? "\u2014"}` : typeof row?.provider === "string" ? row.provider : "" })
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-main", translate: "no", children: kind === "model" ? row?.name ?? row?.model ?? "\u2014" : row?.displayName ?? row?.provider ?? "\u2014" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "td-cell-sub td-mono", translate: "no", children: kind === "model" ? `${row?.provider ?? "\u2014"}/${row?.model ?? "\u2014"}` : typeof row?.provider === "string" ? row.provider : "" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "td-share", children: [
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ProgressBar, { value: share, max: 1, label: t("usage.table.share") }),
@@ -4779,17 +5993,17 @@ function BreakdownCard({ title, kind, rows, t, currency, pricingConfigured, foot
     }) })
   ] }) }) });
 }
-function SessionsCard({ sessions, t, currency, pricingConfigured }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Card, { className: "td-section", title: t("usage.sessions"), children: sessions.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.sessions.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { className: "td-session-list", children: sessions.map((session, index) => {
+function SessionsSection({ sessions, t, currency, pricingConfigured }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Section, { title: t("usage.sessions"), children: sessions.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(EmptyState, { title: t("usage.sessions.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { className: "td-session-list", children: sessions.map((session, index) => {
     const when = typeof session?.lastActivity === "number" ? session.lastActivity : session?.createdAt;
     const title = sessionTitle(session, t);
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { className: "td-session-row", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "td-session-title", title, children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "td-session-title", title, translate: "no", children: title }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { className: "td-session-meta", children: [
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: formatDateTime(when) }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.sessionTokens", { value: formatNumber(totalTokens(session)) }) }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: t("usage.sessionRequests", { count: formatNumber(session?.calls) }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: pricingConfigured ? formatCost(session?.cost, currency) : "\u2014" })
+        pricingConfigured ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: formatCost(session?.cost, currency) }) : null
       ] })
     ] }, session?.id ?? `session-${index}`);
   }) }) });
@@ -4800,6 +6014,21 @@ var import_jsx_runtime6 = require("react/jsx-runtime");
 var TABS = ["overview", "providers", "usage"];
 var POLL_INTERVAL_MS2 = 2500;
 var MAX_POLLS2 = 120;
+var TAB_STORAGE_KEY = "dsh-token-dashboard.tab";
+function readStored2(key) {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writeStored2(key, value) {
+  try {
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(key, value);
+  } catch {
+  }
+}
 function tabLabel(t, tab) {
   switch (tab) {
     case "overview":
@@ -4818,21 +6047,62 @@ function balancesIdle(snapshot) {
   const providers = snapshot !== null && typeof snapshot === "object" && Array.isArray(snapshot.providers) ? snapshot.providers : [];
   return providers.every((provider) => (provider?.balance?.status ?? "idle") === "idle");
 }
+function liveBalanceText(account, providers, t) {
+  const view = account !== null && typeof account === "object" ? account : {};
+  const wallets = Array.isArray(view.wallets) ? view.wallets : [];
+  const bonusWallets = Array.isArray(view.bonusWallets) ? view.bonusWallets : [];
+  if (view.status === "ok" && (wallets.length > 0 || bonusWallets.length > 0)) {
+    const parts = wallets.map(formatWallet);
+    if (bonusWallets.length > 0) {
+      parts.push(t("balance.bonus", { amount: bonusWallets.map(formatWallet).join(" / ") }));
+    }
+    return parts.join(" \xB7 ");
+  }
+  if (view.signedIn === false || view.status === "signed-out") return t("balance.reason.signed-out");
+  const route = providers.find((provider) => (provider?.id === "deepseek-official" || provider?.id === "deepseek-account") && provider?.balance?.status === "ok");
+  if (route !== void 0) return formatBalance(route.balance, t).text;
+  if (view.status === "ok") return t("balance.none");
+  if (view.status === "failed") return t("overview.accountFailed");
+  if (view.status === "unavailable" || view.available === false) return t("overview.accountUnavailable");
+  return t("balance.idle");
+}
+function liveScanState(snapshot, scanning, t) {
+  if (snapshot === null || typeof snapshot !== "object") return null;
+  const scan = snapshot.scan !== null && typeof snapshot.scan === "object" ? snapshot.scan : null;
+  const total = typeof scan?.total === "number" ? scan.total : 0;
+  const scanned = typeof scan?.scanned === "number" ? scan.scanned : 0;
+  if (scan?.scanning === true) {
+    return {
+      text: total > 0 ? t("page.scanning", { scanned, total }) : t("scan.preparing"),
+      tone: "brand"
+    };
+  }
+  if (scanning) return { text: t("scan.preparing"), tone: "brand" };
+  const built = snapshot.usage !== null && typeof snapshot.usage === "object" && typeof snapshot.usage.builtAt === "number";
+  return { text: t("page.scanIdle"), tone: built ? "ok" : "muted" };
+}
 function DashboardPage(props) {
   const t = props.t ?? ((key) => key);
-  const [tab, setTab] = (0, import_react4.useState)("overview");
-  const [snapshot, setSnapshot] = (0, import_react4.useState)(null);
-  const [loading, setLoading] = (0, import_react4.useState)(true);
-  const [refreshing, setRefreshing] = (0, import_react4.useState)(false);
-  const [error, setError] = (0, import_react4.useState)(null);
-  const [warning, setWarning] = (0, import_react4.useState)(null);
-  const [balanceBusy, setBalanceBusy] = (0, import_react4.useState)(null);
-  const snapshotRef = (0, import_react4.useRef)(null);
-  const aliveRef = (0, import_react4.useRef)(true);
-  const requestSequence = (0, import_react4.useRef)(0);
-  const pollGuard = (0, import_react4.useRef)({ key: "", count: 0 });
-  const tabRefs = (0, import_react4.useRef)({});
-  const loadSnapshot = (0, import_react4.useCallback)(async () => {
+  const [tab, setTab] = (0, import_react5.useState)(() => {
+    const stored = readStored2(TAB_STORAGE_KEY);
+    return stored !== null && TABS.includes(stored) ? stored : "overview";
+  });
+  const [snapshot, setSnapshot] = (0, import_react5.useState)(null);
+  const [loading, setLoading] = (0, import_react5.useState)(true);
+  const [refreshing, setRefreshing] = (0, import_react5.useState)(false);
+  const [lastUpdated, setLastUpdated] = (0, import_react5.useState)(null);
+  const [error, setError] = (0, import_react5.useState)(null);
+  const [warning, setWarning] = (0, import_react5.useState)(null);
+  const [balanceBusy, setBalanceBusy] = (0, import_react5.useState)(null);
+  const snapshotRef = (0, import_react5.useRef)(null);
+  const aliveRef = (0, import_react5.useRef)(true);
+  const requestSequence = (0, import_react5.useRef)(0);
+  const pollGuard = (0, import_react5.useRef)({ key: "", count: 0 });
+  const tabRefs = (0, import_react5.useRef)({});
+  (0, import_react5.useEffect)(() => {
+    writeStored2(TAB_STORAGE_KEY, tab);
+  }, [tab]);
+  const loadSnapshot = (0, import_react5.useCallback)(async () => {
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
     try {
@@ -4840,6 +6110,7 @@ function DashboardPage(props) {
       if (!aliveRef.current || sequence !== requestSequence.current) return;
       snapshotRef.current = next;
       setSnapshot(next);
+      setLastUpdated(Date.now());
       setError(null);
       setWarning((current) => current?.kind === "snapshot" ? null : current);
       const key = scanKey2(next?.scan);
@@ -4855,7 +6126,7 @@ function DashboardPage(props) {
       if (aliveRef.current && sequence === requestSequence.current) setLoading(false);
     }
   }, []);
-  (0, import_react4.useEffect)(() => {
+  (0, import_react5.useEffect)(() => {
     aliveRef.current = true;
     void loadSnapshot();
     return () => {
@@ -4865,7 +6136,7 @@ function DashboardPage(props) {
   const scanRunning = snapshot !== null && typeof snapshot === "object" && snapshot.scan?.scanning === true;
   const firstScanPending = snapshot !== null && typeof snapshot === "object" && snapshot.scan?.scanning !== true && (snapshot.usage === null || snapshot.usage === void 0 || snapshot.usage.builtAt === null);
   const scanning = scanRunning || firstScanPending;
-  (0, import_react4.useEffect)(() => {
+  (0, import_react5.useEffect)(() => {
     if (!scanning) return void 0;
     let cancelled = false;
     let timer;
@@ -4885,7 +6156,7 @@ function DashboardPage(props) {
       clearTimeout(timer);
     };
   }, [scanning, loadSnapshot]);
-  const refreshBalances = (0, import_react4.useCallback)(async (request = {}) => {
+  const refreshBalances = (0, import_react5.useCallback)(async (request = {}) => {
     const requested = Array.isArray(request?.providers) ? request.providers.filter((id) => typeof id === "string") : [];
     const scope = requested.length === 1 ? requested[0] : "all";
     setBalanceBusy(scope);
@@ -4899,11 +6170,11 @@ function DashboardPage(props) {
       if (aliveRef.current) setBalanceBusy(null);
     }
   }, [loadSnapshot]);
-  const setDefault = (0, import_react4.useCallback)(async (selection) => {
+  const setDefault = (0, import_react5.useCallback)(async (selection) => {
     await saveDefaultModel(selection);
     await loadSnapshot();
   }, [loadSnapshot]);
-  const refresh = (0, import_react4.useCallback)(async () => {
+  const refresh = (0, import_react5.useCallback)(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
@@ -4919,11 +6190,12 @@ function DashboardPage(props) {
       if (aliveRef.current) setRefreshing(false);
     }
   }, [refreshing, loadSnapshot]);
-  const retry = (0, import_react4.useCallback)(() => {
+  const retry = (0, import_react5.useCallback)(() => {
     setError(null);
     setLoading(true);
     void loadSnapshot();
   }, [loadSnapshot]);
+  const openProviders = (0, import_react5.useCallback)(() => setTab("providers"), []);
   const moveTab = (event) => {
     const currentIndex = TABS.indexOf(tab);
     let nextIndex = null;
@@ -4949,27 +6221,51 @@ function DashboardPage(props) {
     tabRefs.current[nextTab]?.focus();
   };
   const busy = loading || refreshing;
+  const providers = snapshot !== null && typeof snapshot === "object" && Array.isArray(snapshot.providers) ? snapshot.providers : null;
+  const providerCount = providers === null ? null : providers.length;
+  const accountText = snapshot !== null && typeof snapshot === "object" ? liveBalanceText(snapshot.account, providers ?? [], t) : null;
+  const scanState = liveScanState(snapshot, scanning, t);
   const warningText = warning === null ? null : warning.kind === "balances" ? t("errors.balances", { message: warning.message }) : t("errors.refreshFailed", { message: warning.message });
   return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-page", children: [
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("style", { children: CSS }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-scroll", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-content", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-heading", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-heading-text", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h1", { children: t("panel.title") }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("header", { className: "td-head", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-head-text", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h1", { className: "td-page-title", children: t("panel.title") }),
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "td-subtitle", children: t("page.subtitle") })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-heading-actions", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-          "button",
-          {
-            type: "button",
-            className: "td-button td-button-secondary",
-            disabled: busy,
-            onClick: () => {
-              void refresh();
-            },
-            children: refreshing ? t("actions.refreshing") : t("actions.refresh")
-          }
-        ) })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-live", "aria-busy": busy, children: [
+          accountText !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "td-live-item", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-live-key", children: t("page.balance") }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-live-value", children: accountText })
+          ] }) : null,
+          scanState !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "td-live-item", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-live-key", children: t("page.scan") }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "td-live-value td-live-scan", "aria-live": "polite", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Dot, { tone: scanState.tone }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: scanState.text })
+            ] })
+          ] }) : null,
+          lastUpdated !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { className: "td-live-item", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-live-key", children: t("page.updated") }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-live-value", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("time", { dateTime: new Date(lastUpdated).toISOString(), children: formatDateTime(lastUpdated) }) })
+          ] }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-secondary",
+              disabled: busy,
+              onClick: () => {
+                void refresh();
+              },
+              children: [
+                refreshing ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Spinner, { label: t("actions.refreshing") }) : null,
+                refreshing ? t("actions.refreshing") : t("actions.refresh")
+              ]
+            }
+          )
+        ] })
       ] }),
       error !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         Notice,
@@ -4982,12 +6278,13 @@ function DashboardPage(props) {
       warning !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Notice, { tone: "warn", onDismiss: () => setWarning(null), dismissLabel: t("actions.dismiss"), children: warningText }) : null,
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "td-tabs", role: "tablist", "aria-label": t("tabs.label"), children: TABS.map((key) => {
         const active = key === tab;
-        return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
           "button",
           {
             type: "button",
             role: "tab",
             "aria-selected": active,
+            "aria-controls": `td-panel-${key}`,
             tabIndex: active ? 0 : -1,
             className: "td-tab",
             id: `td-tab-${key}`,
@@ -4996,34 +6293,59 @@ function DashboardPage(props) {
             },
             onClick: () => setTab(key),
             onKeyDown: moveTab,
-            children: tabLabel(t, key)
+            children: [
+              tabLabel(t, key),
+              key === "providers" && providerCount !== null ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "td-tab-count", children: formatNumber(providerCount) }) : null
+            ]
           },
           key
         );
       }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "td-panel", role: "tabpanel", "aria-labelledby": `td-tab-${tab}`, children: [
-        tab === "overview" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-          Overview,
-          {
-            snapshot,
-            t,
-            onRefreshBalances: refreshBalances,
-            balanceBusy
-          }
-        ) : null,
-        tab === "providers" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-          Providers,
-          {
-            snapshot,
-            t,
-            onRefreshBalances: refreshBalances,
-            balanceBusy,
-            onSetDefault: setDefault,
-            onReload: loadSnapshot
-          }
-        ) : null,
-        tab === "usage" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Usage, { t }) : null
-      ] })
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        "div",
+        {
+          className: "td-panel td-panel-enter",
+          id: `td-panel-${tab}`,
+          role: "tabpanel",
+          "aria-labelledby": `td-tab-${tab}`,
+          "aria-busy": busy,
+          children: [
+            tab === "overview" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              Overview,
+              {
+                snapshot,
+                t,
+                onRefreshBalances: refreshBalances,
+                balanceBusy,
+                onOpenProviders: openProviders
+              }
+            ) : null,
+            tab === "providers" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              Providers,
+              {
+                snapshot,
+                t,
+                onRefreshBalances: refreshBalances,
+                balanceBusy,
+                onSetDefault: setDefault,
+                onReload: loadSnapshot
+              }
+            ) : null,
+            tab === "usage" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Usage, { t }) : null
+          ]
+        },
+        tab
+      ),
+      TABS.filter((key) => key !== tab).map((key) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        "div",
+        {
+          id: `td-panel-${key}`,
+          role: "tabpanel",
+          "aria-labelledby": `td-tab-${key}`,
+          hidden: true
+        },
+        key
+      ))
     ] }) })
   ] });
 }
@@ -5032,11 +6354,17 @@ function DashboardPage(props) {
 var NS = "token-dashboard";
 var zh = {
   "panel.title": "\u6A21\u578B\u9762\u677F",
+  "ui.listSeparator": "\u3001",
   "page.subtitle": "\u6A21\u578B\u914D\u7F6E\u3001\u8D26\u6237\u4F59\u989D\u4E0E Token \u7528\u91CF\u4E00\u89C8",
   "tabs.label": "\u6A21\u578B\u9762\u677F\u89C6\u56FE",
   "tabs.overview": "\u6982\u89C8",
   "tabs.providers": "\u6A21\u578B\u914D\u7F6E",
   "tabs.usage": "\u7528\u91CF\u7EDF\u8BA1",
+  "page.balance": "\u4F59\u989D",
+  "page.scan": "\u7528\u91CF\u626B\u63CF",
+  "page.updated": "\u5237\u65B0\u65F6\u95F4",
+  "page.scanning": "\u626B\u63CF\u4E2D {scanned}/{total}",
+  "page.scanIdle": "\u7528\u91CF\u5DF2\u7F13\u5B58",
   "actions.refresh": "\u5237\u65B0",
   "actions.refreshing": "\u5237\u65B0\u4E2D\u2026",
   "actions.testEfforts": "\u6D4B\u8BD5\u6863\u4F4D",
@@ -5055,6 +6383,10 @@ var zh = {
   "actions.currentDefault": "\u5F53\u524D\u9ED8\u8BA4",
   "actions.cancel": "\u53D6\u6D88",
   "actions.editProvider": "\u7F16\u8F91",
+  "actions.copyEndpoint": "\u590D\u5236\u63A5\u5165\u5730\u5740",
+  "actions.copyCredentialRef": "\u590D\u5236\u51ED\u636E\u5F15\u7528",
+  "actions.copyModelId": "\u590D\u5236\u6A21\u578B ID",
+  "actions.copied": "\u5DF2\u590D\u5236",
   "loading.page": "\u6B63\u5728\u52A0\u8F7D\u6A21\u578B\u9762\u677F\u2026",
   "errors.snapshot": "\u65E0\u6CD5\u52A0\u8F7D\u6A21\u578B\u9762\u677F\uFF1A{message}",
   "errors.refreshFailed": "\u5237\u65B0\u5931\u8D25\uFF0C\u6B63\u5728\u663E\u793A\u4E0A\u6B21\u7684\u6570\u636E\uFF1A{message}",
@@ -5103,7 +6435,7 @@ var zh = {
   "balance.none": "\u65E0\u4F59\u989D",
   "balance.unknown": "\u672A\u62A5\u544A",
   "balance.unlimited": "\u65E0\u9650\u989D\u5EA6",
-  "balance.unlimitedUsed": "\u65E0\u9650\u989D\u5EA6 \xB7 \u5DF2\u7528 {used}",
+  "balance.unlimitedUsed": "\u65E0\u9650\u989D\u5EA6\uFF08\u5DF2\u7528 {used}\uFF09",
   "balance.bonus": "\u8D60\u9001 {amount}",
   "balance.unavailable": "\u4E0D\u53EF\u7528",
   "balance.error": "\u8BFB\u53D6\u5931\u8D25",
@@ -5115,34 +6447,31 @@ var zh = {
   "balance.reason.no-endpoint": "\u672A\u914D\u7F6E\u4F59\u989D\u63A5\u53E3",
   "balance.reason.disabled": "\u4F59\u989D\u67E5\u8BE2\u5DF2\u5173\u95ED",
   "balance.reason.unsupported": "\u4E0D\u652F\u6301\u4F59\u989D\u67E5\u8BE2",
-  "overview.defaultModel": "\u9ED8\u8BA4\u6A21\u578B",
   "overview.noDefaultModel": "\u5C1A\u672A\u9009\u62E9\u9ED8\u8BA4\u6A21\u578B",
+  "overview.currentDefault": "\u5F53\u524D\u9ED8\u8BA4\u6A21\u578B",
+  "overview.switchDefault": "\u5207\u6362\u9ED8\u8BA4",
   "overview.reasoningEffort": "\u63A8\u7406\u5F3A\u5EA6",
   "overview.account": "\u5B98\u65B9\u8D26\u6237\u4F59\u989D",
   "overview.accountSignedOut": "\u672A\u767B\u5F55 DeepSeek \u8D26\u6237",
   "overview.routeBalanceHint": "\u8D26\u6237\u672A\u767B\u5F55\uFF0C\u663E\u793A {provider} \u8DEF\u7531\u7684\u4F59\u989D",
   "overview.accountFailed": "\u8D26\u6237\u4F59\u989D\u8BFB\u53D6\u5931\u8D25",
   "overview.accountUnavailable": "\u8D26\u6237\u4F59\u989D\u4E0D\u53EF\u7528",
+  "overview.balanceSource": "\u6765\u81EA DeepSeek \u5B98\u65B9\u8D26\u6237\u94B1\u5305",
   "overview.bonusWallets": "\u8D60\u9001\u4F59\u989D",
-  "overview.today": "\u4ECA\u65E5\u7528\u91CF",
-  "overview.input": "\u8F93\u5165",
-  "overview.output": "\u8F93\u51FA",
-  "overview.cacheRead": "\u7F13\u5B58\u8BFB\u53D6",
-  "overview.calls": "\u8BF7\u6C42\u6570",
-  "overview.last30": "\u8FD1 30 \u65E5\u7528\u91CF",
-  "overview.cacheHitRate": "\u7F13\u5B58\u547D\u4E2D\u7387",
-  "overview.providers": "\u4F9B\u5E94\u5546",
-  "overview.registered": "\u5DF2\u6CE8\u518C",
-  "overview.models": "\u6A21\u578B",
-  "overview.keysConfigured": "\u5DF2\u914D\u7F6E\u5BC6\u94A5",
-  "overview.cost": "\u4F30\u7B97\u6210\u672C",
-  "overview.costLast7": "\u8FD1 7 \u65E5",
-  "overview.costTotal": "\u7D2F\u8BA1",
-  "overview.costUnconfigured": "\u672A\u914D\u7F6E\u4EF7\u683C\u3002\u53EF\u5728\u63D2\u4EF6\u7684 pricing \u914D\u7F6E\u4E2D\u6DFB\u52A0\u4EF7\u683C\u540E\u4F30\u7B97\u6210\u672C\u3002",
+  "overview.kpi.label": "\u7528\u91CF\u6307\u6807",
+  "overview.kpi.today": "\u4ECA\u65E5 Token",
+  "overview.kpi.todayHint": "\u6309\u672C\u5730\u65E5\u5386\u65E5",
+  "overview.kpi.last7": "\u8FD1 7 \u65E5 Token",
+  "overview.kpi.last7Hint": "\u542B\u4ECA\u65E5",
+  "overview.kpi.calls": "\u7D2F\u8BA1\u8BF7\u6C42",
+  "overview.kpi.callsHint": "\u5DF2\u7EDF\u8BA1\u4F1A\u8BDD",
+  "overview.kpi.cacheHit": "\u7F13\u5B58\u547D\u4E2D\u7387",
+  "overview.kpi.cacheHitHint": "\u7F13\u5B58\u8BFB\u53D6 / \u63D0\u793A\u8BCD",
   "overview.providerBalances": "\u4F9B\u5E94\u5546\u4F59\u989D",
   "overview.refreshAllBalances": "\u5168\u90E8\u5237\u65B0\u4F59\u989D",
   "overview.usageUnavailable": "\u672C\u673A\u6CA1\u6709\u53EF\u7EDF\u8BA1\u7684\u4F1A\u8BDD\u65E5\u5FD7",
   "overview.builtAt": "\u7F13\u5B58\u6784\u5EFA\u4E8E {time}",
+  "overview.footerCost": "\u8FD1 7 \u65E5\u4F30\u7B97\u6210\u672C {cost}",
   "providers.default": "\u9ED8\u8BA4",
   "providers.registered": "\u5DF2\u6CE8\u518C",
   "providers.notRegistered": "\u672A\u6CE8\u518C",
@@ -5158,11 +6487,10 @@ var zh = {
   "providers.source.stored": "\u5DF2\u5B58\u50A8",
   "providers.source.api-key": "\u5DF2\u5B58\u50A8\u7684\u5BC6\u94A5",
   "providers.source.grant": "\u5DF2\u6388\u6743\u51ED\u636E",
-  "providers.balance": "\u4F59\u989D",
   "providers.refreshBalanceAria": "\u5237\u65B0 {provider} \u7684\u4F59\u989D",
+  "providers.expandAria": "\u5C55\u5F00 {provider} \u7684\u6A21\u578B",
+  "providers.collapseAria": "\u6536\u8D77 {provider} \u7684\u6A21\u578B",
   "providers.models": "\u6A21\u578B",
-  "providers.showAllModels": "\u5C55\u5F00\u5168\u90E8 ({count})",
-  "providers.collapseModels": "\u6536\u8D77",
   "providers.noModels": "\u65E0\u6A21\u578B",
   "providers.modelsIncomplete": "\u6A21\u578B\u5217\u8868\u4E0D\u53EF\u7528",
   "providers.empty": "\u8FD8\u6CA1\u6709\u914D\u7F6E\u6A21\u578B\u4F9B\u5E94\u5546\uFF0C\u53EF\u5728 \u8BBE\u7F6E > \u6A21\u578B \u4E2D\u6DFB\u52A0",
@@ -5218,7 +6546,7 @@ var zh = {
   "providers.add.apiKeyEnvHint": "\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\uFF0C\u4F8B\u5982 ACME_KEY\uFF1B\u53EF\u7A0D\u540E\u518D\u586B\u3002",
   "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.add.apiKeyEnvInvalid": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
-  "providers.add.apiKey": "API Key",
+  "providers.add.apiKey": "API key",
   "providers.add.apiKeyHint": "\u53EF\u9009\uFF1B\u586B\u5199\u540E\u4F1A\u5148\u5199\u5165\u51ED\u636E\u5E93\uFF0C\u518D\u7528\u4E8E\u8BFB\u53D6\u6A21\u578B\u3002",
   "providers.add.apiKeyPlaceholder": "sk-\u2026",
   "providers.add.refRequiredForKey": "\u586B\u5199\u51ED\u636E\u5F15\u7528\u540E\u624D\u80FD\u4FDD\u5B58 API Key\u3002",
@@ -5228,6 +6556,7 @@ var zh = {
   "providers.add.connecting": "\u8FDE\u63A5\u4E2D\u2026",
   "providers.add.models": "\u5DF2\u9009\u6A21\u578B",
   "providers.add.modelsHint": "\u8BFB\u53D6\u7F51\u5173\u540E\u9009\u62E9\u8981\u5BFC\u5165\u7684\u6A21\u578B\uFF0C\u521B\u5EFA\u65F6\u4E00\u5E76\u5199\u5165\u3002",
+  "providers.add.imported": "\u5DF2\u4ECE\u7F51\u5173\u5BFC\u5165 {count} \u4E2A\u6A21\u578B",
   "providers.add.modelsCount": "{count} \u4E2A\u6A21\u578B\u5C06\u968F\u4F9B\u5E94\u5546\u521B\u5EFA",
   "providers.add.removeModel": "\u79FB\u9664",
   "providers.add.removeModelAria": "\u79FB\u9664\u6A21\u578B {id}",
@@ -5247,7 +6576,7 @@ var zh = {
   "providers.edit.apiKeyEnvHint": "\u51ED\u636E\u5F15\u7528\u662F\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\uFF1B\u5BC6\u94A5\u4FDD\u5B58\u5728\u51ED\u636E\u5E93\uFF0C\u4E0D\u5728\u6B64\u5904\u586B\u5199\u3002",
   "providers.edit.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.edit.apiKeyEnvInvalid": "\u51ED\u636E\u5F15\u7528\u9700\u4E3A\u73AF\u5883\u53D8\u91CF\u98CE\u683C\u7684\u540D\u5B57\u3002",
-  "providers.edit.apiKey": "API Key",
+  "providers.edit.apiKey": "API key",
   "providers.edit.apiKeyConfigured": "\u5DF2\u914D\u7F6E",
   "providers.edit.apiKeyMissing": "\u672A\u914D\u7F6E",
   "providers.edit.apiKeySource": "\u6765\u6E90 {source}",
@@ -5260,6 +6589,9 @@ var zh = {
   "providers.edit.apiKeyNeedsRef": "\u5148\u586B\u5199\u51ED\u636E\u5F15\u7528\u5E76\u4FDD\u5B58\uFF0C\u4E4B\u540E\u5373\u53EF\u5728\u6B64\u5F55\u5165\u5BC6\u94A5\u3002",
   "providers.edit.apiKeyRefDirty": "\u51ED\u636E\u5F15\u7528\u5DF2\u4FEE\u6539\uFF1B\u8BF7\u5148\u4FDD\u5B58\u8868\u5355\uFF0C\u518D\u7BA1\u7406\u5BC6\u94A5\u3002",
   "providers.edit.models": "\u6A21\u578B\u6E05\u5355",
+  "providers.edit.imported": "\u5DF2\u4ECE\u7F51\u5173\u5BFC\u5165 {count} \u4E2A\u6A21\u578B",
+  "providers.edit.modelsEmptyTitle": "\u6A21\u578B\u6E05\u5355\u4E3A\u7A7A",
+  "providers.edit.modelsInheritedTitle": "\u7EE7\u627F\u9002\u914D\u5668\u76EE\u5F55",
   "providers.edit.effortsFixed": "\u8BE5\u8DEF\u7531\u7684\u63A8\u7406\u6863\u4F4D\u7531\u9002\u914D\u5668\u56FA\u5B9A\uFF08DeepSeek \u63D0\u4F9B Off / Low / High / Max\uFF09\uFF0C\u4E0D\u80FD\u5728\u8FD9\u91CC\u6539",
   "providers.effortsNoLevels": "\u8BE5\u6A21\u578B\u6CA1\u6709\u5DF2\u58F0\u660E\u7684\u63A8\u7406\u6863\u4F4D\uFF1B\u5148\u5230\u300C\u7F16\u8F91 \u2192 \u6A21\u578B\u6E05\u5355\u300D\u7684\u63A8\u7406\u6863\u4F4D\u91CC\u58F0\u660E",
   "providers.effortsProbeHint": "\u6309\u6BCF\u4E2A\u6863\u4F4D\u53D1\u9001\u4E00\u6B21\u6781\u5C0F\u771F\u5B9E\u8BF7\u6C42\uFF08\u6D88\u8017\u5C11\u91CF Token\uFF09\u6765\u9A8C\u8BC1\u4E0A\u6E38\u662F\u5426\u63A5\u53D7",
@@ -5321,20 +6653,20 @@ var zh = {
   "usage.range.7d": "\u8FD1 7 \u65E5",
   "usage.range.30d": "\u8FD1 30 \u65E5",
   "usage.range.all": "\u5168\u90E8",
+  "usage.coverage": "\u8986\u76D6 {value}",
   "usage.totalTokens": "\u603B Token",
   "usage.input": "\u8F93\u5165",
   "usage.output": "\u8F93\u51FA",
   "usage.cacheRead": "\u7F13\u5B58\u8BFB\u53D6",
   "usage.cacheWrite": "\u7F13\u5B58\u5199\u5165",
   "usage.cacheHitRate": "\u7F13\u5B58\u547D\u4E2D\u7387",
-  "usage.calls": "\u8BF7\u6C42\u6570",
   "usage.cost": "\u4F30\u7B97\u6210\u672C",
   "usage.costUnconfigured": "\u672A\u914D\u7F6E\u4EF7\u683C",
   "usage.costPricedOnly": "\u6210\u672C\u4EC5\u5305\u542B\u5DF2\u914D\u7F6E\u4EF7\u683C\u7684\u6A21\u578B",
   "usage.priceNote": "\u4EF7\u683C\u6765\u81EA\u63D2\u4EF6\u914D\u7F6E pricing\uFF1B\u672A\u914D\u7F6E\u7684\u6A21\u578B\u4E0D\u8BA1\u5165\u6210\u672C",
   "usage.chart.title": "\u6BCF\u65E5\u7528\u91CF",
   "usage.chart.empty": "\u6B64\u8303\u56F4\u5185\u6CA1\u6709\u7528\u91CF",
-  "usage.chart.barTitle": "{date} \xB7 {tokens} Token",
+  "usage.chart.barTitle": "{date}\uFF0C{tokens} Token",
   "usage.byModel": "\u6309\u6A21\u578B",
   "usage.byProvider": "\u6309\u4F9B\u5E94\u5546",
   "usage.table.model": "\u6A21\u578B",
@@ -5358,11 +6690,17 @@ var zh = {
 };
 var en = {
   "panel.title": "Model panel",
+  "ui.listSeparator": ", ",
   "page.subtitle": "Model configuration, account balances, and token usage at a glance",
   "tabs.label": "Model panel sections",
   "tabs.overview": "Overview",
   "tabs.providers": "Models",
   "tabs.usage": "Usage",
+  "page.balance": "Balance",
+  "page.scan": "Usage scan",
+  "page.updated": "Refreshed",
+  "page.scanning": "Scanning {scanned}/{total}",
+  "page.scanIdle": "Usage cached",
   "actions.refresh": "Refresh",
   "actions.refreshing": "Refreshing\u2026",
   "actions.testEfforts": "Test levels",
@@ -5381,6 +6719,10 @@ var en = {
   "actions.currentDefault": "Current default",
   "actions.cancel": "Cancel",
   "actions.editProvider": "Edit",
+  "actions.copyEndpoint": "Copy endpoint",
+  "actions.copyCredentialRef": "Copy credential reference",
+  "actions.copyModelId": "Copy model ID",
+  "actions.copied": "Copied",
   "loading.page": "Loading the model panel\u2026",
   "errors.snapshot": "Could not load the model panel: {message}",
   "errors.refreshFailed": "Refresh failed; showing the previous data: {message}",
@@ -5395,7 +6737,7 @@ var en = {
   "errors.code.invalidSelection": "Pick a model first.",
   "errors.code.saveFailed": "The default model could not be saved; check the configuration and retry.",
   "errors.code.unavailable": "This composition owns no default model, so nothing can be saved.",
-  "errors.edit.loadFailed": "Could not read this provider's configuration: {message}",
+  "errors.edit.loadFailed": "Could not read this provider\u2019s configuration: {message}",
   "errors.edit.generic": "The operation failed: {message}",
   "errors.edit.unknownProvider": "This provider is not declared in a writable profile, so it cannot be edited here.",
   "errors.edit.noSettings": "This composition has no settings service.",
@@ -5429,7 +6771,7 @@ var en = {
   "balance.none": "No balance",
   "balance.unknown": "Not reported",
   "balance.unlimited": "Unlimited quota",
-  "balance.unlimitedUsed": "Unlimited quota \xB7 used {used}",
+  "balance.unlimitedUsed": "Unlimited quota (used {used})",
   "balance.bonus": "Bonus {amount}",
   "balance.unavailable": "Unavailable",
   "balance.error": "Check failed",
@@ -5441,34 +6783,31 @@ var en = {
   "balance.reason.no-endpoint": "No balance endpoint",
   "balance.reason.disabled": "Balance check off",
   "balance.reason.unsupported": "Balance check unsupported",
-  "overview.defaultModel": "Default model",
   "overview.noDefaultModel": "No default model selected",
+  "overview.currentDefault": "Current default model",
+  "overview.switchDefault": "Switch default",
   "overview.reasoningEffort": "Reasoning effort",
   "overview.account": "Official account balance",
   "overview.accountSignedOut": "Not signed in to a DeepSeek account",
   "overview.routeBalanceHint": "Account not signed in; showing the {provider} route balance",
   "overview.accountFailed": "Could not read the account balance",
   "overview.accountUnavailable": "Account balance unavailable",
+  "overview.balanceSource": "From the DeepSeek official account wallets",
   "overview.bonusWallets": "Bonus balance",
-  "overview.today": "Today's usage",
-  "overview.input": "Input",
-  "overview.output": "Output",
-  "overview.cacheRead": "Cache read",
-  "overview.calls": "Requests",
-  "overview.last30": "Last 30 days",
-  "overview.cacheHitRate": "Cache hit rate",
-  "overview.providers": "Providers",
-  "overview.registered": "Registered",
-  "overview.models": "Models",
-  "overview.keysConfigured": "Keys configured",
-  "overview.cost": "Estimated cost",
-  "overview.costLast7": "Last 7 days",
-  "overview.costTotal": "All time",
-  "overview.costUnconfigured": "No prices configured. Add prices in the plugin's pricing config to estimate cost.",
+  "overview.kpi.label": "Usage metrics",
+  "overview.kpi.today": "Today\u2019s tokens",
+  "overview.kpi.todayHint": "Local calendar day",
+  "overview.kpi.last7": "7-day tokens",
+  "overview.kpi.last7Hint": "Includes today",
+  "overview.kpi.calls": "Total requests",
+  "overview.kpi.callsHint": "Scanned sessions",
+  "overview.kpi.cacheHit": "Cache hit rate",
+  "overview.kpi.cacheHitHint": "Cache read / prompt",
   "overview.providerBalances": "Provider balances",
   "overview.refreshAllBalances": "Refresh all balances",
   "overview.usageUnavailable": "No session logs to measure on this machine",
   "overview.builtAt": "Cache built {time}",
+  "overview.footerCost": "Estimated 7-day cost {cost}",
   "providers.default": "Default",
   "providers.registered": "Registered",
   "providers.notRegistered": "Not registered",
@@ -5484,11 +6823,10 @@ var en = {
   "providers.source.stored": "stored",
   "providers.source.api-key": "stored key",
   "providers.source.grant": "stored grant",
-  "providers.balance": "Balance",
   "providers.refreshBalanceAria": "Refresh the balance for {provider}",
+  "providers.expandAria": "Expand the {provider} models",
+  "providers.collapseAria": "Collapse the {provider} models",
   "providers.models": "Models",
-  "providers.showAllModels": "Show all ({count})",
-  "providers.collapseModels": "Collapse",
   "providers.noModels": "No models",
   "providers.modelsIncomplete": "Model list unavailable",
   "providers.empty": "No model providers configured yet. Add one under Settings > Models.",
@@ -5544,7 +6882,7 @@ var en = {
   "providers.add.apiKeyEnvHint": "An environment-style name, e.g. ACME_KEY; you can add it later.",
   "providers.add.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.add.apiKeyEnvInvalid": "A credential reference must be an environment-style name.",
-  "providers.add.apiKey": "API Key",
+  "providers.add.apiKey": "API key",
   "providers.add.apiKeyHint": "Optional; when typed it is stored in the credential store first and then used to read models.",
   "providers.add.apiKeyPlaceholder": "sk-\u2026",
   "providers.add.refRequiredForKey": "Set a credential reference before storing an API key.",
@@ -5554,6 +6892,7 @@ var en = {
   "providers.add.connecting": "Connecting\u2026",
   "providers.add.models": "Selected models",
   "providers.add.modelsHint": "Read the gateway and pick the models to write with the provider.",
+  "providers.add.imported": "Imported {count} models from the gateway",
   "providers.add.modelsCount": "{count} models will be created with the provider",
   "providers.add.removeModel": "Remove",
   "providers.add.removeModelAria": "Remove model {id}",
@@ -5573,7 +6912,7 @@ var en = {
   "providers.edit.apiKeyEnvHint": "A credential reference is an environment-style name; the key lives in the credential store, not here.",
   "providers.edit.apiKeyEnvPlaceholder": "ACME_KEY",
   "providers.edit.apiKeyEnvInvalid": "A credential reference must be an environment-style name.",
-  "providers.edit.apiKey": "API Key",
+  "providers.edit.apiKey": "API key",
   "providers.edit.apiKeyConfigured": "Configured",
   "providers.edit.apiKeyMissing": "Not configured",
   "providers.edit.apiKeySource": "Source {source}",
@@ -5586,6 +6925,9 @@ var en = {
   "providers.edit.apiKeyNeedsRef": "Set a credential reference and save first; then a key can be stored here.",
   "providers.edit.apiKeyRefDirty": "The credential reference changed; save the form before managing the key.",
   "providers.edit.models": "Models",
+  "providers.edit.imported": "Imported {count} models from the gateway",
+  "providers.edit.modelsEmptyTitle": "No models declared yet",
+  "providers.edit.modelsInheritedTitle": "Using the adapter catalog",
   "providers.edit.effortsFixed": "This route\u2019s reasoning levels are fixed by its adapter (DeepSeek offers Off / Low / High / Max) and cannot be edited here.",
   "providers.effortsNoLevels": "No reasoning levels are declared for this model; add them under Edit \u2192 Models \u2192 Reasoning levels first",
   "providers.effortsProbeHint": "Sends one tiny real request per level (a few tokens) to check whether the endpoint accepts it",
@@ -5647,20 +6989,20 @@ var en = {
   "usage.range.7d": "7 days",
   "usage.range.30d": "30 days",
   "usage.range.all": "All time",
+  "usage.coverage": "Coverage {value}",
   "usage.totalTokens": "Total tokens",
   "usage.input": "Input",
   "usage.output": "Output",
   "usage.cacheRead": "Cache read",
   "usage.cacheWrite": "Cache write",
   "usage.cacheHitRate": "Cache hit rate",
-  "usage.calls": "Requests",
   "usage.cost": "Estimated cost",
   "usage.costUnconfigured": "No prices configured",
   "usage.costPricedOnly": "Cost covers priced models only",
   "usage.priceNote": "Prices come from the plugin pricing config; unpriced models add no cost",
   "usage.chart.title": "Daily usage",
   "usage.chart.empty": "No usage in this range",
-  "usage.chart.barTitle": "{date} \xB7 {tokens} tokens",
+  "usage.chart.barTitle": "{date}: {tokens} tokens",
   "usage.byModel": "By model",
   "usage.byProvider": "By provider",
   "usage.table.model": "Model",
@@ -5677,7 +7019,7 @@ var en = {
   "usage.sessions.empty": "No sessions in this range",
   "usage.empty": "No usage to measure yet",
   "usage.emptyHint": "The first scan may still be running; this view refreshes automatically.",
-  "usage.caveat": "Usage comes from this profile's local session logs and covers up to {count} stored sessions.",
+  "usage.caveat": "Usage comes from this profile\u2019s local session logs and covers up to {count} stored sessions.",
   "usage.sessionTokens": "{value} tokens",
   "usage.sessionRequests": "{count} requests",
   "usage.sessionUntitled": "Untitled session"
@@ -5687,7 +7029,7 @@ var en = {
 var PANEL_ID = "token-dashboard";
 var PANEL_ORDER = 20;
 function PanelIcon({ size = 18 } = {}) {
-  return (0, import_react5.createElement)(
+  return (0, import_react6.createElement)(
     "svg",
     {
       width: size,
@@ -5697,21 +7039,21 @@ function PanelIcon({ size = 18 } = {}) {
       focusable: "false",
       style: { display: "block" }
     },
-    (0, import_react5.createElement)("path", {
+    (0, import_react6.createElement)("path", {
       d: "M8.45 30.13A13.5 13.5 0 1 1 27.55 30.13",
       fill: "none",
       stroke: "currentColor",
       strokeWidth: 2.25,
       strokeLinecap: "round"
     }),
-    (0, import_react5.createElement)("path", {
+    (0, import_react6.createElement)("path", {
       d: "M18 20.58 24.87 13.71",
       fill: "none",
       stroke: "currentColor",
       strokeWidth: 2,
       strokeLinecap: "round"
     }),
-    (0, import_react5.createElement)("circle", { cx: 18, cy: 20.58, r: 2.9, fill: "currentColor" })
+    (0, import_react6.createElement)("circle", { cx: 18, cy: 20.58, r: 2.9, fill: "currentColor" })
   );
 }
 var inject = ["slots", "locale"];
