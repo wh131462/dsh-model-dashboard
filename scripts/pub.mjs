@@ -2,14 +2,15 @@
 /**
  * Interactive release: `npm run pub`.
  *
- * Order of operations, so a failure never publishes something that was not
- * committed first:
+ * Order of operations: the release commit is written only after npm accepted
+ * the package, so a failed publish leaves neither a dirty tree nor an empty
+ * `feat: vX.Y.Z` commit that CI would turn into a tag:
  *   1. refuse without an authenticated npmjs session (prints the login command),
  *   2. pick a version (current if unpublished, otherwise a patch bump; any
  *      stable x.y.z can be typed),
  *   3. build and test, write version into package.json/package-lock.json,
- *   4. commit `feat: vX.Y.Z`,
- *   5. `npm publish` to registry.npmjs.com.
+ *   4. `npm publish` to registry.npmjs.com, rolling the bump back on failure,
+ *   5. commit `feat: vX.Y.Z`.
  *
  * Pushing the commit is left to the user; CI turns it into a GitHub Release.
  */
@@ -28,6 +29,9 @@ const REGISTRY_FLAG = `--registry=${REGISTRY}`;
 const PACKAGE_PATH = join(ROOT, 'package.json');
 const LOCK_PATH = join(ROOT, 'package-lock.json');
 const STAGED_FILES = ['package.json', 'package-lock.json', 'index.js', 'client.js'];
+
+/** Set once npm accepted the package, so the exit message can say so. */
+let publishedVersion = null;
 
 function npm(args) {
   return spawnSync('npm', args, { cwd: ROOT, encoding: 'utf8' });
@@ -98,6 +102,45 @@ function writeVersion(version) {
   return true;
 }
 
+/** Release files that exist in this checkout. */
+function releaseFiles() {
+  return STAGED_FILES.filter((file) => existsSync(join(ROOT, file)));
+}
+
+/**
+ * Commit the version npm has just accepted.
+ *
+ * The marker is empty on purpose when the version was already in the tree (the
+ * first release of a package that shipped at its current version): the release
+ * workflow keys off the head commit subject.
+ * @param {string} version - published version.
+ */
+function releaseCommit(version) {
+  run('暂存发布文件', 'git', ['add', '--', ...releaseFiles()]);
+
+  const subject = `feat: v${version}`;
+  const head = (git(['log', '-1', '--format=%s']).stdout ?? '').trim();
+  const staged = (git(['diff', '--cached', '--name-only']).stdout ?? '').trim();
+  if (!staged && head === subject) {
+    console.log(`\n✔ 已存在发布 commit：${subject}，跳过创建`);
+    return;
+  }
+  run(`创建 commit: ${subject}`, 'git', ['commit', '--allow-empty', '-m', subject]);
+}
+
+/**
+ * Drop the version bump and build output of a run that did not publish, so the
+ * next attempt passes the clean-tree check instead of tripping over them.
+ */
+function discardReleaseChanges() {
+  const files = releaseFiles();
+  console.log(`\n▶ 回滚未发布的改动：git checkout -- ${files.join(' ')}`);
+  const result = git(['checkout', '--', ...files]);
+  if (result.error || result.status !== 0) {
+    console.error(`✖ 自动回滚失败，请手动执行：git checkout -- ${files.join(' ')}`);
+  }
+}
+
 async function chooseVersion(name, current) {
   const published = isPublished(name, current);
   const suggested = published ? bumpPatch(current) : current;
@@ -126,8 +169,8 @@ async function chooseVersion(name, current) {
     console.log('\n即将执行：');
     console.log('  1. 构建并运行测试');
     console.log(`  2. 版本号 ${current} → ${version}`);
-    console.log(`  3. 创建 commit  feat: v${version}`);
-    console.log(`  4. 发布到 ${REGISTRY}`);
+    console.log(`  3. 发布到 ${REGISTRY}`);
+    console.log(`  4. 创建 commit  feat: v${version}（发布成功后）`);
 
     const confirmed = (await rl.question('\n确认继续？(y/N) ')).trim();
     return /^y(es)?$/i.test(confirmed) ? version : null;
@@ -154,34 +197,31 @@ async function main() {
     return;
   }
 
-  // Everything below is committed before the irreversible publish.
   run('构建产物', 'npm', ['run', 'build']);
   run('运行测试', 'npm', ['test']);
 
   const changed = writeVersion(version);
   console.log(changed ? `\n✔ 版本号已改为 ${version}` : `\n✔ 沿用当前版本 ${version}`);
 
-  const files = STAGED_FILES.filter((file) => existsSync(join(ROOT, file)));
-  run('暂存发布文件', 'git', ['add', '--', ...files]);
-
-  const subject = `feat: v${version}`;
-  const head = (git(['log', '-1', '--format=%s']).stdout ?? '').trim();
-  const staged = (git(['diff', '--cached', '--name-only']).stdout ?? '').trim();
-  if (!staged && head === subject) {
-    console.log(`\n✔ 已存在发布 commit：${subject}，跳过创建`);
-  } else {
-    run(`创建 commit: ${subject}`, 'git', ['commit', '--allow-empty', '-m', subject]);
+  // Publish first: a failed publish must not leave a `feat: vX.Y.Z` marker
+  // (empty when the version was already committed) behind for CI to tag.
+  try {
+    run(`发布 ${pkg.name}@${version} 到 ${REGISTRY}`, 'npm', [
+      'publish',
+      REGISTRY_FLAG,
+      '--access',
+      'public',
+    ]);
+  } catch (error) {
+    discardReleaseChanges();
+    throw error;
   }
 
-  run(`发布 ${pkg.name}@${version} 到 ${REGISTRY}`, 'npm', [
-    'publish',
-    REGISTRY_FLAG,
-    '--access',
-    'public',
-  ]);
-
+  publishedVersion = version;
   console.log(`\n✔ 已发布 ${pkg.name}@${version}`);
   console.log(`  ${npmPackageUrl(pkg.name, version)}`);
+
+  releaseCommit(version);
 
   const branch = (git(['rev-parse', '--abbrev-ref', 'HEAD']).stdout ?? '').trim();
   const push = branch && branch !== 'HEAD' ? `git push origin ${branch}` : 'git push';
@@ -190,6 +230,10 @@ async function main() {
 
 main().catch((error) => {
   console.error(`\n✖ ${error.message}`);
-  console.error('发布未完成；请检查上面的错误后重试。');
+  console.error(
+    publishedVersion
+      ? `注意：${publishedVersion} 已经发布到 npm，后续步骤失败；请手动提交并推送，CI 需要 HEAD 的标题是 \`feat: v${publishedVersion}\` 才会创建 Release。`
+      : '发布未完成；请检查上面的错误后重试。',
+  );
   process.exit(1);
 });
