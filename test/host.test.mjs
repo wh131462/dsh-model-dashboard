@@ -9,7 +9,7 @@
 
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -23,6 +23,7 @@ import { createProviderEditor } from '../src/host/editing.js';
 import { createCatalogTools } from '../src/host/catalog.js';
 import { createReasoningProbe } from '../src/host/probe.js';
 import { readProviders } from '../src/host/discovery.js';
+import { createProviderSites, normalizeSiteUrl } from '../src/host/sites.js';
 import { createUsage } from '../src/host/usage.js';
 
 /** A minimal Host context over a service table. */
@@ -143,6 +144,69 @@ test('config normalization keeps usable fields and explains the rest', () => {
   const cost = estimateCost(exact, { input: 2_000_000, output: 1_000_000, cacheRead: 1_000_000, cacheWrite: 0 });
   // 2M uncached input at 2 + 1M cache read at 0.2 + 1M output at 8
   assert.equal(Math.round(cost * 100) / 100, 12.2);
+  assert.equal(normalizeConfig({ dataDir: ' /tmp/sites ' }).dataDir, '/tmp/sites');
+});
+
+test('provider website links are validated, persisted, and cleared', async (t) => {
+  const dataDir = await mkdtemp(join(tmpdir(), 'dsh-model-dashboard-sites-'));
+  t.after(async () => {
+    await rm(dataDir, { recursive: true, force: true });
+  });
+
+  assert.equal(normalizeSiteUrl(''), null);
+  assert.equal(normalizeSiteUrl('   '), null);
+  assert.equal(normalizeSiteUrl(null), null);
+  assert.equal(normalizeSiteUrl('https://acme.example/'), 'https://acme.example/');
+  assert.equal(normalizeSiteUrl(' http://acme.example/docs '), 'http://acme.example/docs');
+  assert.equal(normalizeSiteUrl('ftp://acme.example'), false);
+  assert.equal(normalizeSiteUrl('acme.example'), false);
+  assert.equal(normalizeSiteUrl('https://user:secret@acme.example'), false);
+  assert.equal(normalizeSiteUrl(42), false);
+
+  const sites = createProviderSites(dataDir);
+  await sites.ready();
+  assert.equal(sites.get('acme'), null);
+  assert.equal(await sites.set('acme', 'https://acme.example/docs'), 'https://acme.example/docs');
+  assert.equal(sites.get('acme'), 'https://acme.example/docs');
+  assert.equal(await sites.set('gateway', 'http://127.0.0.1:8080/'), 'http://127.0.0.1:8080/');
+  await assert.rejects(
+    () => sites.set('acme', 'javascript:alert(1)'),
+    (error) => error.code === 'invalid-site-url',
+  );
+  await assert.rejects(
+    () => sites.set('bad id!', 'https://acme.example'),
+    (error) => error.code === 'invalid-provider',
+  );
+
+  // A fresh store sees the same document.
+  const reopened = createProviderSites(dataDir);
+  await reopened.ready();
+  assert.equal(reopened.get('acme'), 'https://acme.example/docs');
+  assert.equal(reopened.get('gateway'), 'http://127.0.0.1:8080/');
+
+  assert.equal(await reopened.set('acme', ''), null);
+  assert.equal(reopened.get('acme'), null);
+  const cleared = createProviderSites(dataDir);
+  await cleared.ready();
+  assert.equal(cleared.get('acme'), null);
+  assert.equal(cleared.get('gateway'), 'http://127.0.0.1:8080/');
+});
+
+test('a website write failure keeps the in-memory value unchanged', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-model-dashboard-sites-fail-'));
+  t.after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  // A file where the data directory should be makes every write fail.
+  const blocked = join(root, 'blocked');
+  await writeFile(blocked, 'not a directory', 'utf8');
+  const sites = createProviderSites(blocked);
+  await sites.ready();
+  await assert.rejects(
+    () => sites.set('acme', 'https://acme.example'),
+    (error) => error.code === 'write-failed',
+  );
+  assert.equal(sites.get('acme'), null, 'a failed write is rolled back in memory');
 });
 
 test('discovery merges routes, settings profiles, models, and key state', async () => {
@@ -534,6 +598,9 @@ test('route handler admits owners, rejects others, and wraps every reply', async
     async setDefault() {
       return { ok: true };
     },
+    async setProviderSite(body) {
+      return { ok: true, echo: body };
+    },
   };
   const ownerCtx = makeCtx({ connection: { admit: () => ({ peer: { principal: { kind: 'owner' } } }) } });
   const strangerCtx = makeCtx({ connection: { admit: () => ({ peer: { principal: { kind: 'guest' } } }) } });
@@ -547,6 +614,13 @@ test('route handler admits owners, rejects others, and wraps every reply', async
   const usageRes = recorder();
   await ownerRoute(request('POST', '/dsh-model-dashboard/api/usage', { range: '7d' }), usageRes);
   assert.deepEqual(JSON.parse(usageRes.body).value, { echo: { range: '7d' } });
+
+  const siteRes = recorder();
+  await ownerRoute(request('POST', '/dsh-model-dashboard/api/set-provider-site', { providerId: 'acme', url: 'https://acme.example' }), siteRes);
+  assert.deepEqual(JSON.parse(siteRes.body).value, {
+    ok: true,
+    echo: { providerId: 'acme', url: 'https://acme.example' },
+  });
 
   const unknownRes = recorder();
   await ownerRoute(request('POST', '/dsh-model-dashboard/api/nope', {}), unknownRes);
@@ -1142,7 +1216,7 @@ test('dashboard snapshot wires discovery, balances, and the usage summary togeth
     agentDefaultModel,
     sessionPersistence: fakePersistence(sessions),
   });
-  const dashboard = createDashboard(ctx, normalizeConfig({ cacheDir, pricing: { 'provider-a/model-1': { input: 1, output: 2 } } }));
+  const dashboard = createDashboard(ctx, normalizeConfig({ cacheDir, dataDir: cacheDir, pricing: { 'provider-a/model-1': { input: 1, output: 2 } } }));
   const snapshot = await dashboard.snapshot({});
   assert.equal(snapshot.version, 1);
   assert.equal(snapshot.providers.length, 1);
@@ -1164,6 +1238,19 @@ test('dashboard snapshot wires discovery, balances, and the usage summary togeth
   const settled = await dashboard.snapshot({});
   assert.equal(settled.usage.sessions, 1);
   assert.equal(settled.usage.total.input, 100);
+
+  const siteSaved = await dashboard.setProviderSite({ providerId: 'provider-a', url: 'https://provider-a.example/docs' });
+  assert.equal(siteSaved.site, 'https://provider-a.example/docs');
+  const withSite = await dashboard.snapshot({});
+  assert.equal(withSite.providers[0].site, 'https://provider-a.example/docs');
+  await assert.rejects(
+    () => dashboard.setProviderSite({ providerId: 'ghost', url: 'https://ghost.example' }),
+    (error) => error.code === 'unknown-provider',
+  );
+  await assert.rejects(
+    () => dashboard.setProviderSite({ providerId: 'provider-a', url: 'not a url' }),
+    (error) => error.code === 'invalid-site-url',
+  );
 
   const saved = await dashboard.setDefault({ provider: 'provider-a', model: 'model-1', reasoningEffort: 'max' });
   assert.deepEqual(saved.selection, { provider: 'provider-a', model: 'model-1', reasoningEffort: 'max' });
