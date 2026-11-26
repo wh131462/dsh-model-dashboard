@@ -15,9 +15,9 @@ and their usage:
 
 - **Overview** — what is running now, what balance each provider reports, and
   the token numbers that matter today.
-- **Models** — every provider route with its endpoint, credential state, and
-  models; edit a route, import a gateway catalog, test reasoning levels, or
-  switch the default model.
+- **Models** — every provider route with its credential state, balance, and
+  models; edit a route, set a provider website that opens in your browser,
+  import a gateway catalog, test reasoning levels, or switch the default model.
 - **Usage** — token totals, a daily chart, per-model and per-provider
   breakdowns, the heaviest sessions, and an optional cost estimate.
 
@@ -156,12 +156,17 @@ DeepSeek routes and any route exposed by the multi-provider adapter —
 OpenAI-compatible, Anthropic, and Google protocols included.
 
 - Each **provider row** shows a key-status dot, the display name and route ID,
-  the endpoint, the number of models, and the current balance. The default
-  provider carries a brand marker.
-- **Expand** a row to see the protocol, the credential source, whether the
-  adapter route is live, the provider notes (`dormant`, `missing key`,
-  `model list unavailable`), and the models with context windows and
-  reasoning-level chips.
+  the number of models, and the current balance. The default provider carries a
+  brand marker.
+- **Expand** a row to see a labelled fact sheet — endpoint (with copy), protocol,
+  route state, credential state and source, and the provider's **website** —,
+  the provider notes (`dormant`, `missing key`, `model list unavailable`), and
+  the models with context windows, reasoning-level chips, and the per-level
+  probe.
+- **Website** — **Add website** / **Edit website** stores an absolute http(s)
+  URL for the provider. The saved link opens in the default browser (a new tab under
+  `dsh web`). It is a dashboard annotation, not part of the adapter profile, and
+  lives in `$DSH_HOME/model-dashboard/provider-sites.json`.
 - **Test levels** runs a probe of the upstream endpoint for one model.
   **Set as default** saves the selection through the same service DSH uses.
 - **Refresh balance** probes one provider; **Refresh balances** on the toolbar
@@ -413,6 +418,7 @@ below.
 | `scanConcurrency` | `3` | Session logs read in parallel during a scan |
 | `maxSessions` | `0` | Newest pending sessions scanned per pass; `0` scans everything |
 | `cacheDir` | `''` | Usage cache directory; empty uses `$DSH_HOME/cache/model-dashboard` |
+| `dataDir` | `''` | Provider website data directory; empty uses `$DSH_HOME/model-dashboard` |
 | `balanceTimeoutMs` | `8000` | Deadline for one balance HTTP request |
 | `balanceCacheSeconds` | `300` | How long a probe result is reused (minimum 5 seconds) |
 | `pricing` | `{}` | Cost table per 1,000,000 tokens |
@@ -428,7 +434,8 @@ restart the profile. The plugin reads its config when it activates.
   and this profile's session logs.
 - **Write:** the credential store only when you save a key, settings only when
   you save a provider, the default selection only when you press
-  **Set as default**, and the usage cache under
+  **Set as default**, provider website links under `$DSH_HOME/model-dashboard/`
+  only when you save one, and the usage cache under
   `$DSH_HOME/cache/model-dashboard/`. The plugin never writes to your session
   log.
 - **Network:** balance probes go to each provider's own endpoint with that

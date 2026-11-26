@@ -109,6 +109,7 @@ Host when it can be (a localized object is reduced to the active locale).
   "keyConfigured": true,
   "keySource": "environment",
   "keyMasked": "sk-…9f2a",
+  "site": "https://yuanxi.one/",
   "accountRoute": false,
   "models": [],
   "modelsIncomplete": false,
@@ -122,6 +123,9 @@ Host when it can be (a localized object is reduced to the active locale).
 - `declared`: the profile's own settings declare this provider (as opposed to a
   dormant catalog entry).
 - `keySource` is the credential source name when configured, else `null`.
+- `site` is the provider's saved official website (an absolute http(s) URL) or
+  `null`. It is a dashboard annotation stored outside the adapter profile; see
+  `set-provider-site` below.
 - `notes` carries short English codes the page localizes, e.g. `dormant`,
   `key-missing`, `models-unavailable`.
 
@@ -272,6 +276,24 @@ Body: `{ "full": false }`. `full: true` discards the usage cache first.
 ```json
 { "value": { "started": true, "scan": ScanProgress } }
 ```
+
+### `POST set-provider-site`
+
+Stores or clears one provider's official website. The URL must be absolute
+`http` or `https`, without embedded credentials, and at most 2048 characters.
+An empty `url` clears the stored link. The document lives under the plugin's
+`dataDir` (default `$DSH_HOME/model-dashboard/provider-sites.json`); it is not
+written into any provider profile.
+
+Body: `{ "providerId": "yuanxi50", "url": "https://yuanxi.one/" }` or
+`{ "providerId": "yuanxi50", "url": "" }`.
+
+```json
+{ "value": { "ok": true, "providerId": "yuanxi50", "site": "https://yuanxi.one/" } }
+```
+
+`site` is `null` when the link was cleared. Error codes: `invalid-provider`,
+`unknown-provider`, `invalid-site-url`, `write-failed`.
 
 ## Provider configuration editing
 

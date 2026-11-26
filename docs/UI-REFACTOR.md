@@ -44,10 +44,12 @@ Page hierarchy after the refactor:
   + 全部刷新) → quiet footer (cache build time, 7-day cost when priced, scan
   state).
 - **模型配置** — toolbar (刷新余额, 展开/收起全部, primary 新增供应商) → optional
-  add-provider panel → provider row list (key dot, name/id, endpoint, model
-  count, balance, refresh/edit actions; default row gets a brand left rule) →
-  expanded detail (protocol/credentials/registration facts, notes, model rows
-  with level chips, 测试档位, 设为默认) or the existing inline editor.
+  add-provider panel → provider row list (key dot, name/id, model count,
+  balance, refresh/edit actions; default row gets a brand left rule) →
+  expanded detail (a labelled fact sheet for endpoint + copy, protocol, route
+  state, credentials, and the provider website; notes; model rows in two lines
+  with a 推理档位 label, level chips, a quiet 测试档位 text action, and 设为默认/
+  当前默认) or the existing inline editor.
 - **用量统计** — toolbar (range segmented control, 刷新, 重新扫描) → scan banner →
   headline total with `range · calls · coverage` context and the log-caveat →
   metric row (input/output/cache read/cache write/cache hit/cost) → daily chart
@@ -129,10 +131,12 @@ Page hierarchy after the refactor:
   全部刷新余额 (per-account/all-provider balance refresh), 刷新 (page refresh).
 - **模型配置** — provider row name toggles its model detail (`aria-expanded` +
   `aria-controls`); 展开全部/收起全部 toggles all rows; per-row ↻ refreshes one
-  provider's balance; 编辑 opens the inline editor; expanded model rows expose
-  测试档位 (per-level reasoning probe, one in flight per row) and 设为默认
-  (saves through the page, inline error on failure); 新增供应商 opens the create
-  form (primary toolbar action, prepares the settings revision first).
+  provider's balance; 编辑 opens the inline editor; expanded provider detail
+  offers 添加官网/编辑官网 with an inline URL form (save/cancel/clear) whose saved
+  link opens in the default browser; expanded model rows expose 测试档位
+  (per-level reasoning probe, one in flight per row) and 设为默认 (saves through
+  the page, inline error on failure); 新增供应商 opens the create form (primary
+  toolbar action, prepares the settings revision first).
 - **Editor** — save/cancel/delete/key save/clear/conflict reload/discard guard/
   gateway import/reasoning detection all keep their previous flows; Enter submits
   (invalid submits focus the first invalid control); the sticky footer reports
