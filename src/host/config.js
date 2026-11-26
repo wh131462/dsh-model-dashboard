@@ -13,6 +13,7 @@ const DEFAULTS = {
   scanConcurrency: 3,
   maxSessions: 0,
   cacheDir: '',
+  dataDir: '',
   balanceTimeoutMs: 8000,
   balanceCacheSeconds: 300,
 };
@@ -26,6 +27,7 @@ const DEFAULTS = {
  *   scanConcurrency: number,
  *   maxSessions: number,
  *   cacheDir: string,
+ *   dataDir: string,
  *   balanceTimeoutMs: number,
  *   balanceCacheSeconds: number,
  *   pricing: Record<string, {input?: number, output?: number, cacheRead?: number, cacheWrite?: number}>,
@@ -45,6 +47,7 @@ export function normalizeConfig(raw) {
   const balanceTimeoutMs = clampInt(input.balanceTimeoutMs, DEFAULTS.balanceTimeoutMs, 500, 60000);
   const balanceCacheSeconds = clampInt(input.balanceCacheSeconds, DEFAULTS.balanceCacheSeconds, 0, 86400);
   const cacheDir = typeof input.cacheDir === 'string' ? input.cacheDir.trim() : '';
+  const dataDir = typeof input.dataDir === 'string' ? input.dataDir.trim() : '';
   const pricing = sanitizePricing(input.pricing, warnings);
   const providerBalance = input.providerBalance !== null && typeof input.providerBalance === 'object'
     && !Array.isArray(input.providerBalance)
@@ -56,6 +59,7 @@ export function normalizeConfig(raw) {
     scanConcurrency,
     maxSessions,
     cacheDir,
+    dataDir,
     balanceTimeoutMs,
     balanceCacheSeconds,
     pricing,

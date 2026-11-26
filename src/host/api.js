@@ -25,6 +25,7 @@ export function createRouteHandler(ctx, dashboard) {
     balances: (body) => dashboard.balances(body),
     rescan: (body) => dashboard.rescan(body),
     'set-default': (body) => dashboard.setDefault(body),
+    'set-provider-site': (body) => dashboard.setProviderSite(body),
     'probe-reasoning': (body) => dashboard.probeReasoning(body),
     'discover-models': (body) => dashboard.discoverModels(body),
     'detect-reasoning': (body) => dashboard.detectReasoning(body),

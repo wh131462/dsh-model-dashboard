@@ -3,8 +3,21 @@
  * and the day bucketing the usage cache stores.
  */
 
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 /** HTTP prefix this bundle's channel lives under on the composition web server. */
 export const PREFIX = '/dsh-model-dashboard';
+
+/**
+ * The DSH home directory: `$DSH_HOME` when set, else `~/.dsh`.
+ * @returns {string} the directory.
+ */
+export function dshHome() {
+  const configured = process.env.DSH_HOME;
+  if (typeof configured === 'string' && configured !== '') return configured;
+  return join(homedir(), '.dsh');
+}
 
 /** Wire contract version, bumped when a shape changes incompatibly. */
 export const WIRE_VERSION = 1;

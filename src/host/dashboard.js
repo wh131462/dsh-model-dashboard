@@ -8,12 +8,15 @@
  * so the next snapshot shows the saved selection.
  */
 
+import { join } from 'node:path';
 import { createBalances } from './balances.js';
 import { createCatalogTools } from './catalog.js';
 import { readDefaultSelection, readProviders } from './discovery.js';
 import { createProviderEditor } from './editing.js';
 import { HostError, messageOf } from './errors.js';
 import { createReasoningProbe } from './probe.js';
+import { dshHome } from './shared.js';
+import { createProviderSites } from './sites.js';
 import { createUsage } from './usage.js';
 
 /** Model catalogs and key state are reused for this long across page polls. */
@@ -31,6 +34,7 @@ const SNAPSHOT_BALANCE_BUDGET_MS = 2500;
  *   usage: (body?: object) => Promise<object>,
  *   balances: (body?: object) => Promise<object>,
  *   setDefault: (body?: object) => Promise<object>,
+ *   setProviderSite: (body?: object) => Promise<object>,
  *   rescan: (body?: object) => Promise<object>,
  *   dispose: () => void,
  * }} the dashboard.
@@ -38,6 +42,7 @@ const SNAPSHOT_BALANCE_BUDGET_MS = 2500;
 export function createDashboard(ctx, config) {
   const balances = createBalances(ctx, config);
   const usage = createUsage(ctx, config);
+  const sites = createProviderSites(config.dataDir !== '' ? config.dataDir : join(dshHome(), 'model-dashboard'));
   /** @type {{at: number, value: object|null, pending: Promise<object>|null}} */
   const discovery = { at: 0, value: null, pending: null };
   const editor = createProviderEditor(ctx, {
@@ -102,12 +107,14 @@ export function createDashboard(ctx, config) {
    */
   async function snapshot(body = {}) {
     const { providers, defaultSelection, account } = await discover();
+    await sites.ready();
     const balanceMap = await balances.forProviders(providers, {
       refresh: body?.refreshBalances === true,
       budgetMs: SNAPSHOT_BALANCE_BUDGET_MS,
     });
     const filled = providers.map((provider) => ({
       ...provider,
+      site: sites.get(provider.id),
       balance: balanceMap[provider.id] ?? (provider.accountRoute ? accountBalanceView(account) : balances.cached(provider.id)),
     }));
     await usage.ready();
@@ -195,6 +202,22 @@ export function createDashboard(ctx, config) {
   }
 
   /**
+   * Store or clear one provider's official website link.
+   * @param {object} [body] - `{providerId, url}`; a blank url clears it.
+   * @returns {Promise<object>} `{ok: true, providerId, site}`.
+   */
+  async function setProviderSite(body = {}) {
+    const providerId = typeof body?.providerId === 'string' ? body.providerId.trim() : '';
+    if (providerId === '') throw new HostError('invalid-provider', 'A provider id is required.', 400);
+    const { providers } = await discover();
+    if (!providers.some((provider) => provider.id === providerId)) {
+      throw new HostError('unknown-provider', `Unknown provider route "${providerId}".`, 404);
+    }
+    const site = await sites.set(providerId, body?.url);
+    return { ok: true, providerId, site };
+  }
+
+  /**
    * Test which reasoning levels one route actually accepts.
    * @param {object} [body] - `{providerId, modelId, levels}`.
    * @returns {Promise<object>} the per-level verdicts.
@@ -246,6 +269,7 @@ export function createDashboard(ctx, config) {
     usage: usageReport,
     balances: balanceReport,
     setDefault,
+    setProviderSite,
     rescan,
     currentSelection,
     probeReasoning: probeReasoningReport,

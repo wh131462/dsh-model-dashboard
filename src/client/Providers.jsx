@@ -16,8 +16,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { errorText, fetchProviderForm, probeReasoning } from './api.js';
-import { CardSkeleton, Chip, Dot, EmptyState, IconButton, Section, Spinner, cx } from './ui.jsx';
+import { errorText, fetchProviderForm, probeReasoning, saveProviderSite } from './api.js';
+import { CardSkeleton, Chip, CopyButton, Dot, EmptyState, IconButton, Section, Spinner, cx } from './ui.jsx';
 import { formatBalance, formatNumber, formatTokens } from './format.js';
 import { AddProviderForm, ProviderEditor } from './ProviderEditor.jsx';
 
@@ -91,6 +91,34 @@ function readExpandedIds() {
 function detailIdOf(id, index) {
   const safe = id !== '' ? id.replace(/[^a-zA-Z0-9_-]/g, '-') : `row-${index}`;
   return `td-provider-detail-${safe}`;
+}
+
+/**
+ * Whether a string is an absolute http(s) URL the Host will accept.
+ * @param {string} value - candidate.
+ * @returns {boolean} true for a clean absolute URL.
+ */
+function isHttpUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+    && parsed.username === ''
+    && parsed.password === ''
+    && parsed.hostname !== '';
+}
+
+/**
+ * Display form of a stored website: no scheme, no trailing slash. The full URL
+ * stays in the link's `title` and `href`.
+ * @param {string} url - normalized URL.
+ * @returns {string} compact text.
+ */
+function siteLabelOf(url) {
+  return url.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 }
 
 /**
@@ -303,6 +331,7 @@ export function Providers(props) {
               onRefresh={(id) => onRefreshBalances?.({ providers: [id] })}
               balanceBusy={balanceBusy}
               onSetDefault={onSetDefault}
+              onReload={onReload}
             />
           ))}
         </ul>
@@ -324,9 +353,13 @@ function hostErrorText(failure, t) {
     : '';
   const known = {
     'unknown-route': 'errors.code.unknownRoute',
+    'unknown-provider': 'errors.code.unknownRoute',
+    'invalid-provider': 'errors.code.unknownRoute',
     'route-dormant': 'errors.code.routeDormant',
     'unknown-model': 'errors.code.unknownModel',
     'invalid-selection': 'errors.code.invalidSelection',
+    'invalid-site-url': 'providers.siteInvalid',
+    'write-failed': 'providers.siteWriteFailed',
     'save-failed': 'errors.code.saveFailed',
     unavailable: 'errors.code.unavailable',
   };
@@ -343,6 +376,10 @@ function hostErrorText(failure, t) {
 function sourceText(t, source) {
   const known = {
     environment: 'providers.source.environment',
+    env: 'providers.source.environment',
+    'user-env': 'providers.source.userEnvironment',
+    'project-env': 'providers.source.projectEnvironment',
+    file: 'providers.source.file',
     account: 'providers.source.account',
     stored: 'providers.source.stored',
     'api-key': 'providers.source.api-key',
@@ -359,12 +396,19 @@ function sourceText(t, source) {
 function ProviderRow(props) {
   const {
     provider, t, selection, editing, onEdit, onCloseEditor, onSaved, expanded, onToggle,
-    onRefresh, balanceBusy, onSetDefault, index,
+    onRefresh, balanceBusy, onSetDefault, onReload, index,
   } = props;
   const [savingModel, setSavingModel] = useState(null);
   const [saveError, setSaveError] = useState(null);
   // One reasoning probe at a time per row: { modelId, phase, report?, error? }.
   const [probe, setProbe] = useState(null);
+  const [siteEditing, setSiteEditing] = useState(false);
+  const [siteDraft, setSiteDraft] = useState('');
+  const [siteBusy, setSiteBusy] = useState(null);
+  const [siteClearConfirm, setSiteClearConfirm] = useState(false);
+  const [siteError, setSiteError] = useState(null);
+  const siteInputRef = useRef(null);
+  const siteTriggerRef = useRef(null);
 
   const id = typeof provider?.id === 'string' ? provider.id : '';
   const displayName = typeof provider?.displayName === 'string' && provider.displayName !== '' ? provider.displayName : id || '—';
@@ -390,6 +434,74 @@ function ProviderRow(props) {
   const toggleLabel = expanded
     ? t('providers.collapseAria', { provider: displayName })
     : t('providers.expandAria', { provider: displayName });
+  const site = typeof provider?.site === 'string' && provider.site !== '' ? provider.site : null;
+  const siteLabel = site === null ? '' : siteLabelOf(site);
+  const siteInputId = `${detailId}-site`;
+
+  // Focus the inline website field when it opens, and close it when the row
+  // collapses so a stale draft cannot reopen behind the user's back.
+  useEffect(() => {
+    if (siteEditing) siteInputRef.current?.focus();
+  }, [siteEditing]);
+  useEffect(() => {
+    if (!expanded || editingOpen) {
+      setSiteEditing(false);
+      setSiteClearConfirm(false);
+      setSiteError(null);
+    }
+  }, [expanded, editingOpen]);
+
+  const beginSiteEdit = () => {
+    setSiteDraft(site ?? '');
+    setSiteClearConfirm(false);
+    setSiteError(null);
+    setSiteEditing(true);
+  };
+
+  const cancelSiteEdit = () => {
+    setSiteEditing(false);
+    setSiteClearConfirm(false);
+    setSiteError(null);
+    siteTriggerRef.current?.focus();
+  };
+
+  const writeSite = async (url, action = 'save') => {
+    if (siteBusy !== null) return;
+    if (url !== '' && !isHttpUrl(url)) {
+      setSiteError(t('providers.siteInvalid'));
+      siteInputRef.current?.focus();
+      return;
+    }
+    setSiteBusy(action);
+    setSiteError(null);
+    try {
+      await saveProviderSite({ providerId: id, url });
+      setSiteEditing(false);
+      setSiteClearConfirm(false);
+      await onReload?.();
+      // The trigger may have been replaced (adding a site switches the fact
+      // cell to its link form), so restore focus one commit after the reload.
+      setTimeout(() => siteTriggerRef.current?.focus(), 0);
+    } catch (failure) {
+      setSiteError(hostErrorText(failure, t));
+      siteInputRef.current?.focus();
+    } finally {
+      setSiteBusy(null);
+    }
+  };
+
+  const submitSite = (event) => {
+    event.preventDefault();
+    void writeSite(siteDraft.trim(), 'save');
+  };
+
+  const clearSite = () => {
+    if (!siteClearConfirm) {
+      setSiteClearConfirm(true);
+      return;
+    }
+    void writeSite('', 'clear');
+  };
 
   const saveDefault = async (model) => {
     if (typeof onSetDefault !== 'function' || savingModel !== null) return;
@@ -462,15 +574,26 @@ function ProviderRow(props) {
             {identity}
           </button>
         )}
-        <span className="td-provider-endpoint td-mono td-ellipsis" translate="no" title={baseURL !== '' ? baseURL : undefined}>
-          {baseURL !== '' ? baseURL : '—'}
-        </span>
-        <span className="td-provider-count">
-          <span className="td-provider-count-value">{formatNumber(models.length)}</span>
-          <span className="td-caption">{t('providers.models')}</span>
-        </span>
-        <span className={cx('td-balance-text', `td-tone-${balance.tone}`)}>{balance.text}</span>
+        <div className="td-provider-stats">
+          <span className="td-provider-count">
+            <span className="td-provider-count-value">{formatNumber(models.length)}</span>
+            <span className="td-caption">{t('providers.models')}</span>
+          </span>
+          <span className={cx('td-balance-text', `td-tone-${balance.tone}`)}>{balance.text}</span>
+        </div>
         <div className="td-provider-actions">
+          {site !== null ? (
+            <a
+              className="td-icon-button td-site-icon"
+              href={site}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('providers.siteOpenAria', { provider: displayName, site: siteLabel })}
+              aria-label={t('providers.siteOpenAria', { provider: displayName, site: siteLabel })}
+            >
+              <span aria-hidden="true">↗</span>
+            </a>
+          ) : null}
           <IconButton label={refreshLabel} disabled={busy} onClick={() => onRefresh?.(id)}>
             {busy ? <Spinner label={refreshLabel} /> : '↻'}
           </IconButton>
@@ -501,32 +624,180 @@ function ProviderRow(props) {
         </div>
       ) : expanded ? (
         <div className="td-provider-detail" id={detailId} role="region" aria-label={displayName}>
-          <div className="td-provider-facts">
-            {protocol !== '' ? (
-              <span className="td-meta-item">
-                <span className="td-caption">{t('providers.protocol')}</span>
-                <Chip translateNo>{protocol}</Chip>
-              </span>
-            ) : null}
-            <span className="td-meta-item">
-              <span className="td-caption">{t('providers.credentials')}</span>
-              <span className={keyConfigured ? 'td-tone-ok' : 'td-tone-error'}>
-                {keyConfigured ? t('providers.keyConfigured') : t('providers.keyMissing')}
-              </span>
-              {masked !== null ? <span className="td-mono td-ellipsis" translate="no" title={masked}>{masked}</span> : null}
-              {credentialRef !== null ? (
-                <span className="td-caption td-mono" translate="no">{t('providers.credentialRef', { ref: credentialRef })}</span>
-              ) : null}
-              {keySource !== null ? <span className="td-caption">{t('providers.keySource', { source: keySource })}</span> : null}
-            </span>
-            <span className="td-meta-item">
-              <span className="td-caption">{t('providers.registered')}</span>
-              <span className={routeActive ? 'td-tone-ok' : 'td-tone-muted'}>
+          <dl className="td-provider-facts">
+            <div className="td-fact td-fact-endpoint">
+              <dt className="td-fact-label">{t('providers.baseUrl')}</dt>
+              <dd className="td-fact-value td-fact-endpoint-value">
+                {baseURL !== '' ? (
+                  <>
+                    <span className="td-mono td-ellipsis" translate="no" title={baseURL}>{baseURL}</span>
+                    <CopyButton
+                      value={baseURL}
+                      label={t('actions.copyEndpoint')}
+                      copiedLabel={t('actions.copied')}
+                      className="td-copy-sm"
+                    />
+                  </>
+                ) : <span className="td-tone-muted">—</span>}
+              </dd>
+            </div>
+            <div className="td-fact td-fact-protocol">
+              <dt className="td-fact-label">{t('providers.protocol')}</dt>
+              <dd className="td-fact-value">
+                {protocol !== '' ? <Chip translateNo>{protocol}</Chip> : <span className="td-tone-muted">—</span>}
+              </dd>
+            </div>
+            <div className="td-fact td-fact-route">
+              <dt className="td-fact-label">{t('providers.route')}</dt>
+              <dd className={cx('td-fact-value', routeActive ? 'td-tone-ok' : 'td-tone-muted')}>
                 {routeActive ? t('providers.registered') : t('providers.notRegistered')}
-              </span>
-            </span>
-            {isAccountRoute ? <span className="td-caption">{t('providers.accountRoute')}</span> : null}
-          </div>
+              </dd>
+            </div>
+            <div className="td-fact td-fact-credential">
+              <dt className="td-fact-label">{t('providers.credentials')}</dt>
+              <dd className="td-fact-value td-credential">
+                <span className="td-credential-state">
+                  <Dot
+                    tone={keyConfigured ? 'ok' : 'error'}
+                    label={keyConfigured ? t('providers.keyConfigured') : t('providers.keyMissing')}
+                  />
+                  <span className={keyConfigured ? 'td-tone-ok' : 'td-tone-error'}>
+                    {keyConfigured ? t('providers.keyConfigured') : t('providers.keyMissing')}
+                  </span>
+                </span>
+                {masked !== null ? (
+                  <span className="td-credential-mask td-mono td-ellipsis" translate="no" title={masked}>{masked}</span>
+                ) : null}
+                {credentialRef !== null || keySource !== null || isAccountRoute ? (
+                  <span className="td-credential-meta">
+                    {credentialRef !== null ? (
+                      <span className="td-credential-ref">
+                        <span className="td-mono" translate="no">{t('providers.credentialRef', { ref: credentialRef })}</span>
+                        <CopyButton
+                          value={credentialRef}
+                          label={t('actions.copyCredentialRef')}
+                          copiedLabel={t('actions.copied')}
+                          className="td-copy-sm"
+                        />
+                      </span>
+                    ) : null}
+                    {keySource !== null ? <span>{t('providers.keySource', { source: keySource })}</span> : null}
+                    {isAccountRoute ? <span>{t('providers.accountRoute')}</span> : null}
+                  </span>
+                ) : null}
+              </dd>
+            </div>
+            <div className="td-fact td-fact-site">
+              <dt className="td-fact-label">{t('providers.site')}</dt>
+              <dd className="td-fact-value">
+                {site !== null ? (
+                  <span className="td-site-value">
+                    <a
+                      className="td-site-link"
+                      href={site}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={site}
+                      aria-label={t('providers.siteOpenAria', { provider: displayName, site: siteLabel })}
+                    >
+                      <span className="td-site-url" translate="no">{siteLabel}</span>
+                      <span className="td-site-arrow" aria-hidden="true">↗</span>
+                    </a>
+                    <button
+                      type="button"
+                      ref={siteTriggerRef}
+                      className="td-text-button"
+                      aria-label={t('providers.siteEditAria', { provider: displayName })}
+                      aria-expanded={siteEditing}
+                      aria-controls={siteEditing ? siteInputId : undefined}
+                      onClick={beginSiteEdit}
+                    >
+                      {t('providers.siteEdit')}
+                    </button>
+                  </span>
+                ) : (
+                  <span className="td-site-value">
+                    <span className="td-tone-muted">{t('providers.siteNotSet')}</span>
+                    <button
+                      type="button"
+                      ref={siteTriggerRef}
+                      className="td-text-button"
+                      aria-expanded={siteEditing}
+                      aria-controls={siteEditing ? siteInputId : undefined}
+                      onClick={beginSiteEdit}
+                    >
+                      {t('providers.siteAdd')}
+                    </button>
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          {siteEditing ? (
+            <form className="td-site-editor" onSubmit={submitSite} noValidate>
+              <div className="td-site-editor-field">
+                <label className="td-site-editor-label" htmlFor={siteInputId}>{t('providers.site')}</label>
+                <input
+                  id={siteInputId}
+                  ref={siteInputRef}
+                  className="td-input td-mono"
+                  type="url"
+                  name="provider-site"
+                  inputMode="url"
+                  autoComplete="url"
+                  spellCheck={false}
+                  placeholder={t('providers.sitePlaceholder')}
+                  value={siteDraft}
+                  disabled={siteBusy !== null}
+                  onChange={(event) => {
+                    setSiteDraft(event.target.value);
+                    setSiteClearConfirm(false);
+                    if (siteError !== null) setSiteError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      cancelSiteEdit();
+                    }
+                  }}
+                  aria-invalid={siteError !== null}
+                  aria-describedby={siteError !== null ? `${siteInputId}-error` : `${siteInputId}-hint`}
+                />
+                <p className="td-site-editor-hint" id={`${siteInputId}-hint`}>{t('providers.siteHint')}</p>
+              </div>
+              <div className="td-site-editor-actions">
+                <button type="submit" className="td-button td-button-small td-button-primary" disabled={siteBusy !== null}>
+                  {siteBusy === 'save' ? t('providers.edit.saving') : t('providers.edit.save')}
+                </button>
+                <button
+                  type="button"
+                  className="td-button td-button-small td-button-ghost"
+                  disabled={siteBusy !== null}
+                  onClick={cancelSiteEdit}
+                >
+                  {t('actions.cancel')}
+                </button>
+                {site !== null ? (
+                  <button
+                    type="button"
+                    className="td-text-button td-site-clear"
+                    disabled={siteBusy !== null}
+                    onClick={clearSite}
+                  >
+                    {siteBusy === 'clear'
+                      ? t('actions.clearing')
+                      : siteClearConfirm
+                        ? t('providers.edit.apiKeyClearConfirm')
+                        : t('actions.clear')}
+                  </button>
+                ) : null}
+              </div>
+              {siteError !== null ? (
+                <p className="td-site-editor-error" id={`${siteInputId}-error`} role="alert">{siteError}</p>
+              ) : null}
+            </form>
+          ) : null}
 
           {notes.length > 0 ? (
             <ul className="td-notes">
@@ -614,35 +885,50 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive
   const outcomeParts = probeOutcomeText(probe, t);
   return (
     <li className="td-model-row">
-      <span className="td-model-main">
-        <span className="td-model-name" translate="no">{model?.name ?? model?.id ?? '—'}</span>
-        {typeof model?.id === 'string' ? <span className="td-model-id td-mono" translate="no">{model.id}</span> : null}
-      </span>
-      <span className="td-caption td-model-context">
-        {contextWindow !== null ? t('providers.contextWindow', { value: formatTokens(contextWindow) }) : null}
-      </span>
-      <span className="td-chips" translate="no">
-        {efforts.slice(0, 4).map((effort) => <Chip key={String(effort)}>{String(effort)}</Chip>)}
-        {extra > 0 ? <Chip>+{extra}</Chip> : null}
-      </span>
-      <button
-        type="button"
-        className="td-button td-button-small td-button-secondary td-model-probe"
-        disabled={!canProbe}
-        title={probeHint}
-        onClick={onProbe}
-      >
-        {probing ? t('actions.testingEfforts') : t('actions.testEfforts')}
-      </button>
-      <button
-        type="button"
-        className="td-button td-button-small td-button-secondary td-model-action"
-        disabled={isDefault || saving || disabled}
-        title={disabled && !saving && !isDefault ? t('providers.readonlyRouteHint') : undefined}
-        onClick={onSelect}
-      >
-        {saving ? t('actions.saving') : isDefault ? t('actions.currentDefault') : t('actions.setDefault')}
-      </button>
+      <div className="td-model-head">
+        <span className="td-model-main">
+          <span className="td-model-name" translate="no">{model?.name ?? model?.id ?? '—'}</span>
+          {typeof model?.id === 'string' ? <span className="td-model-id td-mono" translate="no">{model.id}</span> : null}
+        </span>
+        <span className="td-caption td-model-context">
+          {contextWindow !== null ? t('providers.contextWindow', { value: formatTokens(contextWindow) }) : null}
+        </span>
+        {isDefault ? (
+          <Chip tone="brand">{t('actions.currentDefault')}</Chip>
+        ) : (
+          <button
+            type="button"
+            className="td-button td-button-small td-button-secondary td-model-action"
+            disabled={saving || disabled}
+            title={!routeActive && !saving ? t('providers.readonlyRouteHint') : undefined}
+            onClick={onSelect}
+          >
+            {saving ? t('actions.saving') : t('actions.setDefault')}
+          </button>
+        )}
+      </div>
+      <div className="td-model-efforts">
+        <span className="td-model-effort-label">{t('providers.reasoningLevels')}</span>
+        {efforts.length > 0 ? (
+          <>
+            <span className="td-chips" translate="no">
+              {efforts.slice(0, 4).map((effort) => <Chip key={String(effort)}>{String(effort)}</Chip>)}
+              {extra > 0 ? <Chip>+{extra}</Chip> : null}
+            </span>
+            <button
+              type="button"
+              className="td-text-button td-model-probe"
+              disabled={!canProbe}
+              title={probeHint}
+              onClick={onProbe}
+            >
+              {probing ? t('actions.testingEfforts') : t('actions.testEfforts')}
+            </button>
+          </>
+        ) : (
+          <span className="td-caption">{t('providers.noReasoningLevels')}</span>
+        )}
+      </div>
       {probe !== null ? (
         <div className="td-effort-result" role="status">
           {probe.phase === 'error' ? (

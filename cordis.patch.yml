@@ -16,6 +16,8 @@
         maxSessions: 0
         # Empty keeps the cache under $DSH_HOME/cache/model-dashboard.
         cacheDir: ''
+        # Empty keeps provider website links under $DSH_HOME/model-dashboard.
+        dataDir: ''
         # Per-request deadline for one provider balance probe.
         balanceTimeoutMs: 8000
         # How long one provider's probe result is reused before a new request.

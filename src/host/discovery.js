@@ -158,6 +158,7 @@ function blankRecord(id, displayName) {
     keySource: null,
     keyMasked: null,
     isDefault: false,
+    site: null,
     notes: [],
   };
 }

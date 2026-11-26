@@ -11,7 +11,6 @@
  */
 
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { estimateCost, priceFor } from './config.js';
 import {
@@ -21,6 +20,7 @@ import {
   blankSlice,
   dayKey,
   dayRange,
+  dshHome,
   runPool,
   sliceToTotals,
   startOfDay,
@@ -670,14 +670,4 @@ function textOfContent(content) {
     }
   }
   return '';
-}
-
-/**
- * The DSH home directory used for the usage cache.
- * @returns {string} the directory.
- */
-function dshHome() {
-  const configured = process.env.DSH_HOME;
-  if (typeof configured === 'string' && configured !== '') return configured;
-  return join(homedir(), '.dsh');
 }

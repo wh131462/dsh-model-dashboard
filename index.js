@@ -18,7 +18,14 @@ function messageOf(error) {
 }
 
 // src/host/shared.js
+import { homedir } from "node:os";
+import { join } from "node:path";
 var PREFIX = "/dsh-model-dashboard";
+function dshHome() {
+  const configured = process.env.DSH_HOME;
+  if (typeof configured === "string" && configured !== "") return configured;
+  return join(homedir(), ".dsh");
+}
 var CACHE_VERSION = 2;
 var SLICE = 6;
 function blankSlice() {
@@ -131,6 +138,7 @@ function createRouteHandler(ctx, dashboard) {
     balances: (body) => dashboard.balances(body),
     rescan: (body) => dashboard.rescan(body),
     "set-default": (body) => dashboard.setDefault(body),
+    "set-provider-site": (body) => dashboard.setProviderSite(body),
     "probe-reasoning": (body) => dashboard.probeReasoning(body),
     "discover-models": (body) => dashboard.discoverModels(body),
     "detect-reasoning": (body) => dashboard.detectReasoning(body),
@@ -237,6 +245,7 @@ var DEFAULTS = {
   scanConcurrency: 3,
   maxSessions: 0,
   cacheDir: "",
+  dataDir: "",
   balanceTimeoutMs: 8e3,
   balanceCacheSeconds: 300
 };
@@ -250,6 +259,7 @@ function normalizeConfig(raw) {
   const balanceTimeoutMs = clampInt(input.balanceTimeoutMs, DEFAULTS.balanceTimeoutMs, 500, 6e4);
   const balanceCacheSeconds = clampInt(input.balanceCacheSeconds, DEFAULTS.balanceCacheSeconds, 0, 86400);
   const cacheDir = typeof input.cacheDir === "string" ? input.cacheDir.trim() : "";
+  const dataDir = typeof input.dataDir === "string" ? input.dataDir.trim() : "";
   const pricing = sanitizePricing(input.pricing, warnings);
   const providerBalance = input.providerBalance !== null && typeof input.providerBalance === "object" && !Array.isArray(input.providerBalance) ? input.providerBalance : {};
   return {
@@ -258,6 +268,7 @@ function normalizeConfig(raw) {
     scanConcurrency,
     maxSessions,
     cacheDir,
+    dataDir,
     balanceTimeoutMs,
     balanceCacheSeconds,
     pricing,
@@ -308,6 +319,9 @@ function priceFor(pricing, provider, model) {
 function estimateCost(price, totals) {
   return totals.input / 1e6 * price.input + totals.cacheRead / 1e6 * price.cacheRead + totals.cacheWrite / 1e6 * price.cacheWrite + totals.output / 1e6 * price.output;
 }
+
+// src/host/dashboard.js
+import { join as join4 } from "node:path";
 
 // src/host/discovery.js
 var ENRICH_BUDGET_MS = 2500;
@@ -405,6 +419,7 @@ function blankRecord(id, displayName) {
     keySource: null,
     keyMasked: null,
     isDefault: false,
+    site: null,
     notes: []
   };
 }
@@ -1722,18 +1737,112 @@ function clip2(text) {
   return single.length <= 240 ? single : `${single.slice(0, 239)}\u2026`;
 }
 
-// src/host/usage.js
+// src/host/sites.js
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join as join2 } from "node:path";
+var FILE_NAME = "provider-sites.json";
+var VERSION = 1;
+var MAX_URL_LENGTH = 2048;
+var PROVIDER_ID_PATTERN2 = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+function createProviderSites(dataDir) {
+  const file = join2(dataDir, FILE_NAME);
+  let sites = null;
+  let loading;
+  let writing = Promise.resolve();
+  let revision = 0;
+  async function ready() {
+    if (sites !== null) return;
+    loading ??= (async () => {
+      let stored = {};
+      try {
+        const parsed = JSON.parse(await readFile(file, "utf8"));
+        if (parsed?.version === VERSION && parsed.sites !== null && typeof parsed.sites === "object" && !Array.isArray(parsed.sites)) {
+          stored = parsed.sites;
+        }
+      } catch {
+      }
+      const next = /* @__PURE__ */ new Map();
+      for (const [providerId, url] of Object.entries(stored)) {
+        const normalized = normalizeStoredSite(providerId, url);
+        if (normalized !== null) next.set(providerId, normalized);
+      }
+      sites = next;
+    })();
+    await loading;
+  }
+  function get(providerId) {
+    return sites?.get(providerId) ?? null;
+  }
+  async function set(providerId, url) {
+    if (typeof providerId !== "string" || !PROVIDER_ID_PATTERN2.test(providerId)) {
+      throw new HostError("invalid-provider", "A provider id is required.", 400);
+    }
+    const normalized = normalizeSiteUrl(url);
+    if (normalized === false) {
+      throw new HostError("invalid-site-url", "The website must be an absolute http(s) URL.", 400);
+    }
+    await ready();
+    const mine = ++revision;
+    const previous = sites.get(providerId) ?? null;
+    if (normalized === null) sites.delete(providerId);
+    else sites.set(providerId, normalized);
+    const payload = { version: VERSION, sites: Object.fromEntries(sites) };
+    writing = writing.catch(() => void 0).then(() => writeDocument(file, payload));
+    try {
+      await writing;
+    } catch (error) {
+      const stillOurs = normalized === null ? !sites.has(providerId) : sites.get(providerId) === normalized;
+      if (mine === revision && stillOurs) {
+        if (previous === null) sites.delete(providerId);
+        else sites.set(providerId, previous);
+      }
+      throw new HostError("write-failed", messageOf(error), 500);
+    }
+    return normalized;
+  }
+  return { ready, get, set };
+}
+function normalizeSiteUrl(value) {
+  if (value === null || value === void 0) return null;
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if (trimmed.length > MAX_URL_LENGTH) return false;
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  if (parsed.username !== "" || parsed.password !== "") return false;
+  if (parsed.hostname === "") return false;
+  return parsed.href;
+}
+function normalizeStoredSite(providerId, url) {
+  if (!PROVIDER_ID_PATTERN2.test(providerId)) return null;
+  const normalized = normalizeSiteUrl(url);
+  return normalized === false ? null : normalized;
+}
+async function writeDocument(file, payload) {
+  await mkdir(dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(payload, null, 2)}
+`, "utf8");
+  await rename(temporary, file);
+}
+
+// src/host/usage.js
+import { mkdir as mkdir2, readFile as readFile2, rename as rename2, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname as dirname2, join as join3 } from "node:path";
 var TITLE_LIMIT = 90;
 var SAVE_INTERVAL_MS = 2e3;
 var MAX_SERIES_DAYS = 366;
 var SESSION_ROWS = 50;
 var SCAN_THROTTLE_MS = 5e3;
 function createUsage(ctx, config) {
-  const cacheDir = config.cacheDir !== "" ? config.cacheDir : join(dshHome(), "cache", "model-dashboard");
-  const cacheFile = join(cacheDir, "usage-cache.json");
+  const cacheDir = config.cacheDir !== "" ? config.cacheDir : join3(dshHome(), "cache", "model-dashboard");
+  const cacheFile = join3(cacheDir, "usage-cache.json");
   let cache = null;
   let loadPromise;
   let scanPromise;
@@ -1756,7 +1865,7 @@ function createUsage(ctx, config) {
   async function load() {
     loadPromise ??= (async () => {
       try {
-        const parsed = JSON.parse(await readFile(cacheFile, "utf8"));
+        const parsed = JSON.parse(await readFile2(cacheFile, "utf8"));
         if (parsed?.version === CACHE_VERSION && parsed.sessions !== null && typeof parsed.sessions === "object") {
           cache = {
             version: CACHE_VERSION,
@@ -1776,10 +1885,10 @@ function createUsage(ctx, config) {
     if (cache === null || saveRunning !== void 0) return saveRunning;
     saveRunning = (async () => {
       try {
-        await mkdir(dirname(cacheFile), { recursive: true });
+        await mkdir2(dirname2(cacheFile), { recursive: true });
         const temporary = `${cacheFile}.tmp`;
-        await writeFile(temporary, JSON.stringify(cache), "utf8");
-        await rename(temporary, cacheFile);
+        await writeFile2(temporary, JSON.stringify(cache), "utf8");
+        await rename2(temporary, cacheFile);
       } catch {
       } finally {
         saveRunning = void 0;
@@ -2144,11 +2253,6 @@ function textOfContent(content) {
   }
   return "";
 }
-function dshHome() {
-  const configured = process.env.DSH_HOME;
-  if (typeof configured === "string" && configured !== "") return configured;
-  return join(homedir(), ".dsh");
-}
 
 // src/host/dashboard.js
 var DISCOVERY_TTL_MS = 3e4;
@@ -2156,6 +2260,7 @@ var SNAPSHOT_BALANCE_BUDGET_MS = 2500;
 function createDashboard(ctx, config) {
   const balances = createBalances(ctx, config);
   const usage = createUsage(ctx, config);
+  const sites = createProviderSites(config.dataDir !== "" ? config.dataDir : join4(dshHome(), "model-dashboard"));
   const discovery = { at: 0, value: null, pending: null };
   const editor = createProviderEditor(ctx, {
     invalidate() {
@@ -2201,12 +2306,14 @@ function createDashboard(ctx, config) {
   }
   async function snapshot(body = {}) {
     const { providers, defaultSelection, account } = await discover();
+    await sites.ready();
     const balanceMap = await balances.forProviders(providers, {
       refresh: body?.refreshBalances === true,
       budgetMs: SNAPSHOT_BALANCE_BUDGET_MS
     });
     const filled = providers.map((provider) => ({
       ...provider,
+      site: sites.get(provider.id),
       balance: balanceMap[provider.id] ?? (provider.accountRoute ? accountBalanceView(account) : balances.cached(provider.id))
     }));
     await usage.ready();
@@ -2269,6 +2376,16 @@ function createDashboard(ctx, config) {
     discovery.at = 0;
     return { ok: true, selection };
   }
+  async function setProviderSite(body = {}) {
+    const providerId = typeof body?.providerId === "string" ? body.providerId.trim() : "";
+    if (providerId === "") throw new HostError("invalid-provider", "A provider id is required.", 400);
+    const { providers } = await discover();
+    if (!providers.some((provider) => provider.id === providerId)) {
+      throw new HostError("unknown-provider", `Unknown provider route "${providerId}".`, 404);
+    }
+    const site = await sites.set(providerId, body?.url);
+    return { ok: true, providerId, site };
+  }
   async function probeReasoningReport(body = {}) {
     if (discovery.value === null) await discover();
     return reasoningProbe.probeReasoning(body);
@@ -2295,6 +2412,7 @@ function createDashboard(ctx, config) {
     usage: usageReport,
     balances: balanceReport,
     setDefault,
+    setProviderSite,
     rescan,
     currentSelection,
     probeReasoning: probeReasoningReport,

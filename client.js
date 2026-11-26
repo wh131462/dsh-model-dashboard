@@ -112,6 +112,9 @@ function fetchBalances(request = {}, options = {}) {
 function saveDefaultModel(selection, options) {
   return call("set-default", selection, options);
 }
+function saveProviderSite(payload, options) {
+  return call("set-provider-site", payload, options);
+}
 function rescanUsage(request = {}, options) {
   return call("rescan", request, options);
 }
@@ -435,6 +438,42 @@ var CSS = String.raw`
 .td-button-danger {
   border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 45%, transparent);
   color: var(--dsw-alias-state-error-primary, #d64545);
+}
+
+.td-text-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font: inherit;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  cursor: pointer;
+  transition: color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-text-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .td-text-button:hover:not(:disabled) {
+    color: var(--dsw-alias-brand-primary, #247bbf);
+    text-decoration-color: currentColor;
+  }
 }
 
 .td-icon-button {
@@ -1327,10 +1366,19 @@ var CSS = String.raw`
 
 .td-provider-summary {
   display: grid;
-  grid-template-columns: minmax(180px, 1.35fr) minmax(120px, 1fr) 96px 148px auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--td-space-2) var(--td-space-3);
+  gap: var(--td-space-2) var(--td-space-4);
   min-height: 44px;
+}
+
+.td-provider-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--td-space-4);
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .td-provider-toggle {
@@ -1380,7 +1428,7 @@ var CSS = String.raw`
 
 .td-provider-chevron {
   flex: none;
-  margin-left: auto;
+  margin-left: 2px;
   color: var(--dsw-alias-label-tertiary, #8b929e);
   font-size: 11px;
   line-height: 1;
@@ -1391,12 +1439,6 @@ var CSS = String.raw`
 
 .td-provider-toggle[aria-expanded='true'] .td-provider-chevron {
   transform: rotate(90deg);
-}
-
-.td-provider-endpoint {
-  color: var(--dsw-alias-label-secondary, #5b6470);
-  font-size: var(--td-font-caption-size);
-  line-height: var(--td-font-caption-line);
 }
 
 .td-provider-count {
@@ -1439,7 +1481,85 @@ var CSS = String.raw`
 }
 
 .td-provider-facts {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--td-space-3) var(--td-space-5);
+  margin: 0;
+  min-width: 0;
+}
+
+.td-fact {
+  min-width: 0;
+}
+
+.td-fact-endpoint {
+  grid-column: span 6;
+}
+
+.td-fact-protocol {
+  grid-column: span 3;
+}
+
+.td-fact-route {
+  grid-column: span 3;
+}
+
+.td-fact-credential {
+  grid-column: span 6;
+}
+
+.td-fact-site {
+  grid-column: span 6;
+}
+
+.td-fact-label {
+  margin: 0 0 2px;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-fact-value {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-2);
+  margin: 0;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+}
+
+.td-fact-endpoint-value .td-ellipsis {
+  flex: 1 1 160px;
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-copy-sm .td-copy-button {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.td-credential-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.td-credential-mask {
+  max-width: 200px;
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-credential-meta {
+  display: flex;
+  flex: 1 1 100%;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--td-space-1) var(--td-space-4);
@@ -1448,12 +1568,111 @@ var CSS = String.raw`
   line-height: var(--td-font-caption-line);
 }
 
-.td-meta-item {
+.td-credential-ref {
   display: inline-flex;
   align-items: center;
-  gap: var(--td-space-1);
+  gap: 2px;
   min-width: 0;
-  max-width: 100%;
+}
+
+.td-site-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-2);
+  min-width: 0;
+}
+
+.td-site-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 0;
+  color: var(--dsw-alias-brand-primary, #247bbf);
+  font-size: var(--td-font-body-size);
+  line-height: var(--td-font-body-line);
+  text-decoration: none;
+  transition: color var(--td-motion-fast) var(--td-ease);
+}
+
+.td-site-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-site-icon {
+  color: var(--dsw-alias-label-secondary, #5b6470);
+  text-decoration: none;
+}
+
+.td-site-arrow {
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.td-site-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--td-space-2) var(--td-space-3);
+  padding: var(--td-space-2) var(--td-space-3);
+  border: var(--td-hairline);
+  border-radius: var(--td-radius-md);
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
+}
+
+.td-site-editor-field {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-site-editor-label {
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-site-editor-hint {
+  margin: 2px 0 0;
+  color: var(--dsw-alias-label-caption, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+  text-wrap: pretty;
+}
+
+.td-site-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1);
+  padding-top: 20px;
+}
+
+.td-site-editor-error {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #d64545);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+.td-site-clear {
+  color: var(--dsw-alias-state-error-primary, #d64545);
+}
+
+@media (hover: hover) {
+  .td-site-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .td-notes {
@@ -1517,28 +1736,53 @@ var CSS = String.raw`
 }
 
 .td-model-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(72px, auto) auto auto auto;
-  align-items: center;
-  gap: var(--td-space-1) var(--td-space-3);
-  padding: var(--td-space-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--td-space-3) 0;
   border-bottom: var(--td-hairline-soft);
   content-visibility: auto;
-  contain-intrinsic-size: auto 44px;
+  contain-intrinsic-size: auto 76px;
 }
 
 .td-model-row:last-child {
   border-bottom: 0;
 }
 
-/* Per-level reasoning verdicts span the row's columns under the model. */
-.td-effort-result {
-  grid-column: 1 / -1;
+.td-model-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-4);
+  min-width: 0;
+}
+
+.td-model-efforts {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--td-space-1) var(--td-space-2);
   min-width: 0;
+}
+
+.td-model-effort-label {
+  margin-right: var(--td-space-1);
+  color: var(--dsw-alias-label-tertiary, #8b929e);
+  font-size: var(--td-font-caption-size);
+  line-height: var(--td-font-caption-line);
+}
+
+/* Per-level reasoning verdicts sit under the effort chips they describe. */
+.td-effort-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-space-1) var(--td-space-2);
+  min-width: 0;
+  padding: 6px 10px;
+  border-left: 2px solid var(--dsw-alias-border-l3, rgba(127, 127, 127, 0.3));
+  border-radius: 0 var(--td-radius-sm) var(--td-radius-sm) 0;
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.05));
 }
 
 .td-model-main {
@@ -1552,6 +1796,7 @@ var CSS = String.raw`
   color: var(--dsw-alias-label-primary, #1f2328);
   font-size: var(--td-font-body-size);
   line-height: var(--td-font-body-line);
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1574,7 +1819,7 @@ var CSS = String.raw`
 }
 
 .td-model-probe {
-  justify-self: end;
+  flex: none;
 }
 
 /* ── Provider editor ─────────────────────────────────────────────────────── */
@@ -2359,14 +2604,8 @@ var CSS = String.raw`
 /* ── Narrow windows ──────────────────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  .td-provider-summary {
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 96px auto;
-  }
-
-  .td-provider-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-    padding-left: 0;
+  .td-provider-facts {
+    gap: var(--td-space-3) var(--td-space-4);
   }
 }
 
@@ -2423,6 +2662,21 @@ var CSS = String.raw`
     padding-left: 0;
     border-left: 0;
   }
+
+  .td-provider-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .td-fact-endpoint,
+  .td-fact-credential,
+  .td-fact-site {
+    grid-column: 1 / -1;
+  }
+
+  .td-fact-protocol,
+  .td-fact-route {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 767px) {
@@ -2444,52 +2698,46 @@ var CSS = String.raw`
   }
 
   .td-provider-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--td-space-1) var(--td-space-3);
   }
 
   .td-provider-toggle {
-    flex: 1 1 100%;
+    grid-column: 1;
+    grid-row: 1;
   }
 
-  .td-provider-endpoint {
-    flex: 1 1 100%;
-    order: 3;
-  }
-
-  .td-provider-count {
-    order: 4;
-  }
-
-  .td-balance-text {
-    max-width: 100%;
-    order: 5;
-    margin-left: auto;
+  .td-provider-stats {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    gap: var(--td-space-3);
   }
 
   .td-provider-actions {
-    order: 2;
-    margin-left: auto;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
   }
 
-  .td-model-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .td-effort-result {
-    flex-basis: 100%;
+  .td-model-head {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .td-model-main {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
+  }
+
+  .td-model-context {
+    justify-self: start;
   }
 
   .td-model-action {
-    margin-left: auto;
+    justify-self: end;
+  }
+
+  .td-site-editor-actions {
+    padding-top: 0;
   }
 
   .td-editor-grid,
@@ -2516,6 +2764,21 @@ var CSS = String.raw`
 
   .td-toolbar {
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .td-provider-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .td-fact-protocol,
+  .td-fact-route {
+    grid-column: 1 / -1;
+  }
+
+  .td-provider-stats {
+    flex-wrap: wrap;
   }
 }
 `;
@@ -5230,6 +5493,18 @@ function detailIdOf(id, index) {
   const safe = id !== "" ? id.replace(/[^a-zA-Z0-9_-]/g, "-") : `row-${index}`;
   return `td-provider-detail-${safe}`;
 }
+function isHttpUrl2(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.username === "" && parsed.password === "" && parsed.hostname !== "";
+}
+function siteLabelOf(url) {
+  return url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+}
 function noteText(t, note) {
   const key = typeof note === "string" ? NOTE_KEYS[note] : void 0;
   return key === void 0 ? String(note) : t(key);
@@ -5386,7 +5661,8 @@ function Providers(props) {
         },
         onRefresh: (id) => onRefreshBalances?.({ providers: [id] }),
         balanceBusy,
-        onSetDefault
+        onSetDefault,
+        onReload
       },
       provider?.id ?? `provider-${index}`
     )) })
@@ -5396,9 +5672,13 @@ function hostErrorText(failure, t) {
   const code = failure !== null && typeof failure === "object" && typeof failure.code === "string" ? failure.code : "";
   const known = {
     "unknown-route": "errors.code.unknownRoute",
+    "unknown-provider": "errors.code.unknownRoute",
+    "invalid-provider": "errors.code.unknownRoute",
     "route-dormant": "errors.code.routeDormant",
     "unknown-model": "errors.code.unknownModel",
     "invalid-selection": "errors.code.invalidSelection",
+    "invalid-site-url": "providers.siteInvalid",
+    "write-failed": "providers.siteWriteFailed",
     "save-failed": "errors.code.saveFailed",
     unavailable: "errors.code.unavailable"
   };
@@ -5408,6 +5688,10 @@ function hostErrorText(failure, t) {
 function sourceText2(t, source) {
   const known = {
     environment: "providers.source.environment",
+    env: "providers.source.environment",
+    "user-env": "providers.source.userEnvironment",
+    "project-env": "providers.source.projectEnvironment",
+    file: "providers.source.file",
     account: "providers.source.account",
     stored: "providers.source.stored",
     "api-key": "providers.source.api-key",
@@ -5430,11 +5714,19 @@ function ProviderRow(props) {
     onRefresh,
     balanceBusy,
     onSetDefault,
+    onReload,
     index
   } = props;
   const [savingModel, setSavingModel] = (0, import_react3.useState)(null);
   const [saveError, setSaveError] = (0, import_react3.useState)(null);
   const [probe, setProbe] = (0, import_react3.useState)(null);
+  const [siteEditing, setSiteEditing] = (0, import_react3.useState)(false);
+  const [siteDraft, setSiteDraft] = (0, import_react3.useState)("");
+  const [siteBusy, setSiteBusy] = (0, import_react3.useState)(null);
+  const [siteClearConfirm, setSiteClearConfirm] = (0, import_react3.useState)(false);
+  const [siteError, setSiteError] = (0, import_react3.useState)(null);
+  const siteInputRef = (0, import_react3.useRef)(null);
+  const siteTriggerRef = (0, import_react3.useRef)(null);
   const id = typeof provider?.id === "string" ? provider.id : "";
   const displayName = typeof provider?.displayName === "string" && provider.displayName !== "" ? provider.displayName : id || "\u2014";
   const models = Array.isArray(provider?.models) ? provider.models : [];
@@ -5455,6 +5747,64 @@ function ProviderRow(props) {
   const refreshLabel = t("providers.refreshBalanceAria", { provider: displayName });
   const editLabel = t("providers.editProviderAria", { provider: displayName });
   const toggleLabel = expanded ? t("providers.collapseAria", { provider: displayName }) : t("providers.expandAria", { provider: displayName });
+  const site = typeof provider?.site === "string" && provider.site !== "" ? provider.site : null;
+  const siteLabel = site === null ? "" : siteLabelOf(site);
+  const siteInputId = `${detailId}-site`;
+  (0, import_react3.useEffect)(() => {
+    if (siteEditing) siteInputRef.current?.focus();
+  }, [siteEditing]);
+  (0, import_react3.useEffect)(() => {
+    if (!expanded || editingOpen) {
+      setSiteEditing(false);
+      setSiteClearConfirm(false);
+      setSiteError(null);
+    }
+  }, [expanded, editingOpen]);
+  const beginSiteEdit = () => {
+    setSiteDraft(site ?? "");
+    setSiteClearConfirm(false);
+    setSiteError(null);
+    setSiteEditing(true);
+  };
+  const cancelSiteEdit = () => {
+    setSiteEditing(false);
+    setSiteClearConfirm(false);
+    setSiteError(null);
+    siteTriggerRef.current?.focus();
+  };
+  const writeSite = async (url, action = "save") => {
+    if (siteBusy !== null) return;
+    if (url !== "" && !isHttpUrl2(url)) {
+      setSiteError(t("providers.siteInvalid"));
+      siteInputRef.current?.focus();
+      return;
+    }
+    setSiteBusy(action);
+    setSiteError(null);
+    try {
+      await saveProviderSite({ providerId: id, url });
+      setSiteEditing(false);
+      setSiteClearConfirm(false);
+      await onReload?.();
+      setTimeout(() => siteTriggerRef.current?.focus(), 0);
+    } catch (failure) {
+      setSiteError(hostErrorText(failure, t));
+      siteInputRef.current?.focus();
+    } finally {
+      setSiteBusy(null);
+    }
+  };
+  const submitSite = (event) => {
+    event.preventDefault();
+    void writeSite(siteDraft.trim(), "save");
+  };
+  const clearSite = () => {
+    if (!siteClearConfirm) {
+      setSiteClearConfirm(true);
+      return;
+    }
+    void writeSite("", "clear");
+  };
   const saveDefault = async (model) => {
     if (typeof onSetDefault !== "function" || savingModel !== null) return;
     if (typeof model?.id !== "string" || model.id === "" || id === "") return;
@@ -5518,13 +5868,26 @@ function ProviderRow(props) {
           children: identity
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-endpoint td-mono td-ellipsis", translate: "no", title: baseURL !== "" ? baseURL : void 0, children: baseURL !== "" ? baseURL : "\u2014" }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-provider-count", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-count-value", children: formatNumber(models.length) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.models") })
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-stats", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-provider-count", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-provider-count-value", children: formatNumber(models.length) }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.models") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: cx("td-balance-text", `td-tone-${balance.tone}`), children: balance.text }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-actions", children: [
+        site !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "a",
+          {
+            className: "td-icon-button td-site-icon",
+            href: site,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            title: t("providers.siteOpenAria", { provider: displayName, site: siteLabel }),
+            "aria-label": t("providers.siteOpenAria", { provider: displayName, site: siteLabel }),
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "aria-hidden": "true", children: "\u2197" })
+          }
+        ) : null,
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconButton, { label: refreshLabel, disabled: busy, onClick: () => onRefresh?.(id), children: busy ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Spinner, { label: refreshLabel }) : "\u21BB" }),
         isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountManaged") }) : !editingOpen && id !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "button",
@@ -5548,24 +5911,169 @@ function ProviderRow(props) {
         onSaved
       }
     ) }) : expanded ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-detail", id: detailId, role: "region", "aria-label": displayName, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-provider-facts", children: [
-        protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.protocol") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { translateNo: true, children: protocol })
-        ] }) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.credentials") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: keyConfigured ? "td-tone-ok" : "td-tone-error", children: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing") }),
-          masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono td-ellipsis", translate: "no", title: masked, children: masked }) : null,
-          credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-mono", translate: "no", children: t("providers.credentialRef", { ref: credentialRef }) }) : null,
-          keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.keySource", { source: keySource }) }) : null
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("dl", { className: "td-provider-facts", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-fact td-fact-endpoint", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dt", { className: "td-fact-label", children: t("providers.baseUrl") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dd", { className: "td-fact-value td-fact-endpoint-value", children: baseURL !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono td-ellipsis", translate: "no", title: baseURL, children: baseURL }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              CopyButton,
+              {
+                value: baseURL,
+                label: t("actions.copyEndpoint"),
+                copiedLabel: t("actions.copied"),
+                className: "td-copy-sm"
+              }
+            )
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-tone-muted", children: "\u2014" }) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-meta-item", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.registered") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: routeActive ? "td-tone-ok" : "td-tone-muted", children: routeActive ? t("providers.registered") : t("providers.notRegistered") })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-fact td-fact-protocol", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dt", { className: "td-fact-label", children: t("providers.protocol") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dd", { className: "td-fact-value", children: protocol !== "" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { translateNo: true, children: protocol }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-tone-muted", children: "\u2014" }) })
         ] }),
-        isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.accountRoute") }) : null
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-fact td-fact-route", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dt", { className: "td-fact-label", children: t("providers.route") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dd", { className: cx("td-fact-value", routeActive ? "td-tone-ok" : "td-tone-muted"), children: routeActive ? t("providers.registered") : t("providers.notRegistered") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-fact td-fact-credential", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dt", { className: "td-fact-label", children: t("providers.credentials") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("dd", { className: "td-fact-value td-credential", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-credential-state", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                Dot,
+                {
+                  tone: keyConfigured ? "ok" : "error",
+                  label: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing")
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: keyConfigured ? "td-tone-ok" : "td-tone-error", children: keyConfigured ? t("providers.keyConfigured") : t("providers.keyMissing") })
+            ] }),
+            masked !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-credential-mask td-mono td-ellipsis", translate: "no", title: masked, children: masked }) : null,
+            credentialRef !== null || keySource !== null || isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-credential-meta", children: [
+              credentialRef !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-credential-ref", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-mono", translate: "no", children: t("providers.credentialRef", { ref: credentialRef }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  CopyButton,
+                  {
+                    value: credentialRef,
+                    label: t("actions.copyCredentialRef"),
+                    copiedLabel: t("actions.copied"),
+                    className: "td-copy-sm"
+                  }
+                )
+              ] }) : null,
+              keySource !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("providers.keySource", { source: keySource }) }) : null,
+              isAccountRoute ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: t("providers.accountRoute") }) : null
+            ] }) : null
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-fact td-fact-site", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dt", { className: "td-fact-label", children: t("providers.site") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("dd", { className: "td-fact-value", children: site !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-site-value", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+              "a",
+              {
+                className: "td-site-link",
+                href: site,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                title: site,
+                "aria-label": t("providers.siteOpenAria", { provider: displayName, site: siteLabel }),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-site-url", translate: "no", children: siteLabel }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-site-arrow", "aria-hidden": "true", children: "\u2197" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                ref: siteTriggerRef,
+                className: "td-text-button",
+                "aria-label": t("providers.siteEditAria", { provider: displayName }),
+                "aria-expanded": siteEditing,
+                "aria-controls": siteEditing ? siteInputId : void 0,
+                onClick: beginSiteEdit,
+                children: t("providers.siteEdit")
+              }
+            )
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-site-value", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-tone-muted", children: t("providers.siteNotSet") }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "button",
+              {
+                type: "button",
+                ref: siteTriggerRef,
+                className: "td-text-button",
+                "aria-expanded": siteEditing,
+                "aria-controls": siteEditing ? siteInputId : void 0,
+                onClick: beginSiteEdit,
+                children: t("providers.siteAdd")
+              }
+            )
+          ] }) })
+        ] })
       ] }),
+      siteEditing ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("form", { className: "td-site-editor", onSubmit: submitSite, noValidate: true, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-site-editor-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { className: "td-site-editor-label", htmlFor: siteInputId, children: t("providers.site") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "input",
+            {
+              id: siteInputId,
+              ref: siteInputRef,
+              className: "td-input td-mono",
+              type: "url",
+              name: "provider-site",
+              inputMode: "url",
+              autoComplete: "url",
+              spellCheck: false,
+              placeholder: t("providers.sitePlaceholder"),
+              value: siteDraft,
+              disabled: siteBusy !== null,
+              onChange: (event) => {
+                setSiteDraft(event.target.value);
+                setSiteClearConfirm(false);
+                if (siteError !== null) setSiteError(null);
+              },
+              onKeyDown: (event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelSiteEdit();
+                }
+              },
+              "aria-invalid": siteError !== null,
+              "aria-describedby": siteError !== null ? `${siteInputId}-error` : `${siteInputId}-hint`
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-site-editor-hint", id: `${siteInputId}-hint`, children: t("providers.siteHint") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-site-editor-actions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "submit", className: "td-button td-button-small td-button-primary", disabled: siteBusy !== null, children: siteBusy === "save" ? t("providers.edit.saving") : t("providers.edit.save") }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-button td-button-small td-button-ghost",
+              disabled: siteBusy !== null,
+              onClick: cancelSiteEdit,
+              children: t("actions.cancel")
+            }
+          ),
+          site !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "td-text-button td-site-clear",
+              disabled: siteBusy !== null,
+              onClick: clearSite,
+              children: siteBusy === "clear" ? t("actions.clearing") : siteClearConfirm ? t("providers.edit.apiKeyClearConfirm") : t("actions.clear")
+            }
+          ) : null
+        ] }),
+        siteError !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-site-editor-error", id: `${siteInputId}-error`, role: "alert", children: siteError }) : null
+      ] }) : null,
       notes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("ul", { className: "td-notes", children: notes.map((note, noteIndex) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("li", { className: "td-note", children: noteText(t, note) }, `${String(note)}-${noteIndex}`)) }) : null,
       saveError !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "td-inline-error", role: "alert", children: t("errors.save", { message: saveError }) }) : null,
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-models", children: [
@@ -5622,40 +6130,47 @@ function ModelRow({ model, t, isDefault, saving, disabled, onSelect, routeActive
   const results = probe !== null && probe.phase === "done" && Array.isArray(probe.report?.results) ? probe.report.results : [];
   const outcomeParts = probeOutcomeText(probe, t);
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("li", { className: "td-model-row", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-model-main", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", translate: "no", children: model?.name ?? model?.id ?? "\u2014" }),
-      typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-id td-mono", translate: "no", children: model.id }) : null
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-model-head", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-model-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-name", translate: "no", children: model?.name ?? model?.id ?? "\u2014" }),
+        typeof model?.id === "string" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-id td-mono", translate: "no", children: model.id }) : null
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-model-context", children: contextWindow !== null ? t("providers.contextWindow", { value: formatTokens(contextWindow) }) : null }),
+      isDefault ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { tone: "brand", children: t("actions.currentDefault") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        "button",
+        {
+          type: "button",
+          className: "td-button td-button-small td-button-secondary td-model-action",
+          disabled: saving || disabled,
+          title: !routeActive && !saving ? t("providers.readonlyRouteHint") : void 0,
+          onClick: onSelect,
+          children: saving ? t("actions.saving") : t("actions.setDefault")
+        }
+      )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-model-context", children: contextWindow !== null ? t("providers.contextWindow", { value: formatTokens(contextWindow) }) : null }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-chips", translate: "no", children: [
-      efforts.slice(0, 4).map((effort) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: String(effort) }, String(effort))),
-      extra > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Chip, { children: [
-        "+",
-        extra
-      ] }) : null
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-model-efforts", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-model-effort-label", children: t("providers.reasoningLevels") }),
+      efforts.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "td-chips", translate: "no", children: [
+          efforts.slice(0, 4).map((effort) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Chip, { children: String(effort) }, String(effort))),
+          extra > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Chip, { children: [
+            "+",
+            extra
+          ] }) : null
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "td-text-button td-model-probe",
+            disabled: !canProbe,
+            title: probeHint,
+            onClick: onProbe,
+            children: probing ? t("actions.testingEfforts") : t("actions.testEfforts")
+          }
+        )
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("providers.noReasoningLevels") })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-      "button",
-      {
-        type: "button",
-        className: "td-button td-button-small td-button-secondary td-model-probe",
-        disabled: !canProbe,
-        title: probeHint,
-        onClick: onProbe,
-        children: probing ? t("actions.testingEfforts") : t("actions.testEfforts")
-      }
-    ),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-      "button",
-      {
-        type: "button",
-        className: "td-button td-button-small td-button-secondary td-model-action",
-        disabled: isDefault || saving || disabled,
-        title: disabled && !saving && !isDefault ? t("providers.readonlyRouteHint") : void 0,
-        onClick: onSelect,
-        children: saving ? t("actions.saving") : isDefault ? t("actions.currentDefault") : t("actions.setDefault")
-      }
-    ),
     probe !== null ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "td-effort-result", role: "status", children: [
       probe.phase === "error" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption td-tone-error", children: t("providers.effortsProbeError", { message: errorText(probe.error) }) }) : null,
       probe.phase === "running" ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "td-caption", children: t("actions.testingEfforts") }) : null,
@@ -6383,6 +6898,8 @@ var zh = {
   "actions.currentDefault": "\u5F53\u524D\u9ED8\u8BA4",
   "actions.cancel": "\u53D6\u6D88",
   "actions.editProvider": "\u7F16\u8F91",
+  "actions.clear": "\u6E05\u9664",
+  "actions.clearing": "\u6E05\u9664\u4E2D\u2026",
   "actions.copyEndpoint": "\u590D\u5236\u63A5\u5165\u5730\u5740",
   "actions.copyCredentialRef": "\u590D\u5236\u51ED\u636E\u5F15\u7528",
   "actions.copyModelId": "\u590D\u5236\u6A21\u578B ID",
@@ -6475,14 +6992,18 @@ var zh = {
   "providers.default": "\u9ED8\u8BA4",
   "providers.registered": "\u5DF2\u6CE8\u518C",
   "providers.notRegistered": "\u672A\u6CE8\u518C",
+  "providers.route": "\u8DEF\u7531\u72B6\u6001",
   "providers.protocol": "\u534F\u8BAE",
   "providers.baseUrl": "\u63A5\u5165\u5730\u5740",
   "providers.credentials": "\u51ED\u636E",
   "providers.keyConfigured": "\u5BC6\u94A5\u5DF2\u914D\u7F6E",
   "providers.keyMissing": "\u5BC6\u94A5\u672A\u914D\u7F6E",
   "providers.keySource": "\u6765\u6E90 {source}",
-  "providers.credentialRef": "\u51ED\u636E\u5F15\u7528 {ref}",
+  "providers.credentialRef": "\u5F15\u7528 {ref}",
   "providers.source.environment": "\u73AF\u5883\u53D8\u91CF",
+  "providers.source.userEnvironment": "\u7528\u6237\u73AF\u5883\u53D8\u91CF",
+  "providers.source.projectEnvironment": "\u9879\u76EE\u73AF\u5883\u53D8\u91CF",
+  "providers.source.file": "\u672C\u5730\u51ED\u636E\u6587\u4EF6",
   "providers.source.account": "\u8D26\u6237\u767B\u5F55",
   "providers.source.stored": "\u5DF2\u5B58\u50A8",
   "providers.source.api-key": "\u5DF2\u5B58\u50A8\u7684\u5BC6\u94A5",
@@ -6498,6 +7019,18 @@ var zh = {
   "providers.accountManaged": "\u7531\u8D26\u6237\u767B\u5F55\u7BA1\u7406",
   "providers.editProviderAria": "\u7F16\u8F91 {provider} \u7684\u914D\u7F6E",
   "providers.contextWindow": "\u4E0A\u4E0B\u6587 {value}",
+  "providers.reasoningLevels": "\u63A8\u7406\u6863\u4F4D",
+  "providers.noReasoningLevels": "\u672A\u58F0\u660E",
+  "providers.site": "\u5B98\u7F51",
+  "providers.siteNotSet": "\u672A\u8BBE\u7F6E",
+  "providers.siteAdd": "\u6DFB\u52A0\u5B98\u7F51",
+  "providers.siteEdit": "\u7F16\u8F91\u5B98\u7F51",
+  "providers.siteEditAria": "\u7F16\u8F91 {provider} \u7684\u5B98\u7F51",
+  "providers.siteOpenAria": "\u5728\u9ED8\u8BA4\u6D4F\u89C8\u5668\u4E2D\u6253\u5F00 {provider} \u7684\u5B98\u7F51\uFF1A{site}",
+  "providers.siteInvalid": "\u8BF7\u8F93\u5165\u4EE5 http:// \u6216 https:// \u5F00\u5934\u7684\u5B8C\u6574\u5730\u5740\u3002",
+  "providers.sitePlaceholder": "https://platform.deepseek.com",
+  "providers.siteHint": "\u5B8C\u6574 http(s) \u5730\u5740\uFF1B\u70B9\u51FB\u94FE\u63A5\u4F1A\u5728\u9ED8\u8BA4\u6D4F\u89C8\u5668\u4E2D\u6253\u5F00\u3002",
+  "providers.siteWriteFailed": "\u5B98\u7F51\u4FDD\u5B58\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
   "providers.note.dormant": "\u4F11\u7720\uFF08\u914D\u7F6E\u6587\u4EF6\u672A\u58F0\u660E\uFF09",
   "providers.note.key-missing": "\u7F3A\u5C11\u5BC6\u94A5",
   "providers.note.models-unavailable": "\u6A21\u578B\u5217\u8868\u4E0D\u53EF\u7528",
@@ -6719,6 +7252,8 @@ var en = {
   "actions.currentDefault": "Current default",
   "actions.cancel": "Cancel",
   "actions.editProvider": "Edit",
+  "actions.clear": "Clear",
+  "actions.clearing": "Clearing\u2026",
   "actions.copyEndpoint": "Copy endpoint",
   "actions.copyCredentialRef": "Copy credential reference",
   "actions.copyModelId": "Copy model ID",
@@ -6811,14 +7346,18 @@ var en = {
   "providers.default": "Default",
   "providers.registered": "Registered",
   "providers.notRegistered": "Not registered",
+  "providers.route": "Route",
   "providers.protocol": "Protocol",
   "providers.baseUrl": "Endpoint",
   "providers.credentials": "Credentials",
   "providers.keyConfigured": "Key configured",
   "providers.keyMissing": "No API key",
   "providers.keySource": "Source {source}",
-  "providers.credentialRef": "Credential ref {ref}",
+  "providers.credentialRef": "Ref {ref}",
   "providers.source.environment": "environment",
+  "providers.source.userEnvironment": "user environment",
+  "providers.source.projectEnvironment": "project environment",
+  "providers.source.file": "local credential file",
   "providers.source.account": "account sign-in",
   "providers.source.stored": "stored",
   "providers.source.api-key": "stored key",
@@ -6834,6 +7373,18 @@ var en = {
   "providers.accountManaged": "Managed by the account sign-in",
   "providers.editProviderAria": "Edit the {provider} configuration",
   "providers.contextWindow": "{value} context",
+  "providers.reasoningLevels": "Reasoning levels",
+  "providers.noReasoningLevels": "None declared",
+  "providers.site": "Website",
+  "providers.siteNotSet": "Not set",
+  "providers.siteAdd": "Add website",
+  "providers.siteEdit": "Edit website",
+  "providers.siteEditAria": "Edit the {provider} website",
+  "providers.siteOpenAria": "Open the {provider} website in the default browser: {site}",
+  "providers.siteInvalid": "Enter a full URL starting with http:// or https://.",
+  "providers.sitePlaceholder": "https://platform.deepseek.com",
+  "providers.siteHint": "A full http(s) URL; the link opens in your default browser.",
+  "providers.siteWriteFailed": "Could not save the website; try again.",
   "providers.note.dormant": "Dormant (not declared in the profile)",
   "providers.note.key-missing": "Missing API key",
   "providers.note.models-unavailable": "Model list unavailable",

@@ -120,6 +120,14 @@ export function saveDefaultModel(selection, options) {
 }
 
 /**
+ * Store or clear one provider's official website link.
+ * @param {{providerId: string, url: string}} payload - the link; a blank url clears it.
+ */
+export function saveProviderSite(payload, options) {
+  return call('set-provider-site', payload, options);
+}
+
+/**
  * Ask the Host to rescan session logs for token usage.
  * @param {{ full?: boolean }} request - discard the cache and refold from zero.
  */
